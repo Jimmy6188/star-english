@@ -1,4 +1,4 @@
-# 星际英语站 🚀
+# 星际求知号 🚀
 
 **在线地址：https://jimmy6188.github.io/star-english/** （GitHub Pages，平板/手机直接打开后"添加到主屏幕"即可全屏离线使用）
 

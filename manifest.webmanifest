@@ -1,7 +1,7 @@
 {
-  "name": "星际英语站",
-  "short_name": "星际英语",
-  "description": "孩子的星际英语学习站：打卡、拼词、收集星际贴纸、养成机器伙伴",
+  "name": "星际求知号",
+  "short_name": "求知号",
+  "description": "孩子的星际英语学习站：多学科学习飞船：英语、数学、语文打卡闯关、收集养成",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
