@@ -1,5 +1,5 @@
 /* 星际求知号 - 离线缓存（仅在 http(s) 环境生效） */
-const CACHE = 'star-english-v12';
+const CACHE = 'star-english-v13';
 const ASSETS = [
   './',
   './index.html',

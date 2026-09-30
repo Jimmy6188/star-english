@@ -29,7 +29,7 @@ const Store = (() => {
       settings: { dailyNew: 4, dailyReview: 10, sessionLimitMin: 20, soundOff: false, pin: '1234', activePacks: null, grade: 4, range: 'below', warmupPerDay: 1 },
       coins: 0,
       pet: { name: '小星', fed: 0 },
-      streak: { count: 0, lastDone: null, shields: 2, shieldWeek: null },
+      streak: { count: 0, best: 0, lastDone: null, shields: 2, shieldWeek: null },
       srs: {},        // id -> {box, due, ok, bad, wrongStreak, learnedAt}
       album: {},      // id -> {at, gold}
       today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0 },
@@ -72,6 +72,7 @@ const Store = (() => {
     if (!state.stats) state.stats = { drillsDone: 0 };
     if (state.today && state.today.mistakes === undefined) state.today.mistakes = 0;
     if (state.settings.warmupPerDay === undefined) state.settings.warmupPerDay = 1;
+    if (state.streak.best === undefined) state.streak.best = state.streak.count || 0;
     if (!state.settings.eco2) {
       state.settings.eco2 = true;
       if (state.pet.fed >= 30) state.pet.fed = Math.max(state.pet.fed, 60); // 旧满级机甲伙伴保级
@@ -296,6 +297,7 @@ const Store = (() => {
     if (st.lastDone === t) { /* 今天已完成过 */ }
     else if (st.lastDone && diffDays(st.lastDone, t) === 1) st.count++;
     else st.count = 1;
+    st.best = Math.max(st.best || 0, st.count);
     st.lastDone = t;
     state.history[t] = { done: true, minutes: state.today.minutes, news: state.today.newDone, revs: state.today.revDone };
     checkBadges();

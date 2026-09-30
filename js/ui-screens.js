@@ -135,6 +135,10 @@ function renderHome() {
   /* 语文星系卡 */
   if (typeof Chinese !== 'undefined') Chinese.renderHomeCard();
 
+  /* 成长足迹卡 */
+  const growSlot = $('#growth-slot');
+  if (growSlot) renderGrowthCard(growSlot);
+
   /* 兑换商店卡（家长定义了奖励才显示） */
   const shopSlot = $('#shop-slot');
   if (shopSlot) {
@@ -877,4 +881,142 @@ function vocabCurve(days = 14) {
   let back = 0;
   for (let i = arr.length - 1; i >= 0; i--) { arr[i].cum = total - back; back += arr[i].news; }
   return arr.map(x => Math.max(0, x.cum));
+}
+
+
+/* ============================================================
+ * 🏅 成长足迹：把数据翻译成孩子的语言
+ * 头条播报（夸努力与进步）+ 本周航行格 + 下一个够得着的目标
+ * ============================================================ */
+function mondayOf(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x;
+}
+function dsOf(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function weekWordDelta() {
+  const s = Store.state;
+  const now = new Date();
+  const thisMon = dsOf(mondayOf(now));
+  const lastMon = dsOf(new Date(mondayOf(now).getTime() - 7 * 86400000));
+  let thisW = 0, lastW = 0;
+  Object.values(s.srs).forEach(rec => {
+    if (!rec.learnedAt) return;
+    if (rec.learnedAt >= thisMon) thisW++;
+    else if (rec.learnedAt >= lastMon) lastW++;
+  });
+  return { thisW, lastW };
+}
+
+function growthHeadline() {
+  const s = Store.state;
+  const runs = s.math.runs || [];
+  if (runs.length >= 2 && runs[runs.length - 1].correct > runs[runs.length - 2].correct) {
+    return `📣 口算新纪录！最近一次答对 ${runs[runs.length - 1].correct} 题`;
+  }
+  const { thisW, lastW } = weekWordDelta();
+  if (thisW > 0 && thisW > lastW) return `📣 你这周学会了 ${thisW} 个新词，比上周多了 ${thisW - lastW} 个！`;
+  if (thisW > 0) return `📣 你这周已经学会了 ${thisW} 个新词！`;
+  if (s.streak.count >= 2) return `📣 已经连续航行 ${s.streak.count} 天，坚持就是超能力！`;
+  return `📣 今天也出发吧，去点亮第一颗星！`;
+}
+
+function nextGoal() {
+  const s = Store.state;
+  const cands = [];
+  const g = s.math.goodRuns || 0;
+  const need = g % 2 === 0 ? 1 : 2;
+  cands.push({
+    name: `再完成 ${need} 次达标冲刺（答对 ≥10 题），点亮新行星！`,
+    prog: (g % 2) / 2
+  });
+  const stars = Object.keys(s.chinese.stars).length;
+  if (stars < CN_POEMS.length) cands.push({ name: `诗词星图再点亮 ${CN_POEMS.length - stars} 首就集齐啦！`, prog: stars / CN_POEMS.length });
+  const reads = s.chinese.reads.length;
+  if (reads < CN_READINGS.length) cands.push({ name: `阅读训练营还剩 ${CN_READINGS.length - reads} 篇等你探索！`, prog: reads / CN_READINGS.length });
+  const learned = Object.keys(s.srs).filter(id => Store.findWord(id)).length;
+  const nextWords = [10, 50, 100].find(t => learned < t);
+  if (nextWords) cands.push({ name: `再学会 ${nextWords - learned} 个词，赢得新徽章！`, prog: learned / nextWords });
+  cands.push({
+    name: '完成今日冒险，盖章领金币！',
+    prog: Math.min(1, (s.today.newDone + s.today.revDone) / Math.max(1, s.settings.dailyNew + s.settings.dailyReview))
+  });
+  return cands.sort((a, b) => b.prog - a.prog)[0];
+}
+
+function renderGrowthCard(slot) {
+  const s = Store.state;
+  const mon = mondayOf(new Date());
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const cells = [];
+  for (let i = 0; i < 7; i++) {
+    const ds = dsOf(new Date(mon.getTime() + i * 86400000));
+    const done = s.history[ds] && s.history[ds].done;
+    cells.push(h('div', { class: 'wk-cell' + (done ? ' on' : '') + (i > todayIdx ? ' future' : '') },
+      done ? '●' : (i > todayIdx ? '' : '○')));
+  }
+  const learned = Object.keys(s.srs).filter(id => Store.findWord(id)).length;
+  const weakN = Store.weakList(99).length;
+  const goal = nextGoal();
+  slot.innerHTML = '';
+  slot.appendChild(h('div', { class: 'card growth-card', onclick: () => { Sound.tap(); openFootprint(); } },
+    h('div', { class: 'growth-head' },
+      h('span', { style: 'font-weight:800' }, '🏅 成长足迹'),
+      h('span', { class: 'tiny', style: 'cursor:pointer' }, '详情 ›')
+    ),
+    h('div', { class: 'growth-headline' }, growthHeadline()),
+    h('div', { class: 'wk-row' },
+      h('span', { class: 'tiny' }, '本周航行'),
+      h('div', { class: 'wk-cells' }, cells)
+    ),
+    h('div', { class: 'growth-stats' },
+      h('span', {}, `📈 词汇量 ${learned}`),
+      weakN ? h('span', {}, `⚡ 待消灭 ${weakN}`) : h('span', { style: 'color:#58e08a' }, '✅ 错词清零'),
+    ),
+    h('div', { class: 'growth-goal' },
+      h('div', { class: 'tiny' }, `🎯 ${goal.name}`),
+      h('div', { class: 'bar slim', style: 'margin-top:4px' }, h('i', { style: 'width:' + Math.round(goal.prog * 100) + '%' }))
+    )
+  ));
+}
+
+function openFootprint() {
+  const s = Store.state;
+  const weeks = [];
+  const thisMon = mondayOf(new Date());
+  for (let w = 3; w >= 0; w--) {
+    const mon = new Date(thisMon.getTime() - w * 7 * 86400000);
+    const cells = [];
+    for (let i = 0; i < 7; i++) {
+      const ds = dsOf(new Date(mon.getTime() + i * 86400000));
+      const done = s.history[ds] && s.history[ds].done;
+      cells.push(h('div', { class: 'wk-cell' + (done ? ' on' : '') + (w === 0 && i > (new Date().getDay() + 6) % 7 ? ' future' : '') },
+        done ? '●' : '·'));
+    }
+    weeks.push(h('div', { class: 'wk-row' },
+      h('span', { class: 'tiny' }, w === 0 ? '本周' : `${mon.getMonth() + 1}/${mon.getDate()} 起`),
+      h('div', { class: 'wk-cells' }, cells)
+    ));
+  }
+  const c = Store.state.chinese;
+  showModal({
+    title: '🏅 我的成长足迹',
+    build(el) {
+      el.appendChild(h('div', { class: 'card', style: 'padding:12px;margin-bottom:10px' }, weeks));
+      el.appendChild(h('div', { class: 'stat-grid' },
+        statBox('词汇量', Object.keys(s.srs).filter(id => Store.findWord(id)).length + ' 个'),
+        statBox('诗词星图', `${Object.keys(c.stars).length}/${CN_POEMS.length}`),
+        statBox('阅读探索', `${c.reads.length}/${CN_READINGS.length}`),
+        statBox('口算最佳', (s.math.best || 0) + ' 题/轮'),
+        statBox('点亮行星', (s.math.planets || 0) + '/10'),
+        statBox('最长连航', (s.streak.best || 0) + ' 天')
+      ));
+      el.appendChild(h('div', { class: 'tiny', style: 'margin-top:10px' }, '每完成一次打卡，就多一格航行灯；集齐星图和行星，还会有神秘徽章等你！'));
+    },
+    actions: [{ label: '继续加油！', cls: 'btn-main' }]
+  });
 }
