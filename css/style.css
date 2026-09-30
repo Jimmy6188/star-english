@@ -524,3 +524,24 @@ select.input.num { width: auto; min-width: 130px; }
 .math-opt { font-size: 26px; font-weight: 900; padding: 18px 8px; border-radius: 16px; background: rgba(255, 255, 255, 0.07); border: 2px solid rgba(255, 255, 255, 0.14); color: #eaf2ff; cursor: pointer; font-family: inherit; }
 .math-opt:active { transform: scale(.97); }
 .math-opt.wrong { border-color: #ff5d73; background: rgba(255, 93, 115, .15); }
+
+/* ---------- 数学练习场 ---------- */
+.drill-card { text-align: center; }
+.drill-tag { color: #7d6bff; font-weight: 800; letter-spacing: 2px; font-size: 13px; }
+.drill-text { font-size: 19px; line-height: 1.8; margin: 10px 4px 14px; color: #eaf2ff; font-weight: 600; }
+.drill-input {
+  font-size: 34px; font-weight: 900; color: #4fd1ff;
+  border-bottom: 3px solid #4fd1ff; min-width: 140px; display: inline-block;
+  padding: 2px 14px; margin-bottom: 14px; letter-spacing: 3px; min-height: 44px;
+}
+.drill-input.filled { color: #ffcf5c; border-color: #ffcf5c; }
+.drill-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 320px; margin: 0 auto; }
+.drill-key {
+  font-size: 24px; font-weight: 900; padding: 14px 0;
+  border-radius: 14px; background: linear-gradient(180deg, #33406b, #222c4e);
+  border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 4px 0 #131a30;
+  color: #fff; cursor: pointer; font-family: inherit;
+}
+.drill-key:active { transform: translateY(3px); box-shadow: none; }
+.drill-key.wide { grid-column: span 2; }
+.drill-key.ok { background: linear-gradient(135deg, #35c3ff, #4f7cff); border: none; }

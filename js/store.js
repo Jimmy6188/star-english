@@ -42,7 +42,7 @@ const Store = (() => {
       pendingBadges: [],     // 待展示的徽章 id 队列
       dictations: [],        // 听写测验记录 {at, correct, total}
       spoken: {},            // 跟读过的词 id -> 日期（奖励每词一次）
-      math: { wrong: [], best: 0, runs: [], planets: 0, goodRuns: 0, level: 2, seconds: 60 },
+      math: { wrong: [], wrongP: [], best: 0, runs: [], planets: 0, goodRuns: 0, level: 2, seconds: 60 },
       stats: { drillsDone: 0 }
     };
   }
@@ -57,6 +57,7 @@ const Store = (() => {
     if (!state.spoken) state.spoken = {};
     if (!state.math) state.math = { wrong: [], best: 0, runs: [], planets: 0, goodRuns: 0, level: 2, seconds: 60 };
     if (state.math.wrong === undefined) state.math.wrong = [];
+    if (state.math.wrongP === undefined) state.math.wrongP = [];
     if (state.math.level === undefined) state.math.level = 2;
     if (state.math.seconds === undefined) state.math.seconds = 60;
     if (!state.stats) state.stats = { drillsDone: 0 };
@@ -382,6 +383,17 @@ const Store = (() => {
     return { coinsGain, planetLit, planets: m.planets || 0, isNewBest };
   }
   function setMath(k, v) { state.math[k] = v; save(); }
+  function addPracticeWrong(item) {
+    const m = state.math;
+    if (m.wrongP.some(x => x.q === item.q)) return;
+    m.wrongP.push({ q: item.text, a: item.ans, tip: item.tip || '' });
+    if (m.wrongP.length > 20) m.wrongP = m.wrongP.slice(-20);
+    save();
+  }
+  function clearPracticeWrong(q) {
+    state.math.wrongP = state.math.wrongP.filter(x => x.q !== q);
+    save();
+  }
 
   /* 跟读奖励：每个词只奖一次 +3 金币 */
   function markSpoken(id) {
@@ -466,7 +478,7 @@ const Store = (() => {
     isWeak, weakList, addCoins,
     rankInfo, checkRank, learnedCount, bossInfo, bossComplete,
     addMistake, markEnglishDone, checkBadges, popPendingBadge, noteDictation, markDrillDone, markSpoken,
-    addMathWrong, clearMathWrong, finishMathRun, setMath,
+    addMathWrong, clearMathWrong, finishMathRun, setMath, addPracticeWrong, clearPracticeWrong,
     petStage, feedPet, setSetting,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,

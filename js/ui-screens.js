@@ -124,7 +124,10 @@ function renderHome() {
           h('div', { style: 'font-weight:800' }, '数学星系 · 限时口算'),
           h('div', { class: 'tiny' }, `${planets || '尚未点亮行星'} · 最佳 ${m.best || 0} 题/轮${s.today.mathDone ? ' · 今日已冲刺 ✅' : ''}`)
         ),
-        h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); MathSprint.start(); } }, s.today.mathDone ? '再来一轮' : '开始冲刺')
+        h('div', { style: 'display:flex;flex-direction:column;gap:6px' },
+          h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); MathSprint.start(); } }, s.today.mathDone ? '再冲刺' : '冲刺'),
+          h('button', { class: 'btn small', onclick: () => { Sound.tap(); MathDrill.start(); } }, '📐 练习场')
+        )
       )
     ));
   }

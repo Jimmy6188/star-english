@@ -218,3 +218,161 @@ const MathSprint = {
     }, 300);
   }
 };
+
+
+/* ============================================================
+ * 数学练习场：笔算 + 应用题（数字键盘作答，不限时，重准确率）
+ * 错题进练习错题池，下次练习优先重练；不计打卡，答对赚金币
+ * ============================================================ */
+const MathDrill = {
+  items: [], idx: 0, correct: 0, input: '',
+  names: ['小宇', '小明', '小红', '乐乐', '朵朵', '爸爸', '王老师'],
+  goods: [
+    { g: '彩笔', unit: '盒', per: '每盒' },
+    { g: '笔记本', unit: '本', per: '每本' },
+    { g: '气球', unit: '个', per: '每个' },
+    { g: '贴纸', unit: '张', per: '每张' },
+    { g: '饼干', unit: '包', per: '每包' },
+    { g: '魔方', unit: '个', per: '每个' },
+    { g: '跳绳', unit: '根', per: '每根' },
+    { g: '橡皮', unit: '块', per: '每块' }
+  ],
+
+  pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
+  r(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); },
+
+  gen() {
+    const r = this.r.bind(this), type = this.pick(['mul', 'div', 'app-price', 'app-qty', 'app-speed', 'app-times']);
+    if (type === 'mul') {
+      const a = r(102, 989), b = r(11, 29);
+      return { kind: 'calc', text: `用竖式算：${a} × ${b}`, ans: a * b, tip: `${a} × ${b} = ${a * b}` };
+    }
+    if (type === 'div') {
+      const b = r(12, 49), c = r(11, 89);
+      return { kind: 'calc', text: `用竖式算：${b * c} ÷ ${b}`, ans: c, tip: `${b * c} ÷ ${b} = ${c}` };
+    }
+    const name = this.pick(this.names);
+    if (type === 'app-price') {
+      const n = r(3, 12), p = r(3, 15), g = this.pick(this.goods);
+      return { kind: 'app', text: `${name}买了 ${n} ${g.unit}${g.g}，${g.per} ${p} 元，一共要付多少元？`, ans: n * p, tip: `${n} × ${p} = ${n * p}（元）` };
+    }
+    if (type === 'app-qty') {
+      const p = r(4, 15), c = r(3, 12), g = this.pick(this.goods);
+      return { kind: 'app', text: `${name}有 ${p * c} 元，${g.g}${g.per} ${p} 元，最多能买多少 ${g.unit}？`, ans: c, tip: `${p * c} ÷ ${p} = ${c}（${g.unit}）` };
+    }
+    if (type === 'app-speed') {
+      const v = r(6, 40) * 5, t = r(4, 12);
+      return { kind: 'app', text: `${name}骑自行车每分钟行 ${v} 米，照这样的速度，${t} 分钟能行多少米？`, ans: v * t, tip: `${v} × ${t} = ${v * t}（米）` };
+    }
+    const a = r(12, 60), k = r(2, 5);
+    return { kind: 'app', text: `果园里有 ${a} 棵苹果树，梨树的棵数是苹果树的 ${k} 倍，梨树有多少棵？`, ans: a * k, tip: `${a} × ${k} = ${a * k}（棵）` };
+  },
+
+  start() {
+    Sound.stopSpeak();
+    const wrongP = (Store.state.math.wrongP || []).slice();
+    const items = shuffle(wrongP).slice(0, 2).map(x => ({ kind: 'app', text: x.q, ans: x.a, tip: x.tip, fromWrong: true }));
+    while (items.length < 5) items.push(Object.assign(this.gen(), { fromWrong: false }));
+    this.items = items;
+    this.idx = 0;
+    this.correct = 0;
+    this.input = '';
+    showScreen('quest');
+    this.renderIntro();
+  },
+
+  renderIntro() {
+    const root = $('#quest-root');
+    root.innerHTML = '';
+    root.appendChild(h('div', { class: 'quest-top' },
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('div', { class: 'quest-prog' }, '📐 练习场')
+    ));
+    root.appendChild(h('div', { class: 'card quest-splash' },
+      h('div', { class: 'splash-rocket' }, '📐'),
+      h('div', { class: 'splash-title' }, '数学练习场'),
+      h('div', { class: 'splash-sub' }, `5 道题 · 笔算和应用题 · 不计时，答对每题 +5 🪙${this.items.some(i => i.fromWrong) ? ' · 含之前的错题' : ''}`),
+      h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.next(); } }, '开始 →')
+    ));
+  },
+
+  next() {
+    if (this.idx >= this.items.length) { this.finish(); return; }
+    const item = this.items[this.idx];
+    this.current = item;
+    this.input = '';
+    const root = $('#quest-root');
+    root.innerHTML = '';
+    root.appendChild(h('div', { class: 'quest-top' },
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('div', { class: 'quest-prog' }, `${this.idx + 1} / ${this.items.length}`)
+    ));
+    const inputEl = h('div', { class: 'drill-input' }, '_');
+    const refresh = () => {
+      inputEl.textContent = this.input === '' ? '_' : this.input;
+      inputEl.classList.toggle('filled', this.input !== '');
+    };
+    const key = d => {
+      Sound.tap();
+      if (d === 'del') this.input = this.input.slice(0, -1);
+      else if (d === 'ok') { this.check(item); return; }
+      else if (this.input.length < 7) this.input += d;
+      refresh();
+    };
+    const pad = h('div', { class: 'drill-pad' },
+      '1234567890'.split('').map(d => h('button', { class: 'drill-key', onclick: () => key(d) }, d)),
+      h('button', { class: 'drill-key wide', onclick: () => key('del') }, '⌫'),
+      h('button', { class: 'drill-key ok', onclick: () => key('ok') }, '✔')
+    );
+    root.appendChild(h('div', { class: 'card drill-card' },
+      h('div', { class: 'drill-tag' }, item.kind === 'app' ? '应用题' : '笔算题'),
+      h('div', { class: 'drill-text' }, item.text),
+      item.fromWrong ? h('div', { class: 'tiny center', style: 'margin-top:4px' }, '⚡ 之前的错题，消灭它！') : '',
+      inputEl,
+      pad
+    ));
+  },
+
+  check(item) {
+    const root = $('#quest-root');
+    const ok = this.input !== '' && parseInt(this.input, 10) === item.ans;
+    if (ok) {
+      this.correct++;
+      Store.addCoins(5);
+      Sound.correct();
+    } else {
+      Store.addPracticeWrong(item);
+      Sound.wrong();
+    }
+    root.innerHTML = '';
+    root.appendChild(h('div', { class: 'quest-top' },
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('div', { class: 'quest-prog' }, `${this.idx + 1} / ${this.items.length}`)
+    ));
+    root.appendChild(h('div', { class: 'card spell-card center' },
+      h('div', { class: 'intro-emoji', style: ok ? '' : 'filter:grayscale(1) opacity(.55)' }, item.kind === 'app' ? '📖' : '✖️'),
+      h('div', { class: 'mz-word' }, ok ? '答对了！+5 🪙' : '再看一遍'),
+      h('div', { class: 'drill-text', style: 'margin-top:8px' }, item.text),
+      h('div', { class: 'intro-zh', style: 'margin-top:8px' }, ok ? (item.tip || '') : `正确答案：${item.tip || item.ans}`),
+      h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.idx++; this.next(); } }, this.idx + 1 >= this.items.length ? '看成绩 →' : '下一题 →')
+    ));
+  },
+
+  finish() {
+    const root = $('#quest-root');
+    root.innerHTML = '';
+    const card = h('div', { class: 'card finish-card' },
+      h('div', { class: 'finish-stamp' }, '📐'),
+      h('div', { class: 'finish-title' }, `练习完成 ${this.correct}/${this.items.length}`),
+      h('div', { class: 'finish-sub' }, `获得 +${this.correct * 5} 🪙`),
+      h('div', { class: 'finish-pet' }, `“${rnd(PET_LINES.praise)}” —— ${Store.state.pet.name}`),
+      h('div', { class: 'row-gap' },
+        h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.start(); } }, '再来一组'),
+        h('button', { class: 'btn btn-main', style: 'flex:1', onclick: () => { showScreen('home'); renderHome(); } }, '返回空间站')
+      )
+    );
+    root.appendChild(card);
+    const c = centerOf($('.finish-stamp'));
+    burst(c.x, c.y, { count: 20, emojis: ['📐', '⭐', '✨'], power: 120 });
+  }
+};
