@@ -487,3 +487,24 @@ select.input.num { width: auto; min-width: 130px; }
 .tile.chunk { width: auto; min-width: 60px; padding: 0 14px; font-size: 15px; }
 .chunk-slots { row-gap: 8px; }
 .intro-word.phrase { font-size: 30px; letter-spacing: 1px; }
+
+/* ---------- 跟读舱 ---------- */
+.talk-panel { margin: 12px 0 2px; }
+.talk-btn {
+  width: 100%;
+  background: rgba(255, 107, 214, 0.12);
+  border-color: rgba(255, 107, 214, 0.45);
+  color: #ffb8e6;
+}
+.talk-rec-btn {
+  width: 84px; height: 84px; border-radius: 50%;
+  font-size: 14px; font-weight: 900; padding: 0;
+  background: linear-gradient(135deg, #ff6bd6, #ff9d3c);
+  border: none; color: #fff; cursor: pointer;
+}
+.talk-rec-btn.rec { background: linear-gradient(135deg, #ff5d73, #ff6bd6); animation: pulse 1s infinite; }
+.rec-timer { font-size: 18px; font-weight: 900; color: #ff8fab; margin-top: 6px; }
+.talk-compare { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.talk-play { width: 100%; }
+.talk-mine { width: 100%; max-width: 240px; height: 40px; }
+.talk-collapse { display: block; margin: 10px auto 0; background: transparent; border-style: dashed; }

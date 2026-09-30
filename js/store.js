@@ -41,6 +41,7 @@ const Store = (() => {
       badges: {},            // 徽章 id -> 获得日期
       pendingBadges: [],     // 待展示的徽章 id 队列
       dictations: [],        // 听写测验记录 {at, correct, total}
+      spoken: {},            // 跟读过的词 id -> 日期（奖励每词一次）
       stats: { drillsDone: 0 }
     };
   }
@@ -52,6 +53,7 @@ const Store = (() => {
     if (!state.badges) state.badges = {};
     if (!state.pendingBadges) state.pendingBadges = [];
     if (!state.dictations) state.dictations = [];
+    if (!state.spoken) state.spoken = {};
     if (!state.stats) state.stats = { drillsDone: 0 };
     if (state.today && state.today.mistakes === undefined) state.today.mistakes = 0;
     if (state.settings.warmupPerDay === undefined) state.settings.warmupPerDay = 1;
@@ -339,6 +341,15 @@ const Store = (() => {
     checkBadges();
     save();
   }
+  /* 跟读奖励：每个词只奖一次 +3 金币 */
+  function markSpoken(id) {
+    if (state.spoken[id]) return { first: false };
+    state.spoken[id] = todayStr();
+    state.coins += 3;
+    checkBadges();
+    save();
+    return { first: true };
+  }
   function markDrillDone() {
     state.stats.drillsDone = (state.stats.drillsDone || 0) + 1;
     checkBadges();
@@ -412,7 +423,7 @@ const Store = (() => {
     masterWord, reviewWord, addMinutes, completeQuest,
     isWeak, weakList, addCoins,
     rankInfo, checkRank, learnedCount, bossInfo, bossComplete,
-    addMistake, checkBadges, popPendingBadge, noteDictation, markDrillDone,
+    addMistake, checkBadges, popPendingBadge, noteDictation, markDrillDone, markSpoken,
     petStage, feedPet, setSetting,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,

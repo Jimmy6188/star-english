@@ -298,6 +298,8 @@ const ACHIEVEMENTS = [
     cond: s => Object.values(s.album).filter(a => a.gold).length >= 10 },
   { id: 'album-set',    emoji: '📀', name: '星系大满贯', desc: '集齐任意一个星系的全部贴纸',
     cond: (s, Store) => Store.allPacks().some(p => p.words.length >= 5 && p.words.every(w => s.album[w.word.toLowerCase()])) },
+  { id: 'first-speak',  emoji: '🎤', name: '开口之星',   desc: '第一次跟读录音',
+    cond: s => s.spoken && Object.keys(s.spoken).length >= 1 },
   { id: 'first-drill',  emoji: '⚡', name: '错词终结者', desc: '完成一次错词挑战',
     cond: s => (s.stats && s.stats.drillsDone) >= 1 },
   { id: 'first-dict',   emoji: '📝', name: '听写小能手', desc: '完成第一次听写小测验',

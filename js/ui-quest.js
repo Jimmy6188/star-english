@@ -298,6 +298,7 @@ const Quest = {
         h('span', {}, w.ex)
       ),
       h('div', { class: 'tiny intro-exzh' }, w.exZh),
+      buildSpeakPanel(w),
       h('button', {
         class: 'btn btn-main big',
         onclick: () => { Sound.tap(); w.phrase ? this.renderWordOrder(w, { isNew: true }) : this.renderSpelling(w, true); }
@@ -750,3 +751,138 @@ const Quest = {
     }, 300);
   }
 };
+
+
+/* ============================================================
+ * 跟读舱（方案A）：本地录音 → 与标准发音回放对比
+ * 录音即录即弃，不上传不保存；每词首次"读得像"奖励 +3 金币
+ * ============================================================ */
+function buildSpeakPanel(w) {
+  const id = w.word.toLowerCase();
+  const wrap = h('div', { class: 'talk-panel' });
+  let mediaStream = null, rec = null, chunks = [], mime = '', recUrl = null, timer = null, t0 = 0;
+
+  function pickMime() {
+    const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/mp4;codecs=aac', 'audio/aac'];
+    try {
+      return types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+    } catch (e) { return ''; }
+  }
+
+  async function openMic() {
+    if (mediaStream) return true;
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) return false;
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mime = pickMime();
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function closeMic() {
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  }
+
+  function renderIdle() {
+    wrap.innerHTML = '';
+    wrap.appendChild(h('button', { class: 'btn talk-btn', onclick: start }, '🎤 跟读试试'));
+  }
+
+  async function start() {
+    Sound.tap();
+    wrap.innerHTML = '';
+    wrap.appendChild(h('div', { class: 'tiny center', style: 'padding:8px' }, '🎙 正在打开麦克风…'));
+    const ok = await openMic();
+    if (!ok) {
+      wrap.innerHTML = '';
+      wrap.appendChild(h('div', { class: 'tiny center', style: 'padding:8px;line-height:1.7' },
+        '🎙 无法使用麦克风。请检查：浏览器是否允许本页使用麦克风；iPad 需在系统设置里允许；跟读功能需要 https 或 localhost 环境（网址收藏方式打开的本地文件不支持）。'));
+      wrap.appendChild(h('button', { class: 'btn small', style: 'margin-top:6px', onclick: () => { renderIdle(); } }, '返回'));
+      return;
+    }
+    renderReady();
+  }
+
+  function renderReady() {
+    wrap.innerHTML = '';
+    wrap.appendChild(h('div', { class: 'center' },
+      h('button', { class: 'btn talk-rec-btn', onclick: startRec }, '🎤 开始'),
+      h('div', { class: 'tiny', style: 'margin-top:6px' }, `点一下开始，大声读 "${w.word}"（最长 4 秒）`)
+    ));
+    wrap.appendChild(h('button', { class: 'btn small talk-collapse', onclick: () => { closeMic(); renderIdle(); } }, '收起'));
+  }
+
+  function startRec() {
+    chunks = [];
+    try {
+      rec = new MediaRecorder(mediaStream, mime ? { mimeType: mime } : undefined);
+    } catch (e) {
+      try { rec = new MediaRecorder(mediaStream); } catch (e2) { renderRecorded(null); return; }
+    }
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = onRecStop;
+    rec.start();
+    t0 = Date.now();
+    wrap.innerHTML = '';
+    const label = h('div', { class: 'rec-timer' }, '0.0s');
+    timer = setInterval(() => {
+      label.textContent = ((Date.now() - t0) / 1000).toFixed(1) + 's';
+      if (Date.now() - t0 >= 4000) stopRec();
+    }, 100);
+    wrap.appendChild(h('div', { class: 'center' },
+      h('button', { class: 'btn talk-rec-btn rec', onclick: stopRec }, '⏹ 停止'),
+      label
+    ));
+  }
+
+  function stopRec() {
+    clearInterval(timer);
+    try { if (rec && rec.state !== 'inactive') rec.stop(); }
+    catch (e) { renderRecorded(null); }
+  }
+
+  function onRecStop() {
+    closeMic();
+    let url = null;
+    try {
+      const blob = new Blob(chunks, { type: mime || 'audio/webm' });
+      if (recUrl) URL.revokeObjectURL(recUrl);
+      recUrl = URL.createObjectURL(blob);
+      url = recUrl;
+    } catch (e) { url = null; }
+    renderRecorded(url);
+  }
+
+  function renderRecorded(url) {
+    wrap.innerHTML = '';
+    if (!url) {
+      wrap.appendChild(h('div', { class: 'tiny center', style: 'padding:8px' }, '录音失败了，再试一次吧'));
+      wrap.appendChild(h('button', { class: 'btn small', onclick: renderReady }, '重录'));
+      return;
+    }
+    wrap.appendChild(h('div', { class: 'talk-compare' },
+      h('button', { class: 'btn talk-play', onclick: () => Sound.speak(w.word) }, '🔊 听标准发音'),
+      h('audio', { controls: '', src: url, class: 'talk-mine' })
+    ));
+    wrap.appendChild(h('div', { class: 'row-gap center', style: 'justify-content:center' },
+      h('button', { class: 'btn small', onclick: renderReady }, '🔄 再录一次'),
+      h('button', {
+        class: 'btn small btn-on',
+        onclick: e => {
+          const r = Store.markSpoken(id);
+          if (r.first) {
+            Sound.coin();
+            const c = centerOf(e.currentTarget);
+            burst(c.x, c.y, { count: 8, emojis: ['🎤', '⭐'], power: 60 });
+            floatText(c.x, c.y - 16, '+3 🪙');
+          } else Sound.correct();
+          e.currentTarget.textContent = r.first ? '👍 太棒了！+3 🪙' : '👍 读得像！';
+          e.currentTarget.disabled = true;
+        }
+      }, '👍 读得像！')
+    ));
+  }
+
+  renderIdle();
+  return wrap;
+}
