@@ -1,5 +1,5 @@
 /* 星际英语站 - 离线缓存（仅在 http(s) 环境生效） */
-const CACHE = 'star-english-v4';
+const CACHE = 'star-english-v5';
 const ASSETS = [
   './',
   './index.html',

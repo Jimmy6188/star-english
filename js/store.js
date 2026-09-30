@@ -32,19 +32,28 @@ const Store = (() => {
       streak: { count: 0, lastDone: null, shields: 2, shieldWeek: null },
       srs: {},        // id -> {box, due, ok, bad, wrongStreak, learnedAt}
       album: {},      // id -> {at, gold}
-      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false },
+      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0 },
       history: {},    // date -> {done, minutes, news, revs, shieldUsed}
       custom: [],     // 自定义词（cat:'custom'）
       rankIdx: 0,     // 当前段位
       pendingPromotion: null, // 待展示的晋升弹窗 {name, reward}
-      boss: { week: null, done: false, best: 0 } // 每周 BOSS 挑战
+      boss: { week: null, done: false, best: 0 }, // 每周 BOSS 挑战
+      badges: {},            // 徽章 id -> 获得日期
+      pendingBadges: [],     // 待展示的徽章 id 队列
+      dictations: [],        // 听写测验记录 {at, correct, total}
+      stats: { drillsDone: 0 }
     };
   }
 
   let state = freshState();
 
-  /* 存档迁移（避免老存档被新数值回退） */
+  /* 存档迁移（避免老存档被新数值回退，并补齐新增字段） */
   function migrate() {
+    if (!state.badges) state.badges = {};
+    if (!state.pendingBadges) state.pendingBadges = [];
+    if (!state.dictations) state.dictations = [];
+    if (!state.stats) state.stats = { drillsDone: 0 };
+    if (state.today && state.today.mistakes === undefined) state.today.mistakes = 0;
     if (!state.settings.eco2) {
       state.settings.eco2 = true;
       if (state.pet.fed >= 30) state.pet.fed = Math.max(state.pet.fed, 60); // 旧满级机甲伙伴保级
@@ -76,7 +85,7 @@ const Store = (() => {
 
   function ensureToday() {
     const t = todayStr();
-    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false };
+    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0 };
   }
 
   /* 护盾桥接：昨天漏打卡时自动消耗一张护盾保住连击 */
@@ -182,7 +191,9 @@ const Store = (() => {
     }
     const reward = Math.max(2, COIN_NEW - hintsUsed * HINT_COST - (hadWrong ? 2 : 0));
     state.coins += reward;
+    if (hadWrong) addMistake();
     const promo = checkRank();
+    checkBadges();
     save();
     return { gold, newSticker, reward, promo };
   }
@@ -203,6 +214,7 @@ const Store = (() => {
       rec.wrongStreak = (rec.wrongStreak || 0) + 1;
       rec.lastWrong = t;
       rec.due = addDays(t, 1);
+      addMistake();
     }
     state.today.revDone++;
     const reward = correct ? COIN_REVIEW : 1;
@@ -250,6 +262,7 @@ const Store = (() => {
     else st.count = 1;
     st.lastDone = t;
     state.history[t] = { done: true, minutes: state.today.minutes, news: state.today.newDone, revs: state.today.revDone };
+    checkBadges();
     save();
   }
 
@@ -282,6 +295,38 @@ const Store = (() => {
     const b = bossInfo();
     if (score > (b.best || 0)) { b.best = score; b.total = total; }
     if (passed) b.done = true;
+    checkBadges();
+    save();
+  }
+
+  /* ---------- 成就徽章 ---------- */
+  function addMistake() {
+    state.today.mistakes = (state.today.mistakes || 0) + 1;
+  }
+  function checkBadges() {
+    const t = todayStr();
+    ACHIEVEMENTS.forEach(a => {
+      if (state.badges[a.id]) return;
+      let ok = false;
+      try { ok = a.cond(state, { allPacks }); } catch (e) { ok = false; }
+      if (ok) {
+        state.badges[a.id] = t;
+        state.pendingBadges.push(a.id);
+      }
+    });
+  }
+  function popPendingBadge() {
+    return state.pendingBadges.length ? state.pendingBadges.shift() : null;
+  }
+  function noteDictation(correct, total) {
+    state.dictations.push({ at: todayStr(), correct, total });
+    if (state.dictations.length > 10) state.dictations = state.dictations.slice(-10);
+    checkBadges();
+    save();
+  }
+  function markDrillDone() {
+    state.stats.drillsDone = (state.stats.drillsDone || 0) + 1;
+    checkBadges();
     save();
   }
 
@@ -297,6 +342,7 @@ const Store = (() => {
     state.coins -= FEED_COST;
     state.pet.fed++;
     const after = petStage();
+    checkBadges();
     save();
     return { evolved: after > before, stage: after };
   }
@@ -351,6 +397,7 @@ const Store = (() => {
     masterWord, reviewWord, addMinutes, completeQuest,
     isWeak, weakList, addCoins,
     rankInfo, checkRank, learnedCount, bossInfo, bossComplete,
+    addMistake, checkBadges, popPendingBadge, noteDictation, markDrillDone,
     petStage, feedPet, setSetting,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,

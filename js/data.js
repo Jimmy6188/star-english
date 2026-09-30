@@ -272,3 +272,40 @@ const HINT_COST = 2;             // 每次提示扣除的奖励
 
 /* Leitner 盒子间隔（天） */
 const BOX_INTERVALS = [1, 2, 4, 7, 15];
+
+/* ---------- 成就徽章 ----------
+ * cond 在关键事件后由 Store.checkBadges() 统一评估，state 为存档对象 */
+const ACHIEVEMENTS = [
+  { id: 'first-word',   emoji: '🌟', name: '启航之星',   desc: '学会第一个单词',
+    cond: s => Object.keys(s.srs).length >= 1 },
+  { id: 'words-10',     emoji: '🥉', name: '十词骑士',   desc: '累计学会 10 个词',
+    cond: s => Object.keys(s.srs).length >= 10 },
+  { id: 'words-50',     emoji: '🥈', name: '词汇探险家', desc: '累计学会 50 个词',
+    cond: s => Object.keys(s.srs).length >= 50 },
+  { id: 'words-100',    emoji: '🥇', name: '百词王牌',   desc: '累计学会 100 个词',
+    cond: s => Object.keys(s.srs).length >= 100 },
+  { id: 'streak-3',     emoji: '🔥', name: '三日航程',   desc: '连续打卡 3 天',
+    cond: s => s.streak.count >= 3 },
+  { id: 'streak-7',     emoji: '🚀', name: '七日远航',   desc: '连续打卡 7 天',
+    cond: s => s.streak.count >= 7 },
+  { id: 'streak-30',    emoji: '🌕', name: '月球居民',   desc: '连续打卡 30 天',
+    cond: s => s.streak.count >= 30 },
+  { id: 'streak-100',   emoji: '🏆', name: '百日长征',   desc: '连续打卡 100 天',
+    cond: s => s.streak.count >= 100 },
+  { id: 'first-gold',   emoji: '✨', name: '超新星时刻', desc: '获得第一张金色超新星贴纸',
+    cond: s => Object.values(s.album).some(a => a.gold) },
+  { id: 'gold-10',      emoji: '💫', name: '黄金收藏家', desc: '收集 10 张金色超新星贴纸',
+    cond: s => Object.values(s.album).filter(a => a.gold).length >= 10 },
+  { id: 'album-set',    emoji: '📀', name: '星系大满贯', desc: '集齐任意一个星系的全部贴纸',
+    cond: (s, Store) => Store.allPacks().some(p => p.words.length >= 5 && p.words.every(w => s.album[w.word.toLowerCase()])) },
+  { id: 'first-drill',  emoji: '⚡', name: '错词终结者', desc: '完成一次错词挑战',
+    cond: s => (s.stats && s.stats.drillsDone) >= 1 },
+  { id: 'first-dict',   emoji: '📝', name: '听写小能手', desc: '完成第一次听写小测验',
+    cond: s => s.dictations && s.dictations.length >= 1 },
+  { id: 'dict-perfect', emoji: '💯', name: '满分听写',   desc: '听写测验拿到满分',
+    cond: s => s.dictations && s.dictations.some(d => d.correct === d.total) },
+  { id: 'perfect-day',  emoji: '🎯', name: '完美一天',   desc: '任务全对零失误地完成每日冒险',
+    cond: s => s.history[s.today.date] && s.history[s.today.date].done && s.today.mistakes === 0 },
+  { id: 'pet-max',      emoji: '🤖', name: '机械大师',   desc: '把机器伙伴养成最终形态',
+    cond: s => s.pet.fed >= PET_STAGES[PET_STAGES.length - 1].need }
+];

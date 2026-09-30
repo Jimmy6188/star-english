@@ -16,6 +16,8 @@ const Quest = {
     this.freeMode = !!free;
     this.drillMode = false;
     this.bossMode = false;
+    this.dictMode = false;
+    this.dictResults = [];
     this.bossWrong = 0;
     const s = Store.state;
     if (!free) {
@@ -51,6 +53,7 @@ const Quest = {
     this.freeMode = false;
     this.drillMode = true;
     this.bossMode = false;
+    this.dictMode = false;
     this.bossWrong = 0;
     this.items = weak.map(id => ({ id, kind: 'review' }));
     this.idx = 0;
@@ -68,6 +71,7 @@ const Quest = {
     this.freeMode = false;
     this.drillMode = false;
     this.bossMode = true;
+    this.dictMode = false;
     this.bossWrong = 0;
     this.items = shuffle(pool).slice(0, 10).map(id => ({ id, kind: 'review' }));
     this.idx = 0;
@@ -77,12 +81,112 @@ const Quest = {
     this.splash();
   },
 
+  /* 听写小测验：家长发起，每词一次机会，错词自动进错题本 */
+  startDictation() {
+    Sound.stopSpeak();
+    const learned = Object.keys(Store.state.srs).filter(id => Store.findWord(id));
+    if (learned.length < 5) { toast('至少学会 5 个词才能听写哦'); return; }
+    this.freeMode = false;
+    this.drillMode = false;
+    this.bossMode = false;
+    this.dictMode = true;
+    this.dictResults = [];
+    this.items = shuffle(learned).slice(0, 10).map(id => ({ id, kind: 'review' }));
+    this.idx = 0;
+    this.startedTs = Date.now();
+    this.warnedLimit = false;
+    showScreen('quest');
+    this.splash();
+  },
+
+  dictNext() {
+    if (this.idx >= this.items.length) { this.finish(); return; }
+    const item = this.items[this.idx];
+    const w = Store.findWord(item.id);
+    if (!w) { this.idx++; this.dictNext(); return; }
+    this.renderDictation(w);
+  },
+
+  /* ---------- 听写题 ---------- */
+  renderDictation(w) {
+    const root = this.qroot();
+    root.innerHTML = '';
+    root.appendChild(this.progressHeader());
+    const target = w.word.toLowerCase();
+    let answer = [];
+    const self = this;
+
+    const slotsEl = h('div', { class: 'slots' });
+    const tilesEl = h('div', { class: 'tiles' });
+    const slotEls = [];
+    for (let i = 0; i < target.length; i++) {
+      const sl = h('span', {
+        class: 'slot', onclick: () => {
+          if (!answer.length) return;
+          const last = answer.pop();
+          last.tile.classList.remove('used');
+          Sound.tap();
+          refresh();
+        }
+      });
+      slotEls.push(sl);
+      slotsEl.appendChild(sl);
+    }
+    function refresh() {
+      slotEls.forEach((sl, i) => {
+        sl.textContent = answer[i] ? answer[i].ch : '';
+        sl.classList.toggle('filled', !!answer[i]);
+      });
+    }
+    shuffle(target.split('')).forEach(ch => {
+      const t = h('button', {
+        class: 'tile', onclick: () => {
+          if (t.classList.contains('used') || answer.length >= target.length) return;
+          t.classList.add('used');
+          answer.push({ ch, tile: t });
+          Sound.tap();
+          refresh();
+          if (answer.length === target.length) setTimeout(check, 250);
+        }
+      }, ch);
+      tilesEl.appendChild(t);
+    });
+
+    function check() {
+      const ok = answer.map(a => a.ch).join('') === target;
+      Store.reviewWord(target, ok);
+      if (!ok) Store.addMistake();
+      self.dictResults.push({ word: w.word, zh: w.zh, ok });
+      if (ok) Store.addCoins(3);
+      root.innerHTML = '';
+      root.appendChild(self.progressHeader());
+      root.appendChild(h('div', { class: 'card spell-card center' },
+        h('div', { class: 'intro-emoji', style: ok ? '' : 'filter:grayscale(1) opacity(.55)' }, w.emoji),
+        h('div', { class: 'mz-word' }, w.word),
+        h('div', { class: 'intro-zh' }, w.zh),
+        h('div', { class: 'tiny', style: 'margin-top:8px' }, ok ? '✅ 拼对了！ +3 🪙' : '这是正确拼写，已收进错题本')
+      ));
+      if (ok) Sound.correct(); else Sound.wrong();
+      setTimeout(() => { self.idx++; self.dictNext(); }, ok ? 1400 : 2400);
+    }
+
+    root.appendChild(h('div', { class: 'card spell-card' },
+      h('div', { class: 'spell-prompt' }, `📝 听写第 ${this.idx + 1} 题（共 ${this.items.length} 题）`),
+      h('div', { class: 'spell-zh' }, w.zh),
+      h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(w.word) }, '🔊'),
+      h('div', { class: 'tiny' }, '听发音看中文拼单词 · 只有一次机会！'),
+      slotsEl,
+      tilesEl
+    ));
+    setTimeout(() => Sound.speak(w.word), 350);
+  },
+
   splash() {
     const n = this.items.length;
     this.qroot().innerHTML = '';
-    const icon = this.bossMode ? '👑' : (this.drillMode ? '⚡' : '🚀');
-    const title = this.bossMode ? 'BOSS 周挑战！' : (this.drillMode ? '错词来袭！' : (this.freeMode ? '自由练习起飞！' : '今日冒险开始！'));
-    const sub = this.bossMode ? `${n} 道高阶大题，失误 2 次以内通关` : (this.drillMode ? `${n} 个老对手等你击退` : (this.freeMode ? '5 个复习挑战' : `共 ${n} 个挑战关卡`));
+    const icon = this.dictMode ? '📝' : (this.bossMode ? '👑' : (this.drillMode ? '⚡' : '🚀'));
+    const title = this.dictMode ? '听写小测验' : (this.bossMode ? 'BOSS 周挑战！' : (this.drillMode ? '错词来袭！' : (this.freeMode ? '自由练习起飞！' : '今日冒险开始！')));
+    const sub = this.dictMode ? `${n} 个词 · 每词只有一次机会` : (this.bossMode ? `${n} 道高阶大题，失误 2 次以内通关` : (this.drillMode ? `${n} 个老对手等你击退` : (this.freeMode ? '5 个复习挑战' : `共 ${n} 个挑战关卡`)));
     this.qroot().appendChild(h('div', { class: 'card quest-splash' },
       h('div', { class: 'splash-rocket' }, icon),
       h('div', { class: 'splash-title' }, title),
@@ -134,6 +238,7 @@ const Quest = {
     const w = Store.findWord(item.id);
     if (!w) { this.idx++; this.next(); return; }
     if (item.kind === 'new') { this.renderIntro(w); return; }
+    if (this.dictMode) { this.renderDictation(w); return; }
     const mode = this.pickReviewMode(item);
     item.mode = mode;
     if (mode === 'spellHard') this.renderSpelling(w, false, { hardMode: true, decoys: true });
@@ -149,7 +254,7 @@ const Quest = {
   progressHeader() {
     return h('div', { class: 'quest-top' },
       h('button', {
-        class: 'quest-exit', onclick: () => confirmModal('退出冒险？', '今天学的进度会保留，随时可以回来继续。', () => {
+        class: 'quest-exit', onclick: () => confirmModal('退出冒险？', this.dictMode ? '退出后本次听写作废，成绩不保存。' : '今天学的进度会保留，随时可以回来继续。', () => {
           this.addMinutes(); showScreen('home'); renderHome();
         })
       }, '✕'),
@@ -283,6 +388,7 @@ const Quest = {
       } else {
         wrongs++;
         if (self.bossMode) self.bossWrong++;
+        Store.addMistake();
         Sound.wrong();
         slotsEl.classList.add('shake');
         setTimeout(() => slotsEl.classList.remove('shake'), 450);
@@ -386,6 +492,7 @@ const Quest = {
       } else {
         wrongs++;
         if (self.bossMode) self.bossWrong++;
+        Store.addMistake();
         Sound.wrong();
         slotsEl.classList.add('shake');
         setTimeout(() => slotsEl.classList.remove('shake'), 450);
@@ -592,7 +699,7 @@ const Quest = {
   /* ---------- 完成 ---------- */
   finish() {
     this.addMinutes();
-    if (!this.freeMode && !this.drillMode && !this.bossMode) {
+    if (!this.freeMode && !this.drillMode && !this.bossMode && !this.dictMode) {
       Store.completeQuest();
       Sound.stamp();
     }
@@ -601,8 +708,16 @@ const Quest = {
       icon = '💪'; title = '练习完成！'; sub = '复习让记忆更牢固，明天见！';
     } else if (this.drillMode) {
       Store.addCoins(10);
+      Store.markDrillDone();
       Sound.gold();
       icon = '⚡'; title = '老对手全部击退！'; sub = '错词都答对啦，连错清零 · 挑战奖励 +10 🪙';
+    } else if (this.dictMode) {
+      const total = this.dictResults.length;
+      const correct = this.dictResults.filter(r => r.ok).length;
+      Store.noteDictation(correct, total);
+      icon = correct === total ? '💯' : '📝';
+      title = `听写成绩 ${correct} / ${total}`;
+      sub = correct === total ? '满分！太厉害了！🎉' : (correct >= Math.ceil(total * 0.8) ? '很棒！错词已收进错题本' : '错词已收进错题本，练一练再测一次！');
     } else if (this.bossMode) {
       const total = this.items.length;
       const score = Math.max(0, total - this.bossWrong);
@@ -620,6 +735,11 @@ const Quest = {
       h('div', { class: 'finish-stamp' }, icon),
       h('div', { class: 'finish-title' }, title),
       h('div', { class: 'finish-sub' }, sub),
+      this.dictMode ? h('div', { class: 'dict-report' },
+        this.dictResults.map(r => h('div', { class: 'pack-row' },
+          h('span', {}, `${r.word}`, h('span', { class: 'tiny' }, `　${r.zh}`)),
+          h('span', {}, r.ok ? '✅' : '❌')
+        ))) : '',
       h('div', { class: 'finish-pet' }, `“${rnd(PET_LINES.praise)}” —— ${Store.state.pet.name}`),
       h('button', { class: 'btn btn-main big', onclick: () => { showScreen('home'); renderHome(); } }, '返回空间站')
     );

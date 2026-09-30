@@ -133,6 +133,27 @@ function renderHome() {
       actions: [{ label: '太棒了！', cls: 'btn-main' }]
     });
   }
+  /* 新成就徽章庆祝（每次首页展示一枚） */
+  const nextBadgeId = Store.popPendingBadge();
+  if (nextBadgeId) {
+    const a = ACHIEVEMENTS.find(x => x.id === nextBadgeId);
+    if (a) {
+      Store.save();
+      Sound.gold();
+      showModal({
+        title: '🏅 解锁新徽章！',
+        dismissable: true,
+        build(el) {
+          el.appendChild(h('div', { class: 'center' },
+            h('div', { style: 'font-size:64px;margin:8px 0' }, a.emoji),
+            h('div', { style: 'font-size:22px;font-weight:900;color:#ffcf5c' }, a.name),
+            h('div', { class: 'tiny', style: 'margin-top:6px' }, a.desc)
+          ));
+        },
+        actions: [{ label: '收下！', cls: 'btn-main' }]
+      });
+    }
+  }
   if (new Date().getDay() === 0) {
     const boss = Store.bossInfo();
     weakSlot.appendChild(h('button', {
@@ -200,6 +221,20 @@ function renderAlbum() {
   );
   root.appendChild(head);
 
+  /* 成就徽章墙入口 */
+  const earnedBadges = Object.keys(Store.state.badges).length;
+  root.appendChild(h('button', {
+    class: 'card weak-card boss-card',
+    onclick: () => { Sound.tap(); showBadgeWall(); }
+  },
+    h('span', { class: 'weak-icon' }, '🎖'),
+    h('span', { class: 'weak-text' },
+      h('b', {}, `成就徽章 ${earnedBadges} / ${ACHIEVEMENTS.length}`),
+      h('span', { class: 'tiny' }, '坚持打卡、收集贴纸、击败 BOSS 都能解锁')
+    ),
+    h('span', { class: 'weak-go boss-go' }, '查看')
+  ));
+
   packs.forEach(p => {
     const pgot = p.words.filter(w => Store.state.album[w.word.toLowerCase()]).length;
     const sec = h('div', { class: 'card galaxy-card' },
@@ -255,6 +290,27 @@ function showWordModal(id, unlocked) {
     actions: [{ label: '再听一遍 🔊', cls: '', onClick: (close) => Sound.speak(w.word) }, { label: '好', cls: 'btn-main' }]
   });
   Sound.speak(w.word);
+}
+
+/* 徽章墙 */
+function showBadgeWall() {
+  showModal({
+    title: `🎖 成就徽章 ${Object.keys(Store.state.badges).length}/${ACHIEVEMENTS.length}`,
+    build(el) {
+      el.appendChild(h('div', { class: 'badge-grid' },
+        ACHIEVEMENTS.map(a => {
+          const at = Store.state.badges[a.id];
+          return h('div', { class: 'badge-tile' + (at ? '' : ' locked') },
+            h('div', { class: 'be' }, a.emoji),
+            h('div', { class: 'bn' }, a.name),
+            h('div', { class: 'bd' }, a.desc),
+            h('div', { class: 'bt' }, at || '🔒')
+          );
+        })
+      ));
+    },
+    actions: [{ label: '继续加油！', cls: 'btn-main' }]
+  });
 }
 
 /* ---------------- 航行日志（日历） ---------------- */
@@ -453,6 +509,25 @@ function renderParent() {
     });
   }
   root.appendChild(customCard);
+
+  /* 听写小测验 */
+  root.appendChild(h('div', { class: 'card' },
+    h('div', { class: 'sec-title' }, '📝 听写小测验'),
+    h('div', { class: 'tiny', style: 'margin-bottom:8px' }, '随机抽 10 个已学词，播发音+显示中文让孩子拼写；每词只有一次机会，错词自动收进错题本。适合周末或课前检查。'),
+    h('button', {
+      class: 'btn btn-main', onclick: () => {
+        showScreen('quest');
+        Quest.startDictation();
+      }
+    }, '🎯 发起听写测验'),
+    s.dictations && s.dictations.length ? h('div', { style: 'margin-top:6px' },
+      h('div', { class: 'tiny', style: 'margin:6px 0 2px' }, '最近成绩：'),
+      s.dictations.slice(-3).reverse().map(d => h('div', { class: 'pack-row' },
+        h('span', { class: 'tiny' }, d.at),
+        h('span', { class: 'pack-info' }, `${d.correct}/${d.total} ${d.correct === d.total ? '💯' : ''}`)
+      ))
+    ) : ''
+  ));
 
   /* 数据管理 */
   root.appendChild(h('div', { class: 'card' },
