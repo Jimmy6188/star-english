@@ -30,15 +30,30 @@ const Store = (() => {
       coins: 0,
       pet: { name: '小星', fed: 0 },
       streak: { count: 0, lastDone: null, shields: 2, shieldWeek: null },
-      srs: {},        // id -> {box, due, ok, bad, learnedAt}
+      srs: {},        // id -> {box, due, ok, bad, wrongStreak, learnedAt}
       album: {},      // id -> {at, gold}
       today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false },
       history: {},    // date -> {done, minutes, news, revs, shieldUsed}
-      custom: []      // 自定义词（cat:'custom'）
+      custom: [],     // 自定义词（cat:'custom'）
+      rankIdx: 0,     // 当前段位
+      pendingPromotion: null, // 待展示的晋升弹窗 {name, reward}
+      boss: { week: null, done: false, best: 0 } // 每周 BOSS 挑战
     };
   }
 
   let state = freshState();
+
+  /* 存档迁移（避免老存档被新数值回退） */
+  function migrate() {
+    if (!state.settings.eco2) {
+      state.settings.eco2 = true;
+      if (state.pet.fed >= 30) state.pet.fed = Math.max(state.pet.fed, 60); // 旧满级机甲伙伴保级
+      // 10~29 次喂食在新阈值下仍是小机器人，无需处理
+    }
+    let r = 0;
+    RANKS.forEach((x, i) => { if (learnedCount() >= x.need) r = i; });
+    if (state.rankIdx === undefined || state.rankIdx === null || r > state.rankIdx) state.rankIdx = r;
+  }
 
   function load() {
     try {
@@ -50,6 +65,7 @@ const Store = (() => {
     } catch (e) { state = freshState(); }
     ensureToday();
     applyShieldBridge();
+    migrate();
     save();
     return state;
   }
@@ -78,7 +94,7 @@ const Store = (() => {
 
   /* ---------- 词库 ---------- */
   function allPacks() {
-    const packs = WORD_PACKS.slice();
+    const packs = TEXTBOOK_PACKS.concat(WORD_PACKS).slice();
     if (state.custom.length) {
       packs.push({ id: 'custom', name: '我的星系', emoji: '✨', color: '#ffd166', desc: '家长自定义词库', words: state.custom });
     }
@@ -106,23 +122,28 @@ const Store = (() => {
     return w.grade <= grade;
   }
 
-  /* 新词池：按星系轮转取词，年级由低到高（先温故再主攻），保证每天词分布在不同主题 */
+  /* 新词池：教材包优先（每轮多出词），按星系轮转，年级由低到高 */
   function newPool(cap) {
-    const queues = activePacks().map(p => {
-      const ws = p.words
+    const queues = activePacks().map(p => ({
+      textbook: !!p.textbook,
+      take: p.textbook ? 2 : 1,
+      ws: p.words
         .filter(w => !state.srs[w.word.toLowerCase()] && gradeOk(w))
         .sort((a, b) =>
           (a.grade || state.settings.grade) - (b.grade || state.settings.grade) ||
-          a.level - b.level || a.word.localeCompare(b.word));
-      return { color: p.color, ws };
-    }).filter(q => q.ws.length);
+          a.level - b.level || a.word.localeCompare(b.word))
+    })).filter(q => q.ws.length);
+    queues.sort((a, b) => (b.textbook ? 1 : 0) - (a.textbook ? 1 : 0));
     const out = [];
     let more = true;
     while (out.length < cap && more) {
       more = false;
       for (const q of queues) {
-        const w = q.ws.shift();
-        if (w) { more = true; out.push(w.word.toLowerCase()); if (out.length >= cap) break; }
+        for (let k = 0; k < q.take; k++) {
+          const w = q.ws.shift();
+          if (w) { more = true; out.push(w.word.toLowerCase()); if (out.length >= cap) break; }
+        }
+        if (out.length >= cap) break;
       }
     }
     return out;
@@ -161,8 +182,9 @@ const Store = (() => {
     }
     const reward = Math.max(2, COIN_NEW - hintsUsed * HINT_COST - (hadWrong ? 2 : 0));
     state.coins += reward;
+    const promo = checkRank();
     save();
-    return { gold, newSticker, reward };
+    return { gold, newSticker, reward, promo };
   }
 
   /* 复习结果 */
@@ -231,6 +253,38 @@ const Store = (() => {
     save();
   }
 
+  /* ---------- 段位与 BOSS ---------- */
+  function learnedCount() {
+    return Object.keys(state.srs).filter(id => findWord(id)).length;
+  }
+  function checkRank() {
+    let r = 0;
+    RANKS.forEach((x, i) => { if (learnedCount() >= x.need) r = i; });
+    if (r > (state.rankIdx || 0)) {
+      state.rankIdx = r;
+      const reward = RANKS[r].reward || 0;
+      state.coins += reward;
+      state.pendingPromotion = { name: RANKS[r].name, reward, idx: r };
+      return state.pendingPromotion;
+    }
+    return null;
+  }
+  function rankInfo() {
+    const idx = state.rankIdx || 0;
+    return { idx, name: RANKS[idx].name, next: RANKS[idx + 1] || null, learned: learnedCount() };
+  }
+  function bossInfo() {
+    const wk = weekKey();
+    if (state.boss.week !== wk) state.boss = { week: wk, done: false, best: 0 };
+    return state.boss;
+  }
+  function bossComplete(score, total, passed) {
+    const b = bossInfo();
+    if (score > (b.best || 0)) { b.best = score; b.total = total; }
+    if (passed) b.done = true;
+    save();
+  }
+
   /* ---------- 宠物 ---------- */
   function petStage() {
     let idx = 0;
@@ -296,6 +350,7 @@ const Store = (() => {
     allPacks, activePacks, isActive, findWord, newPool, dueList,
     masterWord, reviewWord, addMinutes, completeQuest,
     isWeak, weakList, addCoins,
+    rankInfo, checkRank, learnedCount, bossInfo, bossComplete,
     petStage, feedPet, setSetting,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,

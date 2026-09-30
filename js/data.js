@@ -199,15 +199,38 @@ const WORD_PACKS = [
   }
 ];
 
-/* 宠物进化阶段：累计喂养次数达到阈值即进化 */
+/* 宠物进化阶段：累计喂养次数达到阈值即进化（金币经济：喂一次 20 金币，满级约需 2-3 周） */
 const PET_STAGES = [
   { name: '探测球',   need: 0,  desc: '刚降落的小小探测器' },
-  { name: '小机器人', need: 10, desc: '长出了机械臂的伙伴' },
-  { name: '机甲伙伴', need: 30, desc: '展开太阳能翅膀，超酷！' }
+  { name: '小机器人', need: 15, desc: '长出了机械臂的伙伴' },
+  { name: '机甲伙伴', need: 60, desc: '展开太阳能翅膀，超酷！' }
 ];
 
 /* 喂食价格（金币） */
-const FEED_COST = 10;
+const FEED_COST = 20;
+
+/* 段位体系：按累计已学单词数晋升（解决"学有余力"的成长目标） */
+const RANKS = [
+  { name: '见习飞行员', need: 0,   reward: 0   },
+  { name: '飞行员',     need: 15,  reward: 30  },
+  { name: '精英飞行员', need: 40,  reward: 50  },
+  { name: '王牌飞行员', need: 80,  reward: 80  },
+  { name: '星际指挥官', need: 150, reward: 120 }
+];
+
+/* 教材词包：外研版（新标准三起）四年级上册（2024审定）
+ * 结构：每个 Module 一个包；条目里 phrase:true 表示词组（用"词块排序"挑战）
+ * 待录入：家长提供课本单词表照片后逐 Module 填入，教材包会优先出题
+ * 示例：
+ * {
+ *   id: 'wy4a-m1', textbook: true, name: '四上 M1', emoji: '🧭', color: '#5eead4',
+ *   words: [
+ *     { word: 'straight', zh: '直地，直线地', emoji: '⬆️', grade: 4, level: 2, ex: '...', exZh: '...' },
+ *     { word: 'go straight on', zh: '直着走', emoji: '🧭', phrase: true, grade: 4, level: 2, ex: '...', exZh: '...' }
+ *   ]
+ * }
+ */
+const TEXTBOOK_PACKS = [];
 
 /* 宠物台词（按场景随机） */
 const PET_LINES = {
@@ -244,6 +267,7 @@ const GOLD_RATE = 0.10;          // 稀有"超新星"贴纸概率
 const COIN_NEW = 10;             // 新词拼对奖励
 const COIN_REVIEW = 5;           // 复习正确奖励
 const COIN_QUEST_BONUS = 20;     // 完成每日任务奖励
+const COIN_BOSS = 50;            // 周日 BOSS 挑战通关奖励
 const HINT_COST = 2;             // 每次提示扣除的奖励
 
 /* Leitner 盒子间隔（天） */

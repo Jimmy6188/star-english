@@ -7,7 +7,7 @@
  * ============================================================ */
 
 const Quest = {
-  items: [], idx: 0, startedTs: 0, freeMode: false, drillMode: false, warnedLimit: false,
+  items: [], idx: 0, startedTs: 0, freeMode: false, drillMode: false, bossMode: false, bossWrong: 0, warnedLimit: false,
 
   qroot() { return $('#quest-root'); },
 
@@ -15,6 +15,8 @@ const Quest = {
     Sound.stopSpeak();
     this.freeMode = !!free;
     this.drillMode = false;
+    this.bossMode = false;
+    this.bossWrong = 0;
     const s = Store.state;
     if (!free) {
       const newCap = Math.max(0, s.settings.dailyNew - s.today.newDone);
@@ -48,7 +50,26 @@ const Quest = {
     if (!weak.length) { toast('现在没有老对手，先去学新词吧！'); return; }
     this.freeMode = false;
     this.drillMode = true;
+    this.bossMode = false;
+    this.bossWrong = 0;
     this.items = weak.map(id => ({ id, kind: 'review' }));
+    this.idx = 0;
+    this.startedTs = Date.now();
+    this.warnedLimit = false;
+    showScreen('quest');
+    this.splash();
+  },
+
+  /* 每周日 BOSS 挑战：10 道高阶大题，失误 ≤2 次算通关 */
+  startBoss() {
+    Sound.stopSpeak();
+    const pool = Object.keys(Store.state.srs).filter(id => Store.state.srs[id].box >= 3 && Store.findWord(id));
+    if (pool.length < 5) { toast('BOSS 挑战需要先掌握 5 个以上较熟的词，先去冒险吧！'); return; }
+    this.freeMode = false;
+    this.drillMode = false;
+    this.bossMode = true;
+    this.bossWrong = 0;
+    this.items = shuffle(pool).slice(0, 10).map(id => ({ id, kind: 'review' }));
     this.idx = 0;
     this.startedTs = Date.now();
     this.warnedLimit = false;
@@ -59,9 +80,9 @@ const Quest = {
   splash() {
     const n = this.items.length;
     this.qroot().innerHTML = '';
-    const icon = this.drillMode ? '⚡' : '🚀';
-    const title = this.drillMode ? '错词来袭！' : (this.freeMode ? '自由练习起飞！' : '今日冒险开始！');
-    const sub = this.drillMode ? `${n} 个老对手等你击退` : (this.freeMode ? '5 个复习挑战' : `共 ${n} 个挑战关卡`);
+    const icon = this.bossMode ? '👑' : (this.drillMode ? '⚡' : '🚀');
+    const title = this.bossMode ? 'BOSS 周挑战！' : (this.drillMode ? '错词来袭！' : (this.freeMode ? '自由练习起飞！' : '今日冒险开始！'));
+    const sub = this.bossMode ? `${n} 道高阶大题，失误 2 次以内通关` : (this.drillMode ? `${n} 个老对手等你击退` : (this.freeMode ? '5 个复习挑战' : `共 ${n} 个挑战关卡`));
     this.qroot().appendChild(h('div', { class: 'card quest-splash' },
       h('div', { class: 'splash-rocket' }, icon),
       h('div', { class: 'splash-title' }, title),
@@ -71,7 +92,7 @@ const Quest = {
   },
 
   checkLimit() {
-    if (this.freeMode || this.drillMode || this.warnedLimit) return;
+    if (this.freeMode || this.drillMode || this.bossMode || this.warnedLimit) return;
     const min = (Date.now() - this.startedTs) / 60000;
     if (min > Store.state.settings.sessionLimitMin) {
       this.warnedLimit = true;
@@ -79,12 +100,27 @@ const Quest = {
     }
   },
 
-  /* 复习题型按熟练度（Leitner 盒子）分级，越熟越难 */
+  /* 复习题型按熟练度（Leitner 盒子）分级，越熟越难；词组走词块排序 */
   pickReviewMode(item) {
     if (item.mode) return item.mode;
+    const w = Store.findWord(item.id);
     const rec = Store.state.srs[item.id];
     const box = rec ? rec.box : 1;
-    if (this.drillMode) return 'spell';
+    const isPhrase = !!(w && w.phrase);
+    if (this.bossMode) {
+      if (isPhrase) return box >= 3 ? (Math.random() < 0.6 ? 'orderHard' : 'order') : 'wordPick';
+      if (box >= 4) return 'spellHard';
+      if (box === 3) return Math.random() < 0.6 ? 'cloze' : 'spellDecoy';
+      if (box === 2) return 'wordPick';
+      return 'listen';
+    }
+    if (this.drillMode) return isPhrase ? 'order' : 'spell';
+    if (isPhrase) {
+      if (box >= 4) return 'orderHard';
+      if (box >= 3) return 'order';
+      if (box === 2) return Math.random() < 0.6 ? 'wordPick' : 'listen';
+      return 'listen';
+    }
     if (box >= 4) return 'spellHard';
     if (box === 3) return Math.random() < 0.5 ? 'cloze' : 'spellDecoy';
     if (box === 2) return Math.random() < 0.6 ? 'wordPick' : 'listen';
@@ -103,6 +139,8 @@ const Quest = {
     if (mode === 'spellHard') this.renderSpelling(w, false, { hardMode: true, decoys: true });
     else if (mode === 'spellDecoy') this.renderSpelling(w, false, { decoys: true });
     else if (mode === 'spell') this.renderSpelling(w, false);
+    else if (mode === 'orderHard') this.renderWordOrder(w, { hardMode: true });
+    else if (mode === 'order') this.renderWordOrder(w, {});
     else if (mode === 'cloze') this.renderCloze(w);
     else if (mode === 'wordPick') this.renderWordPick(w);
     else this.renderListening(w);
@@ -146,7 +184,7 @@ const Quest = {
       badge,
       h('div', { class: 'intro-emoji' }, w.emoji),
       h('div', { class: 'intro-word-row' },
-        h('span', { class: 'intro-word' }, w.word),
+        h('span', { class: 'intro-word' + (w.phrase ? ' phrase' : '') }, w.word),
         h('button', { class: 'speak-btn big', onclick: () => Sound.speak(w.word) }, '🔊')
       ),
       h('div', { class: 'intro-zh' }, w.zh),
@@ -155,7 +193,10 @@ const Quest = {
         h('span', {}, w.ex)
       ),
       h('div', { class: 'tiny intro-exzh' }, w.exZh),
-      h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.renderSpelling(w, true); } }, '进入拼写舱 →')
+      h('button', {
+        class: 'btn btn-main big',
+        onclick: () => { Sound.tap(); w.phrase ? this.renderWordOrder(w, { isNew: true }) : this.renderSpelling(w, true); }
+      }, w.phrase ? '进入组装舱 →' : '进入拼写舱 →')
     );
     root.appendChild(card);
     setTimeout(() => Sound.speak(w.word), 400);
@@ -241,6 +282,7 @@ const Quest = {
         self.success(w, isNew, hints, wrongs);
       } else {
         wrongs++;
+        if (self.bossMode) self.bossWrong++;
         Sound.wrong();
         slotsEl.classList.add('shake');
         setTimeout(() => slotsEl.classList.remove('shake'), 450);
@@ -257,6 +299,108 @@ const Quest = {
       opts.hardMode ? '' : h('div', { class: 'spell-zh' }, w.zh),
       h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(w.word) }, '🔊'),
       h('div', { class: 'tiny' }, opts.decoys ? '小心！字母块里有捣蛋鬼' : '听发音，从下面选出字母'),
+      slotsEl,
+      ghostEl,
+      tilesEl,
+      h('div', { class: 'row-gap center' },
+        h('button', { class: 'btn', onclick: doHint }, '💡 提示一下 (-2🪙)')
+      )
+    ));
+    setTimeout(() => Sound.speak(w.word), 350);
+  },
+
+  /* ---------- 词组排序挑战（词块组装） ---------- */
+  /* opts: hardMode=听写挑战(隐藏中文) isNew=新词首次（计入图鉴与金币） */
+  renderWordOrder(w, opts = {}) {
+    const root = this.qroot();
+    root.innerHTML = '';
+    root.appendChild(this.progressHeader());
+    const target = w.word.toLowerCase();
+    const chunks = w.word.split(' ');
+    let answer = [];
+    let hints = 0, wrongs = 0;
+
+    const slotsEl = h('div', { class: 'slots chunk-slots' });
+    const tilesEl = h('div', { class: 'tiles' });
+    const ghostEl = h('div', { class: 'ghost-word', style: 'visibility:hidden' }, w.word);
+
+    const slotEls = chunks.map(() => {
+      const s = h('span', {
+        class: 'slot chunk',
+        onclick: () => {
+          if (!answer.length) return;
+          const last = answer.pop();
+          last.tile.classList.remove('used');
+          Sound.tap();
+          refresh();
+        }
+      });
+      slotsEl.appendChild(s);
+      return s;
+    });
+
+    function refresh() {
+      slotEls.forEach((s, i) => {
+        s.textContent = answer[i] ? answer[i].ch : '';
+        s.classList.toggle('filled', !!answer[i]);
+      });
+    }
+
+    shuffle(chunks.slice()).forEach(ch => {
+      const t = h('button', {
+        class: 'tile chunk', onclick: () => {
+          if (t.classList.contains('used') || answer.length >= chunks.length) return;
+          t.classList.add('used');
+          answer.push({ ch, tile: t });
+          Sound.tap();
+          refresh();
+          if (answer.length === chunks.length) setTimeout(check, 250);
+        }
+      }, ch);
+      tilesEl.appendChild(t);
+    });
+
+    function doHint() {
+      if (answer.length >= chunks.length) return;
+      const need = chunks[answer.length].toLowerCase();
+      let tile = Array.from(tilesEl.children).find(t => !t.classList.contains('used') && t.textContent.toLowerCase() === need);
+      while (!tile && answer.length) {
+        const first = answer.shift();
+        first.tile.classList.remove('used');
+        tile = Array.from(tilesEl.children).find(t => !t.classList.contains('used') && t.textContent.toLowerCase() === need);
+      }
+      if (!tile) return;
+      tile.classList.add('used');
+      answer.push({ ch: tile.textContent, tile });
+      hints++;
+      Sound.tap();
+      refresh();
+      if (answer.length === chunks.length) setTimeout(check, 250);
+    }
+
+    const self = this;
+    function check() {
+      const guess = answer.map(a => a.ch.toLowerCase()).join(' ');
+      if (guess === target) {
+        self.success(w, !!opts.isNew, hints, wrongs);
+      } else {
+        wrongs++;
+        if (self.bossMode) self.bossWrong++;
+        Sound.wrong();
+        slotsEl.classList.add('shake');
+        setTimeout(() => slotsEl.classList.remove('shake'), 450);
+        answer = [];
+        Array.from(tilesEl.children).forEach(t => t.classList.remove('used'));
+        refresh();
+        if (wrongs >= 2) ghostEl.style.visibility = 'visible';
+      }
+    }
+
+    root.appendChild(h('div', { class: 'card spell-card' },
+      h('div', { class: 'spell-prompt' }, opts.hardMode ? '⚡ 听写挑战：按顺序排出词组' : '把词组排出来！'),
+      opts.hardMode ? '' : h('div', { class: 'spell-zh' }, w.zh),
+      h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(w.word) }, '🔊'),
+      h('div', { class: 'tiny' }, '按顺序点击下面的单词块'),
       slotsEl,
       ghostEl,
       tilesEl,
@@ -293,7 +437,7 @@ const Quest = {
             e.currentTarget.classList.add('right');
             setTimeout(() => { self.idx++; self.next(); }, 1000);
           } else {
-            if (!recordedWrong) { recordedWrong = true; Store.reviewWord(w.word.toLowerCase(), false); }
+            if (!recordedWrong) { recordedWrong = true; if (self.bossMode) self.bossWrong++; Store.reviewWord(w.word.toLowerCase(), false); }
             Sound.wrong();
             e.currentTarget.classList.add('dead');
           }
@@ -335,7 +479,7 @@ const Quest = {
             e.currentTarget.classList.add('right');
             setTimeout(() => { self.idx++; self.next(); }, 1000);
           } else {
-            if (!recordedWrong) { recordedWrong = true; Store.reviewWord(w.word.toLowerCase(), false); }
+            if (!recordedWrong) { recordedWrong = true; if (self.bossMode) self.bossWrong++; Store.reviewWord(w.word.toLowerCase(), false); }
             Sound.wrong();
             e.currentTarget.classList.add('dead');
           }
@@ -382,7 +526,7 @@ const Quest = {
             e.currentTarget.classList.add('right');
             setTimeout(() => { self.idx++; self.next(); }, 1400);
           } else {
-            if (!recordedWrong) { recordedWrong = true; Store.reviewWord(id, false); }
+            if (!recordedWrong) { recordedWrong = true; if (self.bossMode) self.bossWrong++; Store.reviewWord(id, false); }
             Sound.wrong();
             e.currentTarget.classList.add('dead');
           }
@@ -448,7 +592,7 @@ const Quest = {
   /* ---------- 完成 ---------- */
   finish() {
     this.addMinutes();
-    if (!this.freeMode && !this.drillMode) {
+    if (!this.freeMode && !this.drillMode && !this.bossMode) {
       Store.completeQuest();
       Sound.stamp();
     }
@@ -459,6 +603,15 @@ const Quest = {
       Store.addCoins(10);
       Sound.gold();
       icon = '⚡'; title = '老对手全部击退！'; sub = '错词都答对啦，连错清零 · 挑战奖励 +10 🪙';
+    } else if (this.bossMode) {
+      const total = this.items.length;
+      const score = Math.max(0, total - this.bossWrong);
+      const passed = this.bossWrong <= 2;
+      Store.bossComplete(score, total, passed);
+      if (passed) { Store.addCoins(COIN_BOSS); Sound.gold(); }
+      icon = passed ? '👑' : '🛡️';
+      title = passed ? 'BOSS 被击败啦！' : 'BOSS 没被击倒，再来一次！';
+      sub = `成绩 ${score}/${total} · ` + (passed ? `通关奖励 +${COIN_BOSS} 🪙（本周已通关）` : '失误超过 2 次没通关，回去练练再战！');
     }
     Sound.coin();
     const root = this.qroot();

@@ -111,9 +111,42 @@ function renderHome() {
     btn.onclick = () => { Sound.tap(); Quest.start(false); };
   }
 
-  /* 错词雷达：有老对手时出现 */
+  /* 错词雷达 + 周日 BOSS 挑战 + 段位晋升 */
   const weakSlot = $('#weak-slot');
   weakSlot.innerHTML = '';
+  $('#rank-line').textContent = `🎖 ${Store.rankInfo().name}`;
+  if (Store.state.pendingPromotion) {
+    const p = Store.state.pendingPromotion;
+    Store.state.pendingPromotion = null;
+    Store.save();
+    Sound.gold();
+    showModal({
+      title: '🎖 段位晋升！',
+      dismissable: true,
+      build(el) {
+        el.appendChild(h('div', { class: 'center' },
+          h('div', { style: 'font-size:56px;margin:6px 0' }, '🎉'),
+          h('div', { style: 'font-size:24px;font-weight:900;color:#ffcf5c' }, p.name),
+          h('div', { class: 'tiny', style: 'margin-top:8px' }, `晋升奖励 +${p.reward} 🪙 已发放，新的星域向你敞开！`)
+        ));
+      },
+      actions: [{ label: '太棒了！', cls: 'btn-main' }]
+    });
+  }
+  if (new Date().getDay() === 0) {
+    const boss = Store.bossInfo();
+    weakSlot.appendChild(h('button', {
+      class: 'card weak-card boss-card' + (boss.done ? ' done' : ''),
+      onclick: () => { Sound.tap(); Quest.startBoss(); }
+    },
+      h('span', { class: 'weak-icon' }, '👑'),
+      h('span', { class: 'weak-text' },
+        h('b', {}, boss.done ? '本周 BOSS 已被击败！' : 'BOSS 周挑战！'),
+        h('span', { class: 'tiny' }, boss.done ? `最佳成绩 ${boss.best}/${boss.total || 10} · 点此再战一次` : `10 道高阶大题，失误 2 次内通关 +${COIN_BOSS} 🪙（仅周日出现）`)
+      ),
+      h('span', { class: 'weak-go boss-go' }, boss.done ? '再战' : '开战')
+    ));
+  }
   const weak = Store.weakList(99);
   if (weak.length) {
     weakSlot.appendChild(h('button', {
@@ -301,18 +334,26 @@ function renderParent() {
       h('span', {}, ds.slice(8))
     ));
   }
+  const rk = Store.rankInfo();
+  const boss = Store.bossInfo();
+  const accHint = (acc >= 92 && learnedIds.length >= 30)
+    ? h('div', { class: 'acc-hint' }, `🌟 孩子正确率高达 ${acc}%，学有余力！建议把下方「词汇范围」改为「全部词库」，加入高年级挑战词，或让孩子挑战周日 BOSS。`)
+    : '';
   root.appendChild(h('div', { class: 'card' },
     h('div', { class: 'sec-title' }, '📊 学习概览'),
+    accHint,
     h('div', { class: 'stat-grid' },
       statBox('已学单词', `${learnedIds.length} / ${totalWords}`),
       statBox('今日待复习', dueNow + ' 词'),
       statBox('总正确率', acc + '%'),
       statBox('连续打卡', s.streak.count + ' 天'),
+      statBox('当前段位', rk.name),
       statBox('今日用时', s.today.minutes + ' 分钟'),
-      statBox('金币余额', s.coins + ' 🪙')
+      statBox('金币余额', s.coins + ' 🪙'),
+      statBox('本周BOSS', boss.done ? `${boss.best}/${boss.total || 10} ✓` : '周日开启')
     ),
     h('div', { class: 'stat-bars' }, bars7),
-    h('div', { class: 'tiny' }, '近 7 天学习时长（柱高=分钟数，亮色=当天完成打卡）')
+    h('div', { class: 'tiny' }, '近 7 天学习时长（柱高=分钟数，亮色=当天完成打卡）· 段位按已学词数晋升：' + RANKS.map(r => r.name).join('→'))
   ));
 
   /* 错题本 */
