@@ -26,7 +26,7 @@ const Store = (() => {
   function freshState() {
     return {
       v: 1,
-      settings: { dailyNew: 4, dailyReview: 10, sessionLimitMin: 20, soundOff: false, pin: '1234', activePacks: null, grade: 4, range: 'below' },
+      settings: { dailyNew: 4, dailyReview: 10, sessionLimitMin: 20, soundOff: false, pin: '1234', activePacks: null, grade: 4, range: 'below', warmupPerDay: 1 },
       coins: 0,
       pet: { name: '小星', fed: 0 },
       streak: { count: 0, lastDone: null, shields: 2, shieldWeek: null },
@@ -54,6 +54,7 @@ const Store = (() => {
     if (!state.dictations) state.dictations = [];
     if (!state.stats) state.stats = { drillsDone: 0 };
     if (state.today && state.today.mistakes === undefined) state.today.mistakes = 0;
+    if (state.settings.warmupPerDay === undefined) state.settings.warmupPerDay = 1;
     if (!state.settings.eco2) {
       state.settings.eco2 = true;
       if (state.pet.fed >= 30) state.pet.fed = Math.max(state.pet.fed, 60); // 旧满级机甲伙伴保级
@@ -131,29 +132,43 @@ const Store = (() => {
     return w.grade <= grade;
   }
 
-  /* 新词池：教材包优先（每轮多出词），按星系轮转，年级由低到高 */
+  /* 新词池：当前年级词为主，低年级温故词每天限量穿插（默认 1 个），教材包优先 */
   function newPool(cap) {
+    const grade = state.settings.grade;
     const queues = activePacks().map(p => ({
       textbook: !!p.textbook,
       take: p.textbook ? 2 : 1,
       ws: p.words
         .filter(w => !state.srs[w.word.toLowerCase()] && gradeOk(w))
-        .sort((a, b) =>
-          (a.grade || state.settings.grade) - (b.grade || state.settings.grade) ||
-          a.level - b.level || a.word.localeCompare(b.word))
+        .sort((a, b) => a.level - b.level || a.word.localeCompare(b.word))
     })).filter(q => q.ws.length);
     queues.sort((a, b) => (b.textbook ? 1 : 0) - (a.textbook ? 1 : 0));
-    const out = [];
+    const seq = [];
     let more = true;
-    while (out.length < cap && more) {
+    while (more) {
       more = false;
       for (const q of queues) {
         for (let k = 0; k < q.take; k++) {
           const w = q.ws.shift();
-          if (w) { more = true; out.push(w.word.toLowerCase()); if (out.length >= cap) break; }
+          if (w) { more = true; seq.push(w.word.toLowerCase()); }
         }
-        if (out.length >= cap) break;
       }
+    }
+    /* 分池：当前年级（含自定义词）为主池，其它年级为温故/挑战池 */
+    const main = seq.filter(id => { const w = findWord(id); return !w.grade || w.grade === grade; });
+    const other = seq.filter(id => !main.includes(id))
+      .sort((a, b) => (findWord(a).grade || grade) - (findWord(b).grade || grade));
+    /* 组合：把温故/挑战词均匀撒进队列，数量受 warmupPerDay 限制 */
+    const warmN = Math.min(cap, other.length, Math.max(0, state.settings.warmupPerDay == null ? 1 : state.settings.warmupPerDay));
+    const warmIdx = new Set();
+    for (let j = 0; j < warmN; j++) warmIdx.add(Math.min(cap - 1, Math.floor((j + 0.5) * cap / warmN)));
+    const out = [];
+    const mainQ = main.slice(), otherQ = other.slice();
+    for (let i = 0; i < cap; i++) {
+      if (warmIdx.has(i) && otherQ.length) out.push(otherQ.shift());
+      else if (mainQ.length) out.push(mainQ.shift());
+      else if (otherQ.length) out.push(otherQ.shift());
+      else break;
     }
     return out;
   }
