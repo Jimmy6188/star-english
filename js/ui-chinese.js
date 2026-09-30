@@ -146,6 +146,8 @@ const Chinese = {
       if (idx >= qs.length) {
         const allOk = correct === qs.length;
         Store.markCnStar(p.id, allOk);
+        Store.state.today.cnRounds = (Store.state.today.cnRounds || 0) + 1;
+        Store.save();
         Store.completeQuest();
         Sound.gold();
         this.summary(allOk ? '⭐' : '📜',
@@ -183,6 +185,8 @@ const Chinese = {
       if (idx >= passage.qs.length) {
         const allOk = correct === passage.qs.length;
         Store.markCnRead(passage.id);
+        Store.state.today.cnRounds = (Store.state.today.cnRounds || 0) + 1;
+        Store.save();
         Store.completeQuest();
         if (allOk) Store.addCoins(5);
         Sound.gold();
@@ -209,6 +213,8 @@ const Chinese = {
     let idx = 0, correct = 0;
     const step = () => {
       if (idx >= qs.length) {
+        Store.state.today.cnRounds = (Store.state.today.cnRounds || 0) + 1;
+        Store.save();
         Store.completeQuest();
         Sound.gold();
         this.summary('🈶', `词语实战 ${correct}/${qs.length}`, `获得 +${correct * 4} 🪙${correct === qs.length ? ' · 全对！' : ' · 错题已记录，明天再战'}`);

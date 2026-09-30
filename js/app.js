@@ -89,6 +89,9 @@ function init() {
   paintStars();
   bindNav();
   bindHome();
+  $('#top-coins').style.cursor = 'pointer';
+  $('#top-coins').title = '查看今日结算单';
+  $('#top-coins').addEventListener('click', () => { Sound.tap(); openSettlement(); });
   updateTop();
   showScreen('home');
 

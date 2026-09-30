@@ -3,8 +3,11 @@
  * DOM 构建 / 弹窗 / 提示 / 粒子爆发 / 飞行动画
  * ============================================================ */
 
+const SVG_TAGS = ['svg', 'polyline', 'circle', 'line', 'path', 'rect', 'g', 'text'];
 function h(tag, attrs, ...children) {
-  const el = document.createElement(tag);
+  const el = SVG_TAGS.includes(tag)
+    ? document.createElementNS('http://www.w3.org/2000/svg', tag)
+    : document.createElement(tag);
   if (attrs) {
     for (const [k, v] of Object.entries(attrs)) {
       if (k === 'class') el.className = v;

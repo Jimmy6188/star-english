@@ -32,7 +32,8 @@ const Store = (() => {
       streak: { count: 0, lastDone: null, shields: 2, shieldWeek: null },
       srs: {},        // id -> {box, due, ok, bad, wrongStreak, learnedAt}
       album: {},      // id -> {at, gold}
-      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false },
+      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0 },
+      shop: { rewards: [], pending: [], history: [] },
       history: {},    // date -> {done, minutes, news, revs, shieldUsed}
       custom: [],     // 自定义词（cat:'custom'）
       rankIdx: 0,     // 当前段位
@@ -65,6 +66,9 @@ const Store = (() => {
     if (!state.chinese.stars) state.chinese.stars = {};
     if (!state.chinese.reads) state.chinese.reads = [];
     if (!state.chinese.wrong) state.chinese.wrong = [];
+    if (!state.shop) state.shop = { rewards: [], pending: [], history: [] };
+    if (state.today && state.today.coinsEarned === undefined) state.today.coinsEarned = 0;
+    if (state.today && state.today.cnRounds === undefined) state.today.cnRounds = 0;
     if (!state.stats) state.stats = { drillsDone: 0 };
     if (state.today && state.today.mistakes === undefined) state.today.mistakes = 0;
     if (state.settings.warmupPerDay === undefined) state.settings.warmupPerDay = 1;
@@ -99,7 +103,7 @@ const Store = (() => {
 
   function ensureToday() {
     const t = todayStr();
-    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false };
+    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0 };
   }
 
   /* 护盾桥接：昨天漏打卡时自动消耗一张护盾保住连击 */
@@ -218,7 +222,7 @@ const Store = (() => {
       newSticker = true;
     }
     const reward = Math.max(2, COIN_NEW - hintsUsed * HINT_COST - (hadWrong ? 2 : 0));
-    state.coins += reward;
+    earn(reward);
     if (hadWrong) addMistake();
     const promo = checkRank();
     checkBadges();
@@ -246,7 +250,7 @@ const Store = (() => {
     }
     state.today.revDone++;
     const reward = correct ? COIN_REVIEW : 1;
-    state.coins += reward;
+    earn(reward);
     save();
     return reward;
   }
@@ -270,7 +274,11 @@ const Store = (() => {
       .slice(0, cap);
   }
 
-  function addCoins(n) { state.coins = Math.max(0, state.coins + n); save(); }
+  function earn(n) {
+    state.coins += n;
+    state.today.coinsEarned = (state.today.coinsEarned || 0) + n;
+  }
+  function addCoins(n) { earn(n); save(); }
 
   function addMinutes(min) {
     state.today.minutes = Math.min(180, state.today.minutes + min);
@@ -283,7 +291,7 @@ const Store = (() => {
     if (state.today.questDone) return;
     const st = state.streak, t = state.today.date;
     state.today.questDone = true;
-    state.coins += COIN_QUEST_BONUS;
+    earn(COIN_QUEST_BONUS);
     if (st.shieldWeek !== weekKey()) { st.shieldWeek = weekKey(); st.shields = 2; }
     if (st.lastDone === t) { /* 今天已完成过 */ }
     else if (st.lastDone && diffDays(st.lastDone, t) === 1) st.count++;
@@ -304,7 +312,7 @@ const Store = (() => {
     if (r > (state.rankIdx || 0)) {
       state.rankIdx = r;
       const reward = RANKS[r].reward || 0;
-      state.coins += reward;
+      earn(reward);
       state.pendingPromotion = { name: RANKS[r].name, reward, idx: r };
       return state.pendingPromotion;
     }
@@ -336,7 +344,7 @@ const Store = (() => {
   /* ---------- 语文星系 ---------- */
   function markCnStar(poemId, allOk) {
     if (allOk) state.chinese.stars[poemId] = todayStr();
-    state.coins += allOk ? 15 : 5;
+    earn(allOk ? 15 : 5);
     checkBadges();
     save();
   }
@@ -387,7 +395,7 @@ const Store = (() => {
   function finishMathRun(correct, seconds, wrongList) {
     ensureToday();
     const coinsGain = correct * 1 + (correct >= 15 ? 10 : correct >= 8 ? 5 : 0);
-    state.coins += coinsGain;
+    earn(coinsGain);
     state.today.mathDone = true;
     const m = state.math;
     const isNewBest = correct > (m.best || 0);
@@ -419,11 +427,50 @@ const Store = (() => {
     save();
   }
 
+  /* ---------- 兑换商店 ---------- */
+  function addShopReward(emoji, name, cost) {
+    state.shop.rewards.push({ id: 'rw' + Date.now(), emoji: emoji || '🎁', name, cost: Math.max(1, cost) });
+    save();
+  }
+  function removeShopReward(id) {
+    state.shop.rewards = state.shop.rewards.filter(r => r.id !== id);
+    save();
+  }
+  function redeemReward(id) {
+    const r = state.shop.rewards.find(x => x.id === id);
+    if (!r) return { ok: false, msg: '奖励不存在' };
+    if (state.shop.pending.some(p => p.rewardId === id)) return { ok: false, msg: '这个奖励已在兑现队列里啦' };
+    if (state.coins < r.cost) return { ok: false, msg: '金币还不够' };
+    state.coins -= r.cost;
+    state.shop.pending.push({ id: 'pd' + Date.now(), rewardId: id, name: r.name, emoji: r.emoji, cost: r.cost, at: todayStr() });
+    save();
+    return { ok: true };
+  }
+  function approveRedeem(pid) {
+    const p = state.shop.pending.find(x => x.id === pid);
+    if (!p) return;
+    state.shop.pending = state.shop.pending.filter(x => x.id !== pid);
+    state.shop.history.unshift({ at: todayStr(), name: p.name, emoji: p.emoji, cost: p.cost });
+    if (state.shop.history.length > 20) state.shop.history = state.shop.history.slice(0, 20);
+    save();
+  }
+  function rejectRedeem(pid) {
+    const p = state.shop.pending.find(x => x.id === pid);
+    if (!p) return;
+    state.shop.pending = state.shop.pending.filter(x => x.id !== pid);
+    state.coins += p.cost; // 退还金币
+    save();
+  }
+  function tomorrowDueCount() {
+    const t = addDays(todayStr(), 1);
+    return Object.keys(state.srs).filter(id => state.srs[id].due === t && findWord(id)).length;
+  }
+
   /* 跟读奖励：每个词只奖一次 +3 金币 */
   function markSpoken(id) {
     if (state.spoken[id]) return { first: false };
     state.spoken[id] = todayStr();
-    state.coins += 3;
+    earn(3);
     checkBadges();
     save();
     return { first: true };
@@ -504,6 +551,7 @@ const Store = (() => {
     addMistake, markEnglishDone, checkBadges, popPendingBadge, noteDictation, markDrillDone, markSpoken,
     addMathWrong, clearMathWrong, finishMathRun, setMath, addPracticeWrong, clearPracticeWrong,
     markCnStar, markCnRead, addCnWrong,
+    addShopReward, removeShopReward, redeemReward, approveRedeem, rejectRedeem, tomorrowDueCount,
     petStage, feedPet, setSetting,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,

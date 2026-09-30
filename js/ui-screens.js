@@ -135,6 +135,25 @@ function renderHome() {
   /* 语文星系卡 */
   if (typeof Chinese !== 'undefined') Chinese.renderHomeCard();
 
+  /* 兑换商店卡（家长定义了奖励才显示） */
+  const shopSlot = $('#shop-slot');
+  if (shopSlot) {
+    const shop = Store.state.shop;
+    shopSlot.innerHTML = '';
+    if (shop.rewards.length) {
+      shopSlot.appendChild(h('div', { class: 'card math-card' },
+        h('div', { class: 'math-head' },
+          h('span', { class: 'math-emoji' }, '🎁'),
+          h('div', { class: 'math-info' },
+            h('div', { style: 'font-weight:800' }, '兑换商店'),
+            h('div', { class: 'tiny' }, `${shop.rewards.length} 个奖励${shop.pending.length ? ` · ${shop.pending.length} 个待爸妈兑现` : ' · 攒金币来换'}`)
+          ),
+          h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); openShop(); } }, '去逛逛')
+        )
+      ));
+    }
+  }
+
   /* 错词雷达 + 周日 BOSS 挑战 + 段位晋升 */
   const weakSlot = $('#weak-slot');
   weakSlot.innerHTML = '';
@@ -554,6 +573,50 @@ function renderParent() {
     ) : ''
   ));
 
+  /* 兑换商店管理 */
+  const shop = s.shop;
+  root.appendChild(h('div', { class: 'card' },
+    h('div', { class: 'sec-title' }, '🎁 兑换商店'),
+    h('div', { class: 'tiny', style: 'margin-bottom:8px' }, '定义孩子可以用金币兑换的现实奖励；孩子发起兑换后在这里确认。'),
+    h('div', { class: 'row-gap' },
+      h('input', { id: 'shop-emoji', class: 'input', style: 'width:52px;flex:none;text-align:center', maxlength: '2', value: '🎁' }),
+      h('input', { id: 'shop-name', class: 'input', style: 'flex:1', placeholder: '奖励名称，如：周末冰淇淋' }),
+      h('input', { id: 'shop-cost', class: 'input num', type: 'number', min: '1', placeholder: '金币' })
+    ),
+    h('button', {
+      class: 'btn btn-main', style: 'margin-top:8px', onclick: () => {
+        const emoji = document.getElementById('shop-emoji').value.trim() || '🎁';
+        const name = document.getElementById('shop-name').value.trim();
+        const cost = parseInt(document.getElementById('shop-cost').value, 10);
+        if (!name || !cost || cost < 1) { toast('填好奖励名称和金币数'); return; }
+        Store.addShopReward(emoji, name, cost);
+        renderParent();
+      }
+    }, '添加奖励'),
+    shop.rewards.length ? shop.rewards.map(r => h('div', { class: 'pack-row' },
+      h('span', { class: 'pack-info' }, `${r.emoji} ${r.name}`, h('span', { class: 'tiny' }, `　${r.cost} 🪙`)),
+      h('button', { class: 'btn small danger', onclick: () => { Store.removeShopReward(r.id); renderParent(); } }, '删除')
+    )) : h('div', { class: 'tiny', style: 'margin-top:6px' }, '还没有奖励，先添加一个吧'),
+    shop.pending.length ? h('div', { style: 'margin-top:12px' },
+      h('div', { class: 'sec-title', style: 'font-size:15px' }, '⏳ 待兑现'),
+      shop.pending.map(p2 => h('div', { class: 'pack-row' },
+        h('span', { class: 'pack-info' }, `${p2.emoji} ${p2.name}`, h('span', { class: 'tiny' }, `　${p2.cost} 🪙 · ${p2.at}`)),
+        h('span', { class: 'row-gap', style: 'margin-top:0' },
+          h('button', { class: 'btn small btn-on', onclick: () => { Store.approveRedeem(p2.id); Sound.gold(); renderParent(); } }, '已兑现 ✓'),
+          h('button', { class: 'btn small danger', onclick: () => { Store.rejectRedeem(p2.id); renderParent(); toast('已拒绝并退还金币'); } }, '退还')
+        )
+      ))
+    ) : '',
+    shop.history.length ? h('div', { class: 'tiny', style: 'margin-top:8px' }, '最近兑现：' + shop.history.slice(0, 5).map(x => `${x.emoji}${x.name}`).join('、')) : ''
+  ));
+
+  /* 成长曲线 */
+  root.appendChild(h('div', { class: 'card' },
+    h('div', { class: 'sec-title' }, '📈 成长曲线'),
+    curveBlock('词汇量增长（近 14 天）', vocabCurve(14)),
+    curveBlock('口算冲刺成绩（每次答对题数）', (s.math.runs || []).slice(-14).map(r => r.correct), '#58e08a')
+  ));
+
   /* 数学星系设置 */
   const m = s.math;
   const mathRuns = (m.runs || []).slice(-7);
@@ -712,4 +775,106 @@ function renderPinGate(root) {
   box.appendChild(h('div', { class: 'tiny center' }, '默认 PIN：1234（可在家长面板修改）'));
   root.appendChild(box);
   root.appendChild(h('button', { class: 'btn exit-btn', onclick: () => showScreen('home') }, '返回'));
+}
+
+
+/* ============================================================
+ * 兑换商店（孩子端）与今日结算单
+ * ============================================================ */
+function openShop() {
+  const shop = Store.state.shop;
+  showModal({
+    title: '🎁 兑换商店',
+    build(el) {
+      el.appendChild(h('div', { class: 'tiny', style: 'margin-bottom:8px' }, `当前金币：${Store.state.coins} 🪙 · 兑换后找爸妈领取`));
+      shop.rewards.forEach(r => {
+        const pending = shop.pending.some(p => p.rewardId === r.id);
+        const afford = Store.state.coins >= r.cost;
+        el.appendChild(h('div', { class: 'pack-row' },
+          h('span', { class: 'pack-info' }, `${r.emoji} ${r.name}`, h('span', { class: 'tiny' }, `　${r.cost} 🪙`)),
+          h('button', {
+            class: 'btn small ' + (afford && !pending ? 'btn-main' : ''),
+            disabled: pending || !afford ? '' : null,
+            onclick: e => {
+              const res = Store.redeemReward(r.id);
+              if (res.ok) {
+                Sound.gold();
+                const c = centerOf(e.currentTarget);
+                burst(c.x, c.y, { count: 14, emojis: ['🎁', '⭐'], power: 90 });
+                updateTop();
+                openShop();
+              } else toast(res.msg);
+            }
+          }, pending ? '待兑现' : '兑换')
+        ));
+      });
+      if (shop.pending.length) {
+        el.appendChild(h('div', { class: 'tiny', style: 'margin-top:10px' }, `待爸妈兑现：${shop.pending.map(p => `${p.emoji}${p.name}`).join('、')}`));
+      }
+    },
+    actions: [{ label: '先逛到这', cls: 'btn-main' }]
+  });
+}
+
+function openSettlement() {
+  const s = Store.state.today;
+  const c = Store.state;
+  const now = new Date();
+  const week = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
+  const spoken = Object.values(c.spoken).filter(d => d === Store.todayStr()).length;
+  const lastRun = (c.math.runs || []).filter(r => r.at === Store.todayStr()).pop();
+  const due = Store.tomorrowDueCount();
+  showModal({
+    title: '🧾 今日结算单',
+    build(el) {
+      el.appendChild(h('div', { class: 'receipt' },
+        h('div', { class: 'receipt-date' }, `${now.getMonth() + 1}月${now.getDate()}日 星期${week}`),
+        h('div', { class: 'receipt-row' }, h('b', {}, '🚀 英语'), h('span', {}, `新词 ${s.newDone}/${Store.state.settings.dailyNew} · 复习 ${s.revDone}/${Store.state.settings.dailyReview}${spoken ? ` · 跟读 ${spoken} 词` : ''}`)),
+        h('div', { class: 'receipt-row' }, h('b', {}, '🪐 数学'), h('span', {}, s.mathDone ? `冲刺完成${lastRun ? ` · 最近答对 ${lastRun.correct} 题` : ''}` : '今天还没冲刺')),
+        h('div', { class: 'receipt-row' }, h('b', {}, '📖 语文'), h('span', {}, (s.cnRounds || 0) ? `完成 ${s.cnRounds} 轮练习` : '今天还没开始')),
+        h('div', { class: 'receipt-div' }),
+        h('div', { class: 'receipt-row' }, h('b', {}, '💰 今日收入'), h('span', {}, `+${s.coinsEarned || 0} 🪙`)),
+        h('div', { class: 'receipt-row' }, h('b', {}, '⏱ 今日用时'), h('span', {}, `${s.minutes} 分钟`)),
+        h('div', { class: 'receipt-row' }, h('b', {}, '🔥 连续航行'), h('span', {}, `${c.streak.count} 天`)),
+        h('div', { class: 'receipt-row' }, h('b', {}, '📅 明天待复习'), h('span', {}, `${due} 个词`)),
+        h('div', { class: 'receipt-div' }),
+        h('div', { class: 'receipt-foot' }, `“${rnd(PET_LINES.praise)}” —— ${c.pet.name}`)
+      ));
+    },
+    actions: [{ label: '今天辛苦啦！', cls: 'btn-main' }]
+  });
+}
+
+/* ---------- 成长曲线 ---------- */
+function curveBlock(label, values, color = '#4fd1ff') {
+  const clean = values.filter(v => v !== null && v !== undefined);
+  if (clean.length < 2) return h('div', { class: 'tiny', style: 'margin:4px 0 10px' }, label + '：数据积累中…');
+  const w = 300, hgt = 76, pad = 6;
+  const max = Math.max(...clean, 1);
+  const pts = clean.map((v, i) => {
+    const x = pad + (i * (w - pad * 2)) / (clean.length - 1);
+    const y = hgt - pad - (v / max) * (hgt - pad * 2);
+    return [x, y];
+  });
+  const poly = pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  return h('div', { style: 'margin:4px 0 14px' },
+    h('div', { class: 'tiny', style: 'margin-bottom:4px' }, `${label}（最新 ${clean[clean.length - 1]}）`),
+    h('svg', { viewBox: `0 0 ${w} ${hgt}`, style: 'width:100%;height:76px' },
+      h('polyline', { points: poly, fill: 'none', stroke: color, 'stroke-width': '2.5', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }),
+      pts.map(p => h('circle', { cx: p[0].toFixed(1), cy: p[1].toFixed(1), r: 3, fill: '#ffd166' }))
+    )
+  );
+}
+
+function vocabCurve(days = 14) {
+  const s = Store.state;
+  const total = Object.keys(s.srs).filter(id => Store.findWord(id)).length;
+  const arr = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const ds = Store.addDays(Store.todayStr(), -i);
+    arr.push({ news: (s.history[ds] && s.history[ds].news) || 0 });
+  }
+  let back = 0;
+  for (let i = arr.length - 1; i >= 0; i--) { arr[i].cum = total - back; back += arr[i].news; }
+  return arr.map(x => Math.max(0, x.cum));
 }
