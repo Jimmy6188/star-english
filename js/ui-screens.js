@@ -132,6 +132,9 @@ function renderHome() {
     ));
   }
 
+  /* 语文星系卡 */
+  if (typeof Chinese !== 'undefined') Chinese.renderHomeCard();
+
   /* 错词雷达 + 周日 BOSS 挑战 + 段位晋升 */
   const weakSlot = $('#weak-slot');
   weakSlot.innerHTML = '';

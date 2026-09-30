@@ -43,6 +43,7 @@ const Store = (() => {
       dictations: [],        // 听写测验记录 {at, correct, total}
       spoken: {},            // 跟读过的词 id -> 日期（奖励每词一次）
       math: { wrong: [], wrongP: [], best: 0, runs: [], planets: 0, goodRuns: 0, level: 2, seconds: 60 },
+      chinese: { stars: {}, reads: [], wrong: [] },
       stats: { drillsDone: 0 }
     };
   }
@@ -60,6 +61,10 @@ const Store = (() => {
     if (state.math.wrongP === undefined) state.math.wrongP = [];
     if (state.math.level === undefined) state.math.level = 2;
     if (state.math.seconds === undefined) state.math.seconds = 60;
+    if (!state.chinese) state.chinese = { stars: {}, reads: [], wrong: [] };
+    if (!state.chinese.stars) state.chinese.stars = {};
+    if (!state.chinese.reads) state.chinese.reads = [];
+    if (!state.chinese.wrong) state.chinese.wrong = [];
     if (!state.stats) state.stats = { drillsDone: 0 };
     if (state.today && state.today.mistakes === undefined) state.today.mistakes = 0;
     if (state.settings.warmupPerDay === undefined) state.settings.warmupPerDay = 1;
@@ -327,6 +332,25 @@ const Store = (() => {
     state.today.mistakes = (state.today.mistakes || 0) + 1;
   }
   function markEnglishDone() { state.today.enDone = true; save(); }
+
+  /* ---------- 语文星系 ---------- */
+  function markCnStar(poemId, allOk) {
+    if (allOk) state.chinese.stars[poemId] = todayStr();
+    state.coins += allOk ? 15 : 5;
+    checkBadges();
+    save();
+  }
+  function markCnRead(passageId) {
+    if (!state.chinese.reads.includes(passageId)) state.chinese.reads.push(passageId);
+    save();
+  }
+  function addCnWrong(q) {
+    const w = state.chinese.wrong;
+    if (w.some(x => x.q === q.q)) return;
+    w.push({ q: q.q, opts: q.opts, ans: q.ans, tip: q.tip || '' });
+    if (w.length > 20) state.chinese.wrong = w.slice(-20);
+    save();
+  }
   function checkBadges() {
     const t = todayStr();
     ACHIEVEMENTS.forEach(a => {
@@ -479,6 +503,7 @@ const Store = (() => {
     rankInfo, checkRank, learnedCount, bossInfo, bossComplete,
     addMistake, markEnglishDone, checkBadges, popPendingBadge, noteDictation, markDrillDone, markSpoken,
     addMathWrong, clearMathWrong, finishMathRun, setMath, addPracticeWrong, clearPracticeWrong,
+    markCnStar, markCnRead, addCnWrong,
     petStage, feedPet, setSetting,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,
