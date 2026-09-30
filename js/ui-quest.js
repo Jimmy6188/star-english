@@ -701,6 +701,7 @@ const Quest = {
   finish() {
     this.addMinutes();
     if (!this.freeMode && !this.drillMode && !this.bossMode && !this.dictMode) {
+      Store.markEnglishDone();
       Store.completeQuest();
       Sound.stamp();
     }

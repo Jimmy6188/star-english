@@ -308,6 +308,12 @@ const ACHIEVEMENTS = [
     cond: s => s.dictations && s.dictations.some(d => d.correct === d.total) },
   { id: 'perfect-day',  emoji: '🎯', name: '完美一天',   desc: '任务全对零失误地完成每日冒险',
     cond: s => s.history[s.today.date] && s.history[s.today.date].done && s.today.mistakes === 0 },
+  { id: 'first-math',   emoji: '🪐', name: '计算新星',   desc: '完成第一次口算冲刺',
+    cond: s => s.math && (s.math.runs || []).length >= 1 },
+  { id: 'math-20',      emoji: '🧮', name: '口算小达人', desc: '单次口算冲刺答对 20 题',
+    cond: s => s.math && (s.math.best || 0) >= 20 },
+  { id: 'planets-10',   emoji: '🌌', name: '行星征服者', desc: '点亮全部 10 颗数学行星',
+    cond: s => s.math && (s.math.planets || 0) >= 10 },
   { id: 'pet-max',      emoji: '🤖', name: '机械大师',   desc: '把机器伙伴养成最终形态',
     cond: s => s.pet.fed >= PET_STAGES[PET_STAGES.length - 1].need }
 ];

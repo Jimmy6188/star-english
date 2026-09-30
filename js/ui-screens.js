@@ -102,13 +102,31 @@ function renderHome() {
   $('#txt-rev').textContent = `${Math.min(revDone, set.dailyReview)}/${set.dailyReview}`;
 
   const btn = $('#btn-quest');
-  if (s.today.questDone) {
-    btn.textContent = '✅ 今日已完成 · 自由练习';
+  if (s.today.enDone) {
+    btn.textContent = '✅ 今日英语已完成 · 自由练习';
     btn.onclick = () => { Sound.tap(); Quest.start(true); };
   } else {
     const started = newDone + revDone > 0;
     btn.textContent = started ? '🚀 继续冒险' : '🚀 开始冒险';
     btn.onclick = () => { Sound.tap(); Quest.start(false); };
+  }
+
+  /* 数学星系卡 */
+  const mathSlot = $('#math-slot');
+  if (mathSlot) {
+    const m = Store.state.math;
+    mathSlot.innerHTML = '';
+    const planets = '🪐'.repeat(Math.min(10, m.planets || 0));
+    mathSlot.appendChild(h('div', { class: 'card math-card' },
+      h('div', { class: 'math-head' },
+        h('span', { class: 'math-emoji' }, '🪐'),
+        h('div', { class: 'math-info' },
+          h('div', { style: 'font-weight:800' }, '数学星系 · 限时口算'),
+          h('div', { class: 'tiny' }, `${planets || '尚未点亮行星'} · 最佳 ${m.best || 0} 题/轮${s.today.mathDone ? ' · 今日已冲刺 ✅' : ''}`)
+        ),
+        h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); MathSprint.start(); } }, s.today.mathDone ? '再来一轮' : '开始冲刺')
+      )
+    ));
   }
 
   /* 错词雷达 + 周日 BOSS 挑战 + 段位晋升 */
@@ -528,6 +546,26 @@ function renderParent() {
         h('span', { class: 'pack-info' }, `${d.correct}/${d.total} ${d.correct === d.total ? '💯' : ''}`)
       ))
     ) : ''
+  ));
+
+  /* 数学星系设置 */
+  const m = s.math;
+  const mathRuns = (m.runs || []).slice(-7);
+  root.appendChild(h('div', { class: 'card' },
+    h('div', { class: 'sec-title' }, '🪐 数学星系'),
+    selectRow('口算难度', 'mlevel',
+      [['1', '基础'], ['2', '四上核心（推荐）'], ['3', '挑战（两步混合）']],
+      String(m.level || 2), v => Store.setMath('level', parseInt(v, 10))),
+    selectRow('冲刺时长', 'mseconds',
+      [['30', '30 秒'], ['60', '60 秒（推荐）'], ['90', '90 秒']],
+      String(m.seconds || 60), v => Store.setMath('seconds', parseInt(v, 10))),
+    mathRuns.length ? h('div', { class: 'stat-bars' },
+      mathRuns.map(r => h('div', { class: 'stat-bar' },
+        h('i', { style: 'height:' + Math.min(30, r.correct) * 3 + 'px' }),
+        h('span', {}, r.at.slice(5) + ' ' + r.correct + '题')
+      ))
+    ) : h('div', { class: 'tiny' }, '还没有冲刺记录'),
+    h('div', { class: 'tiny' }, `错题池 ${m.wrong.length} 题，下次冲刺优先重练；口算答错同样计入当日失误`)
   ));
 
   /* 数据管理 */

@@ -32,7 +32,7 @@ const Store = (() => {
       streak: { count: 0, lastDone: null, shields: 2, shieldWeek: null },
       srs: {},        // id -> {box, due, ok, bad, wrongStreak, learnedAt}
       album: {},      // id -> {at, gold}
-      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0 },
+      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false },
       history: {},    // date -> {done, minutes, news, revs, shieldUsed}
       custom: [],     // 自定义词（cat:'custom'）
       rankIdx: 0,     // 当前段位
@@ -42,6 +42,7 @@ const Store = (() => {
       pendingBadges: [],     // 待展示的徽章 id 队列
       dictations: [],        // 听写测验记录 {at, correct, total}
       spoken: {},            // 跟读过的词 id -> 日期（奖励每词一次）
+      math: { wrong: [], best: 0, runs: [], planets: 0, goodRuns: 0, level: 2, seconds: 60 },
       stats: { drillsDone: 0 }
     };
   }
@@ -54,6 +55,10 @@ const Store = (() => {
     if (!state.pendingBadges) state.pendingBadges = [];
     if (!state.dictations) state.dictations = [];
     if (!state.spoken) state.spoken = {};
+    if (!state.math) state.math = { wrong: [], best: 0, runs: [], planets: 0, goodRuns: 0, level: 2, seconds: 60 };
+    if (state.math.wrong === undefined) state.math.wrong = [];
+    if (state.math.level === undefined) state.math.level = 2;
+    if (state.math.seconds === undefined) state.math.seconds = 60;
     if (!state.stats) state.stats = { drillsDone: 0 };
     if (state.today && state.today.mistakes === undefined) state.today.mistakes = 0;
     if (state.settings.warmupPerDay === undefined) state.settings.warmupPerDay = 1;
@@ -88,7 +93,7 @@ const Store = (() => {
 
   function ensureToday() {
     const t = todayStr();
-    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0 };
+    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false };
   }
 
   /* 护盾桥接：昨天漏打卡时自动消耗一张护盾保住连击 */
@@ -320,6 +325,7 @@ const Store = (() => {
   function addMistake() {
     state.today.mistakes = (state.today.mistakes || 0) + 1;
   }
+  function markEnglishDone() { state.today.enDone = true; save(); }
   function checkBadges() {
     const t = todayStr();
     ACHIEVEMENTS.forEach(a => {
@@ -341,6 +347,42 @@ const Store = (() => {
     checkBadges();
     save();
   }
+  /* ---------- 数学星系 ---------- */
+  function addMathWrong(q, a) {
+    const m = state.math;
+    if (m.wrong.some(x => x.q === q)) return;
+    m.wrong.push({ q, a });
+    if (m.wrong.length > 20) m.wrong = m.wrong.slice(-20);
+    save();
+  }
+  function clearMathWrong(q) {
+    state.math.wrong = state.math.wrong.filter(x => x.q !== q);
+    save();
+  }
+  function finishMathRun(correct, seconds, wrongList) {
+    ensureToday();
+    const coinsGain = correct * 1 + (correct >= 15 ? 10 : correct >= 8 ? 5 : 0);
+    state.coins += coinsGain;
+    state.today.mathDone = true;
+    const m = state.math;
+    const isNewBest = correct > (m.best || 0);
+    if (isNewBest) m.best = correct;
+    m.runs = m.runs || [];
+    m.runs.push({ at: todayStr(), correct, seconds });
+    if (m.runs.length > 10) m.runs = m.runs.slice(-10);
+    let planetLit = false;
+    if (correct >= 10) {
+      m.goodRuns = (m.goodRuns || 0) + 1;
+      const target = Math.min(10, Math.ceil(m.goodRuns / 2));
+      if (target > (m.planets || 0)) { m.planets = target; planetLit = true; }
+    }
+    completeQuest();
+    checkBadges();
+    save();
+    return { coinsGain, planetLit, planets: m.planets || 0, isNewBest };
+  }
+  function setMath(k, v) { state.math[k] = v; save(); }
+
   /* 跟读奖励：每个词只奖一次 +3 金币 */
   function markSpoken(id) {
     if (state.spoken[id]) return { first: false };
@@ -423,7 +465,8 @@ const Store = (() => {
     masterWord, reviewWord, addMinutes, completeQuest,
     isWeak, weakList, addCoins,
     rankInfo, checkRank, learnedCount, bossInfo, bossComplete,
-    addMistake, checkBadges, popPendingBadge, noteDictation, markDrillDone, markSpoken,
+    addMistake, markEnglishDone, checkBadges, popPendingBadge, noteDictation, markDrillDone, markSpoken,
+    addMathWrong, clearMathWrong, finishMathRun, setMath,
     petStage, feedPet, setSetting,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,

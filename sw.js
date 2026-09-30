@@ -1,5 +1,5 @@
 /* 星际英语站 - 离线缓存（仅在 http(s) 环境生效） */
-const CACHE = 'star-english-v7';
+const CACHE = 'star-english-v8';
 const ASSETS = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const ASSETS = [
   './js/ui-kit.js',
   './js/ui-screens.js',
   './js/ui-quest.js',
+  './js/ui-math.js',
   './js/app.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
