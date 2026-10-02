@@ -93,47 +93,64 @@ function renderHome() {
   $('#streak-shields').innerHTML =
     '🛡️'.repeat(s.streak.shields) + (s.streak.shields === 0 ? '<span class="tiny">护盾已用完，周一补充</span>' : `<span class="tiny">护盾 ×${s.streak.shields}</span>`);
 
-  /* 今日任务 */
+  /* 今日任务（主科：英语 / 数学 / 语文） */
   const set = s.settings;
   const newDone = s.today.newDone, revDone = s.today.revDone;
-  $('#bar-new').style.width = Math.min(100, (newDone / set.dailyNew) * 100) + '%';
-  $('#bar-rev').style.width = Math.min(100, (revDone / set.dailyReview) * 100) + '%';
-  $('#txt-new').textContent = `${Math.min(newDone, set.dailyNew)}/${set.dailyNew}`;
-  $('#txt-rev').textContent = `${Math.min(revDone, set.dailyReview)}/${set.dailyReview}`;
+  const enDone = !!s.today.enDone;
+  const mathDone = !!s.today.mathDone;
+  const cnDone = (s.today.cnRounds || 0) >= 1;
 
+  const taskRows = $('#task-rows');
+  taskRows.innerHTML = '';
+  const mkRow = (icon, name, sub, done, go) => h('div', { class: 'task-row' + (done ? ' done' : '') },
+    h('span', { class: 'tr-icon' }, icon),
+    h('div', { class: 'tr-info' },
+      h('div', { class: 'tr-name' }, name),
+      h('div', { class: 'tr-sub' }, sub)
+    ),
+    h('button', { class: 'btn small' + (done ? ' btn-on' : ''), onclick: () => { Sound.tap(); go(); } }, done ? '再来' : '去完成')
+  );
+  taskRows.appendChild(mkRow('🚀', '英语',
+    enDone ? '今日任务完成' : `新词 ${Math.min(newDone, set.dailyNew)}/${set.dailyNew} · 复习 ${Math.min(revDone, set.dailyReview)}/${set.dailyReview}`,
+    enDone, () => Quest.start(enDone)));
+  taskRows.appendChild(mkRow('🪐', '数学',
+    mathDone ? '今日已冲刺' : '60 秒口算冲刺',
+    mathDone, () => MathSprint.start()));
+  taskRows.appendChild(mkRow('📖', '语文',
+    cnDone ? '今日已练一轮' : '诗词 / 阅读 / 词语任选一轮',
+    cnDone, () => openSubjectHub('cn')));
+
+  /* 大按钮：按 英语 → 数学 → 语文 顺序指向下一个任务 */
   const btn = $('#btn-quest');
-  if (s.today.enDone) {
-    btn.textContent = '✅ 今日英语已完成 · 自由练习';
-    btn.onclick = () => { Sound.tap(); Quest.start(true); };
-  } else {
-    const started = newDone + revDone > 0;
-    btn.textContent = started ? '🚀 继续冒险' : '🚀 开始冒险';
+  const startedEn = newDone + revDone > 0;
+  if (!enDone) {
+    btn.textContent = startedEn ? '🚀 继续冒险' : '🚀 开始冒险';
     btn.onclick = () => { Sound.tap(); Quest.start(false); };
+  } else if (!mathDone) {
+    btn.textContent = '🪐 去口算冲刺';
+    btn.onclick = () => { Sound.tap(); MathSprint.start(); };
+  } else if (!cnDone) {
+    btn.textContent = '📖 语文练一轮';
+    btn.onclick = () => { Sound.tap(); Chinese.words(); };
+  } else {
+    btn.textContent = '🎉 主科全达 · 自由玩';
+    btn.onclick = () => { Sound.tap(); Quest.start(true); };
+  }
+  $('#task-foot').textContent = (enDone && mathDone && cnDone)
+    ? '三科全达奖励已到账，去学科星系继续探索吧！'
+    : '完成任意一科即盖章 · 三科全达额外 +10 🪙';
+
+  /* 三科全达奖励（每天一次） */
+  if (enDone && mathDone && cnDone && !s.today.tripleDone) {
+    s.today.tripleDone = true;
+    Store.addCoins(10);
+    Store.save();
+    Sound.coin();
+    toast('🎉 三科全达！额外 +10 🪙');
   }
 
-  /* 数学星系卡 */
-  const mathSlot = $('#math-slot');
-  if (mathSlot) {
-    const m = Store.state.math;
-    mathSlot.innerHTML = '';
-    const planets = '🪐'.repeat(Math.min(10, m.planets || 0));
-    mathSlot.appendChild(h('div', { class: 'card math-card' },
-      h('div', { class: 'math-head' },
-        h('span', { class: 'math-emoji' }, '🪐'),
-        h('div', { class: 'math-info' },
-          h('div', { style: 'font-weight:800' }, '数学星系 · 限时口算'),
-          h('div', { class: 'tiny' }, `${planets || '尚未点亮行星'} · 最佳 ${m.best || 0} 题/轮${s.today.mathDone ? ' · 今日已冲刺 ✅' : ''}`)
-        ),
-        h('div', { style: 'display:flex;flex-direction:column;gap:6px' },
-          h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); MathSprint.start(); } }, s.today.mathDone ? '再冲刺' : '冲刺'),
-          h('button', { class: 'btn small', onclick: () => { Sound.tap(); MathDrill.start(); } }, '📐 练习场')
-        )
-      )
-    ));
-  }
-
-  /* 语文星系卡 */
-  if (typeof Chinese !== 'undefined') Chinese.renderHomeCard();
+  /* 学科星系宫格 */
+  renderSubjects();
 
   /* 成长足迹卡 */
   const growSlot = $('#growth-slot');
@@ -173,7 +190,7 @@ function renderHome() {
       build(el) {
         el.appendChild(h('div', { class: 'center' },
           h('div', { style: 'font-size:56px;margin:6px 0' }, '🎉'),
-          h('div', { style: 'font-size:24px;font-weight:900;color:#ffcf5c' }, p.name),
+          h('div', { style: 'font-size:24px;font-weight:900;color:var(--gold)' }, p.name),
           h('div', { class: 'tiny', style: 'margin-top:8px' }, `晋升奖励 +${p.reward} 🪙 已发放，新的星域向你敞开！`)
         ));
       },
@@ -193,7 +210,7 @@ function renderHome() {
         build(el) {
           el.appendChild(h('div', { class: 'center' },
             h('div', { style: 'font-size:64px;margin:8px 0' }, a.emoji),
-            h('div', { style: 'font-size:22px;font-weight:900;color:#ffcf5c' }, a.name),
+            h('div', { style: 'font-size:22px;font-weight:900;color:var(--gold)' }, a.name),
             h('div', { class: 'tiny', style: 'margin-top:6px' }, a.desc)
           ));
         },
@@ -228,6 +245,77 @@ function renderHome() {
       h('span', { class: 'weak-go' }, '开战')
     ));
   }
+}
+
+/* ---------- 学科星系宫格与学科入口 ---------- */
+function subjectTile(emoji, name, sub, go) {
+  return h('button', { class: 'subject-tile', onclick: () => { Sound.tap(); go(); } },
+    h('div', { class: 'st-emoji' }, emoji),
+    h('div', { class: 'st-name' }, name),
+    h('div', { class: 'st-sub' }, sub)
+  );
+}
+
+function renderSubjects() {
+  const slot = $('#subjects-slot');
+  if (!slot) return;
+  const s = Store.state;
+  const m = s.math;
+  const tiles = [
+    subjectTile('🪐', '数学星系', `${s.today.mathDone ? '✅ ' : ''}口算 · 练习场 · ${m.best || 0} 题/轮`, openMathHub),
+    subjectTile('📖', '语文星系', `${(s.today.cnRounds || 0) ? '✅ ' : ''}诗词 ⭐${Object.keys(s.chinese.stars).length}/${CN_POEMS.length} · 阅读 · 词语`, openCnHub)
+  ];
+  /* 次科模块加载后自动出现在宫格里 */
+  if (typeof SubjectUI !== 'undefined') SubjectUI.tiles().forEach(t => tiles.push(t));
+  slot.innerHTML = '';
+  slot.appendChild(h('div', { class: 'card' },
+    h('div', { class: 'sec-title' }, '🌌 学科星系'),
+    h('div', { class: 'subject-grid' }, tiles)
+  ));
+}
+
+function openMathHub() {
+  const m = Store.state.math;
+  const planets = '🪐'.repeat(Math.min(10, m.planets || 0));
+  showModal({
+    title: '🪐 数学星系',
+    build(el, close) {
+      el.appendChild(h('div', { class: 'tiny center', style: 'margin-bottom:12px' },
+        `${planets || '尚未点亮行星'} · 最佳 ${m.best || 0} 题/轮 · 答对 ≥10 题的冲刺累计点亮行星`));
+      el.appendChild(h('button', {
+        class: 'btn btn-main big', style: 'margin-top:0',
+        onclick: () => { close(); MathSprint.start(); }
+      }, '🪐 限时口算冲刺'));
+      el.appendChild(h('button', {
+        class: 'btn big', style: 'margin-top:10px',
+        onclick: () => { close(); MathDrill.start(); }
+      }, '📐 练习场（笔算 + 应用题）'));
+      el.appendChild(h('div', { class: 'tiny center', style: 'margin-top:10px' }, '练习场不计时，5 题一组，答对每题 +5 🪙'));
+    }
+  });
+}
+
+function openCnHub() {
+  const c = Store.state.chinese;
+  showModal({
+    title: '📖 语文星系',
+    build(el, close) {
+      el.appendChild(h('div', { class: 'tiny center', style: 'margin-bottom:12px' },
+        `诗词 ⭐${Object.keys(c.stars).length}/${CN_POEMS.length} · 阅读 ${c.reads.length}/${CN_READINGS.length} 篇${c.wrong.length ? ` · 错题 ${c.wrong.length}` : ''}`));
+      el.appendChild(h('button', {
+        class: 'btn btn-main big', style: 'margin-top:0',
+        onclick: () => { close(); Chinese.poemList(); }
+      }, '📜 诗词星图'));
+      el.appendChild(h('button', {
+        class: 'btn big', style: 'margin-top:10px',
+        onclick: () => { close(); Chinese.readList(); }
+      }, '📖 阅读训练营'));
+      el.appendChild(h('button', {
+        class: 'btn big', style: 'margin-top:10px',
+        onclick: () => { close(); Chinese.words(); }
+      }, '🈶 词语实战'));
+    }
+  });
 }
 
 function bindHome() {
@@ -495,6 +583,10 @@ function renderParent() {
       h('input', { type: 'checkbox', checked: !set.soundOff ? '' : null, onchange: e => Store.setSetting('soundOff', !e.target.checked) }),
       ' 音效与发音'
     ),
+    selectRow('外观主题', 'theme',
+      [['auto', '跟随系统（推荐）'], ['light', '日间 · 明亮护眼'], ['dark', '夜间 · 深空']],
+      set.theme || 'auto',
+      v => { Store.setSetting('theme', v); applyTheme(); }),
     h('div', { class: 'row-gap' },
       h('input', { id: 'new-pin', class: 'input', type: 'password', maxlength: '4', placeholder: '设置新 PIN（4位数字）' }),
       h('button', {
@@ -975,7 +1067,7 @@ function renderGrowthCard(slot) {
     ),
     h('div', { class: 'growth-stats' },
       h('span', {}, `📈 词汇量 ${learned}`),
-      weakN ? h('span', {}, `⚡ 待消灭 ${weakN}`) : h('span', { style: 'color:#58e08a' }, '✅ 错词清零'),
+      weakN ? h('span', {}, `⚡ 待消灭 ${weakN}`) : h('span', { style: 'color:var(--green)' }, '✅ 错词清零'),
     ),
     h('div', { class: 'growth-goal' },
       h('div', { class: 'tiny' }, `🎯 ${goal.name}`),

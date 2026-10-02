@@ -7,30 +7,6 @@
 const Chinese = {
   pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
 
-  /* ---------- 首页卡片 ---------- */
-  renderHomeCard() {
-    const slot = $('#chinese-slot');
-    if (!slot) return;
-    const c = Store.state.chinese;
-    const stars = Object.keys(c.stars).length;
-    const reads = c.reads.length;
-    slot.innerHTML = '';
-    slot.appendChild(h('div', { class: 'card math-card' },
-      h('div', { class: 'math-head' },
-        h('span', { class: 'math-emoji' }, '📖'),
-        h('div', { class: 'math-info' },
-          h('div', { style: 'font-weight:800' }, '语文星系 · 人教四上'),
-          h('div', { class: 'tiny' }, `诗词 ⭐${stars}/${CN_POEMS.length} · 阅读 ${reads}/${CN_READINGS.length} 篇${c.wrong.length ? ` · 错题 ${c.wrong.length}` : ''}`)
-        )
-      ),
-      h('div', { class: 'cn-btns' },
-        h('button', { class: 'btn small', onclick: () => { Sound.tap(); this.poemList(); } }, '📜 诗词星图'),
-        h('button', { class: 'btn small', onclick: () => { Sound.tap(); this.readList(); } }, '📖 阅读'),
-        h('button', { class: 'btn small', onclick: () => { Sound.tap(); this.words(); } }, '🈶 词语实战')
-      )
-    ));
-  },
-
   /* ---------- 通用：选择式题目（onDone(ok)） ---------- */
   ask(q, idx, total, onDone) {
     const root = $('#quest-root');
@@ -94,6 +70,7 @@ const Chinese = {
 
   /* ---------- 诗词星图 ---------- */
   poemList() {
+    showScreen('quest');
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
@@ -163,6 +140,7 @@ const Chinese = {
 
   /* ---------- 阅读训练营 ---------- */
   readList() {
+    showScreen('quest');
     const done = Store.state.chinese.reads;
     const next = CN_READINGS.find(r => !done.includes(r.id)) || this.pick(CN_READINGS);
     const root = $('#quest-root');
@@ -202,6 +180,7 @@ const Chinese = {
 
   /* ---------- 词语实战 ---------- */
   words() {
+    showScreen('quest');
     const wrong = (Store.state.chinese.wrong || []).slice();
     const qs = shuffle(wrong).slice(0, 2);
     while (qs.length < 5) {

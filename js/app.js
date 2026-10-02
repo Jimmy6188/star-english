@@ -7,6 +7,7 @@ function showScreen(name) {
   $$('#main .screen').forEach(el => el.classList.remove('active'));
   $('#screen-' + name).classList.add('active');
   $$('#bottomnav button').forEach(b => b.classList.toggle('active', b.dataset.nav === name));
+  if (name !== 'quest') document.dispatchEvent(new CustomEvent('talk-release'));
   if (name === 'home') renderHome();
   else if (name === 'album') renderAlbum();
   else if (name === 'calendar') renderCalendar();
@@ -14,11 +15,13 @@ function showScreen(name) {
   window.scrollTo(0, 0);
 }
 
-/* 星空背景（canvas 画一次，性能友好） */
+/* 星空背景（canvas 画一次，性能友好；颜色跟随主题） */
 function paintStars() {
   const cv = $('#starfield');
+  if (!cv) return;
   const ctx = cv.getContext('2d');
   function draw() {
+    const dark = document.documentElement.dataset.theme !== 'light';
     cv.width = innerWidth;
     cv.height = innerHeight;
     ctx.clearRect(0, 0, cv.width, cv.height);
@@ -27,8 +30,10 @@ function paintStars() {
       const x = Math.random() * cv.width;
       const y = Math.random() * cv.height;
       const r = Math.random() * 1.4 + 0.3;
-      ctx.globalAlpha = 0.25 + Math.random() * 0.65;
-      ctx.fillStyle = Math.random() < 0.12 ? '#ffd166' : Math.random() < 0.2 ? '#4fd1ff' : '#ffffff';
+      ctx.globalAlpha = dark ? 0.25 + Math.random() * 0.65 : 0.1 + Math.random() * 0.22;
+      ctx.fillStyle = dark
+        ? (Math.random() < 0.12 ? '#ffd166' : Math.random() < 0.2 ? '#4fd1ff' : '#ffffff')
+        : (Math.random() < 0.12 ? '#d9a520' : Math.random() < 0.2 ? '#4d9fd0' : '#7d97bd');
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
@@ -38,6 +43,46 @@ function paintStars() {
   draw();
   let t;
   addEventListener('resize', () => { clearTimeout(t); t = setTimeout(draw, 300); });
+}
+
+/* ---------- 主题（跟随系统 / 日间 / 夜间） ---------- */
+const THEME_META = { dark: '#0b1026', light: '#eef5ff' };
+let themeMedia = null;
+
+function effectiveTheme() {
+  const mode = Store.state.settings.theme || 'auto';
+  if (mode !== 'auto') return mode;
+  if (!themeMedia) themeMedia = window.matchMedia('(prefers-color-scheme: light)');
+  return themeMedia.matches ? 'light' : 'dark';
+}
+
+function applyTheme() {
+  const mode = Store.state.settings.theme || 'auto';
+  const eff = effectiveTheme();
+  document.documentElement.dataset.theme = eff;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', THEME_META[eff]);
+  const btn = $('#btn-theme');
+  if (btn) btn.textContent = mode === 'auto' ? '🌓' : (eff === 'light' ? '🌞' : '🌙');
+  paintStars();
+}
+
+function cycleTheme() {
+  const order = ['auto', 'light', 'dark'];
+  const cur = Store.state.settings.theme || 'auto';
+  const next = order[(order.indexOf(cur) + 1) % order.length];
+  Store.setSetting('theme', next);
+  applyTheme();
+  toast({ auto: '外观：跟随系统', light: '外观：日间模式', dark: '外观：夜间模式' }[next]);
+}
+
+function initTheme() {
+  applyTheme();
+  if (themeMedia && themeMedia.addEventListener) {
+    themeMedia.addEventListener('change', () => {
+      if ((Store.state.settings.theme || 'auto') === 'auto') applyTheme();
+    });
+  }
 }
 
 /* 首次欢迎引导 */
@@ -81,12 +126,13 @@ function bindNav() {
     updateTop();
     if (!Store.state.settings.soundOff) Sound.tap();
   });
+  $('#btn-theme').addEventListener('click', () => { Sound.tap(); cycleTheme(); });
 }
 
 function init() {
   Store.load();
   Sound.init();
-  paintStars();
+  initTheme();
   bindNav();
   bindHome();
   $('#top-coins').style.cursor = 'pointer';

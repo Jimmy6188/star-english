@@ -26,13 +26,14 @@ const Store = (() => {
   function freshState() {
     return {
       v: 1,
-      settings: { dailyNew: 4, dailyReview: 10, sessionLimitMin: 20, soundOff: false, pin: '1234', activePacks: null, grade: 4, range: 'below', warmupPerDay: 1 },
+      settings: { dailyNew: 4, dailyReview: 10, sessionLimitMin: 20, soundOff: false, pin: '1234', activePacks: null, grade: 4, range: 'below', warmupPerDay: 1, theme: 'auto' },
       coins: 0,
       pet: { name: '小星', fed: 0 },
       streak: { count: 0, best: 0, lastDone: null, shields: 2, shieldWeek: null },
       srs: {},        // id -> {box, due, ok, bad, wrongStreak, learnedAt}
       album: {},      // id -> {at, gold}
-      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0 },
+      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0, tripleDone: false },
+      subjects: { science: subjFresh(), daofa: subjFresh() },
       shop: { rewards: [], pending: [], history: [] },
       history: {},    // date -> {done, minutes, news, revs, shieldUsed}
       custom: [],     // 自定义词（cat:'custom'）
@@ -72,6 +73,15 @@ const Store = (() => {
     if (!state.stats) state.stats = { drillsDone: 0 };
     if (state.today && state.today.mistakes === undefined) state.today.mistakes = 0;
     if (state.settings.warmupPerDay === undefined) state.settings.warmupPerDay = 1;
+    if (!state.settings.theme) state.settings.theme = 'auto';
+    if (state.today && state.today.tripleDone === undefined) state.today.tripleDone = false;
+    if (!state.subjects) state.subjects = {};
+    ['science', 'daofa'].forEach(id => {
+      if (!state.subjects[id]) state.subjects[id] = subjFresh();
+      const sj = state.subjects[id];
+      if (!sj.done) sj.done = {};
+      if (!sj.wrong) sj.wrong = [];
+    });
     if (state.streak.best === undefined) state.streak.best = state.streak.count || 0;
     if (!state.settings.eco2) {
       state.settings.eco2 = true;
@@ -104,7 +114,7 @@ const Store = (() => {
 
   function ensureToday() {
     const t = todayStr();
-    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0 };
+    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0, tripleDone: false };
   }
 
   /* 护盾桥接：昨天漏打卡时自动消耗一张护盾保住连击 */
@@ -543,6 +553,46 @@ const Store = (() => {
   function isFirstRun() { return !localStorage.getItem('star-english-greeted'); }
   function markGreeted() { localStorage.setItem('star-english-greeted', '1'); }
 
+  /* ---------- 次科（科学/道法）：周任务与题库状态 ---------- */
+  function subjFresh() { return { week: null, rounds: 0, done: {}, wrong: [] }; }
+  function subjectState(id) {
+    if (!state.subjects[id]) state.subjects[id] = subjFresh();
+    const sj = state.subjects[id];
+    if (!sj.done) sj.done = {};
+    if (!sj.wrong) sj.wrong = [];
+    return sj;
+  }
+  /* 本周完成轮数（跨周自动归零） */
+  function subjectWeek(id) {
+    const sj = subjectState(id);
+    const wk = weekKey();
+    if (sj.week !== wk) { sj.week = wk; sj.rounds = 0; }
+    return sj.rounds;
+  }
+  function subjectAddRound(id) {
+    const sj = subjectState(id);
+    subjectWeek(id);
+    sj.rounds++;
+    save();
+    return sj.rounds;
+  }
+  function subjectMarkDone(id, lessonId) {
+    const sj = subjectState(id);
+    sj.done[lessonId] = (sj.done[lessonId] || 0) + 1;
+    save();
+  }
+  function subjectWrong(id) { return subjectState(id).wrong; }
+  function subjectAddWrong(id, q) {
+    const sj = subjectState(id);
+    if (!sj.wrong.some(x => x.q === q.q)) sj.wrong.push(q);
+    save();
+  }
+  function subjectClearWrong(id, q) {
+    const sj = subjectState(id);
+    sj.wrong = sj.wrong.filter(x => x.q !== q.q);
+    save();
+  }
+
   return {
     get state() { return state; },
     load, save, todayStr, addDays, diffDays,
@@ -553,6 +603,7 @@ const Store = (() => {
     addMistake, markEnglishDone, checkBadges, popPendingBadge, noteDictation, markDrillDone, markSpoken,
     addMathWrong, clearMathWrong, finishMathRun, setMath, addPracticeWrong, clearPracticeWrong,
     markCnStar, markCnRead, addCnWrong,
+    subjectWeek, subjectAddRound, subjectMarkDone, subjectWrong, subjectAddWrong, subjectClearWrong,
     addShopReward, removeShopReward, redeemReward, approveRedeem, rejectRedeem, tomorrowDueCount,
     petStage, feedPet, setSetting,
     addCustomWords, removeCustomWord,

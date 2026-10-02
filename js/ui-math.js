@@ -7,7 +7,7 @@
 const MathSprint = {
   running: false, timer: null, tickTimer: null,
   correct: 0, wrong: 0, streakNow: 0, streakBest: 0,
-  level: 2, seconds: 60, t0: 0, total: 0,
+  level: 2, seconds: 60, t0: 0, total: 0, endAt: 0,
   warm: [], wrongThisRun: [],
 
   r(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); },
@@ -65,6 +65,7 @@ const MathSprint = {
     this.level = (Store.state.math && Store.state.math.level) || 2;
     this.seconds = (Store.state.math && Store.state.math.seconds) || 60;
     this.correct = 0; this.wrong = 0; this.streakNow = 0; this.streakBest = 0; this.total = 0;
+    this.endAt = 0;
     this.wrongThisRun = [];
     this.warm = shuffle((Store.state.math && Store.state.math.wrong) || []).slice(0, 5).map(x => ({ q: x.q, a: x.a, fromWrong: true }));
     this.running = true;
@@ -79,7 +80,7 @@ const MathSprint = {
     root.appendChild(h('div', { class: 'card quest-splash' },
       h('div', { class: 'splash-rocket' }, '🪐'),
       h('div', { class: 'splash-title' }, '口算冲刺！'),
-      h('div', { class: 'splash-sub' }, `${this.seconds} 秒 · 答对越多越好${this.warm.length ? ' · 先收拾几道错题' : ''}`),
+      h('div', { class: 'splash-sub' }, `${this.seconds} 秒 · 时间到自动结算 · 答对越多越好${this.warm.length ? ' · 先收拾几道错题' : ''}`),
       h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.countdown(); } }, '出发 →')
     ));
   },
@@ -129,11 +130,13 @@ const MathSprint = {
   },
 
   run() {
+    if (this.endAt && Date.now() >= this.endAt) { this.finish(); return; }
     const root = $('#quest-root');
     root.innerHTML = '';
     this.q = this.nextQuestion();
-    this.t0 = Date.now();
-    const remain = h('div', { class: 'math-timebar' }, h('i', { id: 'math-time' }));
+    if (!this.endAt) this.endAt = Date.now() + this.seconds * 1000;
+    const left = Math.max(0, this.endAt - Date.now());
+    const remain = h('div', { class: 'math-timebar' }, h('i', { id: 'math-time', style: 'width:' + (left / (this.seconds * 10)) + '%' }));
     root.appendChild(h('div', { class: 'quest-top' },
       h('button', { class: 'quest-exit', onclick: () => confirmModal('退出冲刺？', '本轮成绩将不保存。', () => this.abort()) }, '✕'),
       remain,
@@ -151,10 +154,9 @@ const MathSprint = {
       this.q.fromWrong ? h('div', { class: 'tiny center', style: 'margin-top:6px' }, '⚡ 之前的错题，消灭它！') : ''
     );
     root.appendChild(card);
-    const endTime = this.t0 + this.seconds * 1000;
     clearInterval(this.timer);
     this.timer = setInterval(() => {
-      const left = Math.max(0, endTime - Date.now());
+      const left = Math.max(0, this.endAt - Date.now());
       const bar = document.getElementById('math-time');
       if (bar) bar.style.width = (left / (this.seconds * 10)) + '%';
       if (left <= 0) { clearInterval(this.timer); this.finish(); }
@@ -178,7 +180,7 @@ const MathSprint = {
       Store.addMathWrong(this.q.q, this.q.a);
       Sound.wrong();
       el.classList.add('wrong');
-      setTimeout(() => this.run(), 220);
+      setTimeout(() => { if (this.running) this.run(); }, 220);
       return;
     }
     this.run();

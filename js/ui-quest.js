@@ -813,7 +813,11 @@ function buildSpeakPanel(w) {
     wrap.appendChild(h('button', { class: 'btn small talk-collapse', onclick: () => { closeMic(); renderIdle(); } }, '收起'));
   }
 
-  function startRec() {
+  async function startRec() {
+    if (!mediaStream) {
+      const ok = await openMic();
+      if (!ok) { renderRecorded(null); return; }
+    }
     chunks = [];
     try {
       rec = new MediaRecorder(mediaStream, mime ? { mimeType: mime } : undefined);
@@ -843,7 +847,6 @@ function buildSpeakPanel(w) {
   }
 
   function onRecStop() {
-    closeMic();
     let url = null;
     try {
       const blob = new Blob(chunks, { type: mime || 'audio/webm' });
@@ -883,6 +886,22 @@ function buildSpeakPanel(w) {
       }, '👍 读得像！')
     ));
   }
+
+  /* 面板被移出页面（任务推进/退出）或离开任务屏时，释放麦克风 */
+  const release = () => closeMic();
+  document.addEventListener('talk-release', release);
+  const mo = new MutationObserver(() => {
+    if (!wrap.isConnected) {
+      closeMic();
+      document.removeEventListener('talk-release', release);
+      mo.disconnect();
+    }
+  });
+  requestAnimationFrame(() => {
+    const rootEl = $('#quest-root');
+    if (rootEl) mo.observe(rootEl, { childList: true });
+    if (!wrap.isConnected) { closeMic(); document.removeEventListener('talk-release', release); mo.disconnect(); }
+  });
 
   renderIdle();
   return wrap;

@@ -12,7 +12,18 @@
   <meta name="apple-mobile-web-app-title" content="求知号">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>星际求知号 🚀</title>
-  <link rel="stylesheet" href="css/style.css?v=13">
+  <script>
+    /* 首屏前应用主题，避免闪屏（与 js/app.js 的主题逻辑一致） */
+    try {
+      var _s = JSON.parse(localStorage.getItem('star-english-v1') || '{}').settings || {};
+      var _m = _s.theme || 'auto';
+      var _eff = _m === 'auto'
+        ? (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        : _m;
+      document.documentElement.dataset.theme = _eff;
+    } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+  </script>
+  <link rel="stylesheet" href="css/style.css?v=16">
 </head>
 <body>
   <canvas id="starfield"></canvas>
@@ -21,6 +32,7 @@
     <div class="logo">🚀 星际求知号</div>
     <div class="top-stats">
       <span id="top-coins" class="chip">🪙 0</span>
+      <button id="btn-theme" class="chip" title="切换外观">🌓</button>
       <button id="btn-sound" class="chip" title="声音开关">🔊</button>
     </div>
   </header>
@@ -47,20 +59,18 @@
         <div class="card streak-card">
           <div class="big" id="streak-num">0</div>
           <div style="font-weight:700">连续航行</div>
-          <div id="rank-line" style="font-weight:700;font-size:13px;color:#ffcf5c"></div>
+          <div id="rank-line" style="font-weight:700;font-size:13px;color:var(--gold)"></div>
           <div id="streak-shields" class="tiny"></div>
         </div>
         <div class="card quest-card">
           <div class="qc-title">📋 今日任务</div>
-          <div class="bar-row">新词 <div class="bar"><i id="bar-new"></i></div> <span id="txt-new">0/4</span></div>
-          <div class="bar-row">复习 <div class="bar"><i id="bar-rev"></i></div> <span id="txt-rev">0/10</span></div>
-          <button id="btn-quest" class="btn btn-main">🚀 开始冒险</button>
+          <div id="task-rows"></div>
+          <button id="btn-quest" class="btn btn-main big">🚀 开始冒险</button>
+          <div id="task-foot" class="tiny center" style="margin-top:8px"></div>
         </div>
       </div>
 
-      <div id="math-slot"></div>
-
-      <div id="chinese-slot"></div>
+      <div id="subjects-slot"></div>
 
       <div id="growth-slot"></div>
 
@@ -86,15 +96,18 @@
   <div id="modal-root"></div>
   <div id="toast"></div>
 
-  <script src="js/data.js?v=13"></script>
-  <script src="js/audio.js?v=13"></script>
-  <script src="js/store.js?v=13"></script>
-  <script src="js/ui-kit.js?v=13"></script>
-  <script src="js/ui-screens.js?v=13"></script>
-  <script src="js/ui-quest.js?v=13"></script>
-  <script src="js/ui-math.js?v=13"></script>
-  <script src="js/data-chinese.js?v=13"></script>
-  <script src="js/ui-chinese.js?v=13"></script>
-  <script src="js/app.js?v=13"></script>
+  <script src="js/data.js?v=16"></script>
+  <script src="js/audio.js?v=16"></script>
+  <script src="js/store.js?v=16"></script>
+  <script src="js/ui-kit.js?v=16"></script>
+  <script src="js/ui-screens.js?v=16"></script>
+  <script src="js/ui-quest.js?v=16"></script>
+  <script src="js/ui-math.js?v=16"></script>
+  <script src="js/data-chinese.js?v=16"></script>
+  <script src="js/ui-chinese.js?v=16"></script>
+  <script src="js/ui-subject.js?v=16"></script>
+  <script src="js/data-science.js?v=16"></script>
+  <script src="js/data-daofa.js?v=16"></script>
+  <script src="js/app.js?v=16"></script>
 </body>
 </html>
