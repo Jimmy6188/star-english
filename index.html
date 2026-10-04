@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#0b1026">
-  <meta name="description" content="孩子的星际英语学习站：打卡、拼词、收集星际贴纸、养成机器伙伴">
+  <meta name="description" content="孩子的星际求知号：打卡闯关、拼词学英语、口算语文科学道法、收集贴纸养成机器伙伴">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -23,7 +23,7 @@
       document.documentElement.dataset.theme = _eff;
     } catch (e) { document.documentElement.dataset.theme = 'dark'; }
   </script>
-  <link rel="stylesheet" href="css/style.css?v=16">
+  <link rel="stylesheet" href="css/style.css?v=18">
 </head>
 <body>
   <canvas id="starfield"></canvas>
@@ -52,6 +52,10 @@
           <div id="pet-stage"></div>
           <div id="pet-progress"></div>
           <button id="btn-feed" class="btn btn-gold">🍞 喂能量块</button>
+          <div class="row-gap" style="margin-top:8px">
+            <button id="btn-wardrobe" class="btn small" style="flex:1">🎩 换装</button>
+            <button id="btn-box" class="btn small" style="flex:1">🎁 星盒</button>
+          </div>
         </div>
       </div>
 
@@ -71,6 +75,8 @@
       </div>
 
       <div id="subjects-slot"></div>
+
+      <div id="enread-slot"></div>
 
       <div id="growth-slot"></div>
 
@@ -96,18 +102,22 @@
   <div id="modal-root"></div>
   <div id="toast"></div>
 
-  <script src="js/data.js?v=16"></script>
-  <script src="js/audio.js?v=16"></script>
-  <script src="js/store.js?v=16"></script>
-  <script src="js/ui-kit.js?v=16"></script>
-  <script src="js/ui-screens.js?v=16"></script>
-  <script src="js/ui-quest.js?v=16"></script>
-  <script src="js/ui-math.js?v=16"></script>
-  <script src="js/data-chinese.js?v=16"></script>
-  <script src="js/ui-chinese.js?v=16"></script>
-  <script src="js/ui-subject.js?v=16"></script>
-  <script src="js/data-science.js?v=16"></script>
-  <script src="js/data-daofa.js?v=16"></script>
-  <script src="js/app.js?v=16"></script>
+  <script src="js/data.js?v=18"></script>
+  <script src="js/audio.js?v=18"></script>
+  <script src="js/store.js?v=18"></script>
+  <script src="js/ui-kit.js?v=18"></script>
+  <script src="js/ui-screens.js?v=18"></script>
+  <script src="js/ui-quest.js?v=18"></script>
+  <script src="js/ui-math.js?v=18"></script>
+  <script src="js/ui-think.js?v=18"></script>
+  <script src="js/ui-phonics.js?v=18"></script>
+  <script src="js/data-chinese.js?v=18"></script>
+  <script src="js/ui-chinese.js?v=18"></script>
+  <script src="js/ui-subject.js?v=18"></script>
+  <script src="js/data-science.js?v=18"></script>
+  <script src="js/data-daofa.js?v=18"></script>
+  <script src="js/ui-reading.js?v=18"></script>
+  <script src="js/ui-extras.js?v=18"></script>
+  <script src="js/app.js?v=18"></script>
 </body>
 </html>

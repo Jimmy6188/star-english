@@ -196,6 +196,70 @@ const WORD_PACKS = [
       { word: 'eight', zh: '八', emoji: '8️⃣', grade: 2, level: 2, ex: 'Eight legs on a spider.', exZh: '蜘蛛有八条腿。' },
       { word: 'nine',  zh: '九', emoji: '9️⃣', grade: 2, level: 2, ex: 'Nine stars in the sky.', exZh: '天上有九颗星星。' }
     ]
+  },
+  {
+    id: 'challenge', name: '挑战星系 · 五六年级', emoji: '🌠', color: '#b28dff',
+    desc: '学有余力？来摘这些高年级的星',
+    words: [
+      /* ---- 五年级 ---- */
+      { word: 'swim',       zh: '游泳',       emoji: '🏊', grade: 5, level: 2, ex: 'I can swim in summer.',          exZh: '夏天我能游泳。' },
+      { word: 'dance',      zh: '跳舞',       emoji: '💃', grade: 5, level: 2, ex: 'She likes to dance.',            exZh: '她喜欢跳舞。' },
+      { word: 'draw',       zh: '画画',       emoji: '🖌️', grade: 5, level: 2, ex: 'I can draw a cat.',              exZh: '我会画猫。' },
+      { word: 'cook',       zh: '烹饪，煮',   emoji: '👩‍🍳', grade: 5, level: 2, ex: 'Mum cooks nice food.',          exZh: '妈妈做的饭很好吃。' },
+      { word: 'visit',      zh: '参观；看望', emoji: '🏛️', grade: 5, level: 2, ex: 'We visit the museum today.',     exZh: '我们今天参观博物馆。' },
+      { word: 'carry',      zh: '携带；搬运', emoji: '🎒', grade: 5, level: 2, ex: 'Can you carry the box?',         exZh: '你能搬这个箱子吗？' },
+      { word: 'catch',      zh: '接住；抓住', emoji: '🧤', grade: 5, level: 2, ex: 'Catch the ball!',                exZh: '接住球！' },
+      { word: 'throw',      zh: '扔；投掷',   emoji: '🥏', grade: 5, level: 2, ex: 'Don\'t throw rubbish here.',     exZh: '别在这里扔垃圾。' },
+      { word: 'delicious',  zh: '美味的',     emoji: '😋', grade: 5, level: 2, ex: 'The dumplings are delicious.',   exZh: '饺子很好吃。' },
+      { word: 'famous',     zh: '著名的',     emoji: '🌠', grade: 5, level: 2, ex: 'He is a famous writer.',         exZh: '他是一位著名作家。' },
+      { word: 'interesting', zh: '有趣的',    emoji: '🤩', grade: 5, level: 2, ex: 'The book is interesting.',       exZh: '这本书很有趣。' },
+      { word: 'difficult',  zh: '困难的',     emoji: '🧗', grade: 5, level: 2, ex: 'This question is difficult.',    exZh: '这道题很难。' },
+      { word: 'dangerous',  zh: '危险的',     emoji: '⚠️', grade: 5, level: 2, ex: 'Fire is dangerous.',             exZh: '火很危险。' },
+      { word: 'hungry',     zh: '饥饿的',     emoji: '🍽️', grade: 5, level: 1, ex: 'I am hungry now.',               exZh: '我现在饿了。' },
+      { word: 'thirsty',    zh: '口渴的',     emoji: '🥤', grade: 5, level: 1, ex: 'I feel thirsty.',                exZh: '我觉得口渴。' },
+      { word: 'healthy',    zh: '健康的',     emoji: '🥗', grade: 5, level: 2, ex: 'Vegetables are healthy.',        exZh: '蔬菜很健康。' },
+      { word: 'exercise',   zh: '锻炼；练习', emoji: '🏃', grade: 5, level: 2, ex: 'I exercise every day.',          exZh: '我每天锻炼。' },
+      { word: 'kitchen',    zh: '厨房',       emoji: '🍳', grade: 5, level: 2, ex: 'Mum is in the kitchen.',         exZh: '妈妈在厨房里。' },
+      { word: 'fridge',     zh: '冰箱',       emoji: '🧊', grade: 5, level: 2, ex: 'The milk is in the fridge.',     exZh: '牛奶在冰箱里。' },
+      { word: 'garden',     zh: '花园',       emoji: '🏡', grade: 5, level: 2, ex: 'Flowers grow in the garden.',    exZh: '花园里种着花。' },
+      { word: 'weekend',    zh: '周末',       emoji: '🎉', grade: 5, level: 1, ex: 'I swim at the weekend.',         exZh: '周末我去游泳。' },
+      { word: 'hobby',      zh: '爱好',       emoji: '🎨', grade: 5, level: 2, ex: 'My hobby is drawing.',           exZh: '我的爱好是画画。' },
+      { word: 'photo',      zh: '照片',       emoji: '📷', grade: 5, level: 2, ex: 'Let\'s take a photo.',           exZh: '我们拍张照吧。' },
+      { word: 'holiday',    zh: '假日，假期', emoji: '🏖️', grade: 5, level: 2, ex: 'The holiday is coming.',         exZh: '假期快到了。' },
+      { word: 'secret',     zh: '秘密',       emoji: '🤫', grade: 5, level: 3, ex: 'It\'s a secret!',                exZh: '这是个秘密！' },
+      { word: 'language',   zh: '语言',       emoji: '🗣️', grade: 5, level: 3, ex: 'English is a world language.',   exZh: '英语是世界语言。' },
+      { word: 'country',    zh: '国家',       emoji: '🗺️', grade: 5, level: 2, ex: 'China is a big country.',        exZh: '中国是个大国。' },
+      { word: 'festival',   zh: '节日',       emoji: '🏮', grade: 5, level: 2, ex: 'The Spring Festival is fun.',    exZh: '春节很有趣。' },
+      { word: 'candle',     zh: '蜡烛',       emoji: '🕯️', grade: 5, level: 2, ex: 'Blow out the candles!',          exZh: '吹灭蜡烛！' },
+      { word: 'balloon',    zh: '气球',       emoji: '🎈', grade: 5, level: 2, ex: 'I like balloons.',               exZh: '我喜欢气球。' },
+      { word: 'party',      zh: '派对，聚会', emoji: '🥳', grade: 5, level: 1, ex: 'Welcome to my party!',           exZh: '欢迎来我的派对！' },
+      { word: 'market',     zh: '市场',       emoji: '🏪', grade: 5, level: 2, ex: 'Grandma buys food at the market.', exZh: '奶奶在市场买食物。' },
+      { word: 'vegetable',  zh: '蔬菜',       emoji: '🥬', grade: 5, level: 2, ex: 'Eat more vegetables.',           exZh: '多吃蔬菜。' },
+      { word: 'tomato',     zh: '番茄，西红柿', emoji: '🍅', grade: 5, level: 2, ex: 'The tomato is red.',          exZh: '番茄是红色的。' },
+      { word: 'potato',     zh: '土豆',       emoji: '🥔', grade: 5, level: 2, ex: 'This is a big potato.',          exZh: '这是个土豆。' },
+      { word: 'dumpling',   zh: '饺子',       emoji: '🥟', grade: 5, level: 2, ex: 'Chinese dumplings are delicious.', exZh: '中国饺子很好吃。' },
+      { word: 'snack',      zh: '零食',       emoji: '🍿', grade: 5, level: 2, ex: 'Don\'t eat too many snacks.',    exZh: '别吃太多零食。' },
+      /* ---- 六年级 ---- */
+      { word: 'universe',   zh: '宇宙',       emoji: '🌌', grade: 6, level: 3, ex: 'The universe is very big.',      exZh: '宇宙非常大。' },
+      { word: 'planet',     zh: '行星',       emoji: '🪐', grade: 6, level: 2, ex: 'The Earth is a planet.',         exZh: '地球是一颗行星。' },
+      { word: 'gravity',    zh: '重力，引力', emoji: '🍎', grade: 6, level: 3, ex: 'There is no gravity in space.',  exZh: '太空中没有重力。' },
+      { word: 'experiment', zh: '实验',       emoji: '🧪', grade: 6, level: 3, ex: 'We do an experiment in class.',  exZh: '我们在课上做实验。' },
+      { word: 'invent',     zh: '发明',       emoji: '💡', grade: 6, level: 3, ex: 'He wants to invent a robot.',    exZh: '他想发明一个机器人。' },
+      { word: 'discover',   zh: '发现',       emoji: '🔍', grade: 6, level: 3, ex: 'Scientists discover new stars.', exZh: '科学家发现新恒星。' },
+      { word: 'energy',     zh: '能量，能源', emoji: '⚡', grade: 6, level: 3, ex: 'The sun gives us energy.',       exZh: '太阳给我们能量。' },
+      { word: 'environment', zh: '环境',      emoji: '🌏', grade: 6, level: 3, ex: 'The environment is important.', exZh: '环境很重要。' },
+      { word: 'protect',    zh: '保护',       emoji: '🛡️', grade: 6, level: 2, ex: 'Protect your eyes.',             exZh: '保护你的眼睛。' },
+      { word: 'recycle',    zh: '回收，再利用', emoji: '♻️', grade: 6, level: 3, ex: 'Please recycle the bottles.', exZh: '请回收这些瓶子。' },
+      { word: 'temperature', zh: '温度',      emoji: '🌡️', grade: 6, level: 3, ex: 'The temperature is high today.', exZh: '今天温度很高。' },
+      { word: 'direction',  zh: '方向',       emoji: '🧭', grade: 6, level: 3, ex: 'A compass shows direction.',     exZh: '指南针指示方向。' },
+      { word: 'suitcase',   zh: '行李箱',     emoji: '🧳', grade: 6, level: 2, ex: 'My suitcase is heavy.',          exZh: '我的行李箱很重。' },
+      { word: 'camera',     zh: '相机',       emoji: '📸', grade: 6, level: 2, ex: 'Dad has a new camera.',          exZh: '爸爸有一台新相机。' },
+      { word: 'umbrella',   zh: '雨伞',       emoji: '☂️', grade: 6, level: 2, ex: 'Take an umbrella today.',        exZh: '今天带把伞。' },
+      { word: 'wallet',     zh: '钱包',       emoji: '👛', grade: 6, level: 2, ex: 'There is money in the wallet.',  exZh: '钱包里有钱。' },
+      { word: 'chopsticks', zh: '筷子',       emoji: '🥢', grade: 6, level: 2, ex: 'We eat with chopsticks.',        exZh: '我们用筷子吃饭。' },
+      { word: 'theatre',    zh: '剧院',       emoji: '🎭', grade: 6, level: 3, ex: 'We watch a play at the theatre.', exZh: '我们在剧院看戏。' },
+      { word: 'concert',    zh: '音乐会',     emoji: '🎻', grade: 6, level: 3, ex: 'The concert is wonderful.',      exZh: '音乐会太棒了。' }
+    ]
   }
 ];
 
@@ -208,6 +272,28 @@ const PET_STAGES = [
 
 /* 喂食价格（金币） */
 const FEED_COST = 20;
+
+/* ---------- 机器伙伴装扮（长期金币出口） ----------
+ * cat: head 头饰 / face 脸部 / neck 围绕；gold:true 为星盒稀有掉落款，不能用金币直接买 */
+const PET_OUTFITS = [
+  { id: 'hat',     cat: 'head', name: '探险家礼帽', emoji: '🎩', price: 120 },
+  { id: 'crown',   cat: 'head', name: '星际皇冠',   emoji: '👑', price: 300, gold: true },
+  { id: 'bow',     cat: 'head', name: '粉粉蝴蝶结', emoji: '🎀', price: 100 },
+  { id: 'shades',  cat: 'face', name: '炫酷墨镜',   emoji: '🕶️', price: 150 },
+  { id: 'starg',   cat: 'face', name: '星星眼镜',   emoji: '🤓', price: 180, gold: true },
+  { id: 'scarf',   cat: 'neck', name: '暖暖红围巾', emoji: '🧣', price: 100 },
+  { id: 'cape',    cat: 'neck', name: '机长披风',   emoji: '🦸', price: 250, gold: true }
+];
+
+/* 特权券预设：一键加入兑换商店（孩子用金币换家庭特权，零成本高激励） */
+const PRIVILEGE_PACK = [
+  { emoji: '🌙', name: '特权券 · 延后 15 分钟睡觉', cost: 60 },
+  { emoji: '🍜', name: '特权券 · 今晚我选晚餐',     cost: 80 },
+  { emoji: '♟️', name: '特权券 · 和爸妈玩一局桌游', cost: 100 },
+  { emoji: '🧹', name: '特权券 · 免做一次家务',     cost: 120 },
+  { emoji: '📺', name: '特权券 · 加 30 分钟动画片', cost: 150 },
+  { emoji: '🎲', name: '特权券 · 决定周末全家活动', cost: 300 }
+];
 
 /* 段位体系：按累计已学单词数晋升（解决"学有余力"的成长目标） */
 const RANKS = [
@@ -472,12 +558,190 @@ const PET_LINES = {
 /* 鼓励语（拼写成功时漂浮） */
 const PRAISE_WORDS = ['太棒了!', '完美!', '好厉害!', '漂亮!', '没错!', '集齐能量!'];
 
+/* ============================================================
+ * 自然拼读词族（拼读星系）：同族词尾发音相同，练"听音辨词、见词能读"
+ * 题目由 ui-phonics.js 按词族程序生成：听音选词 / 找出不同类 / 押韵选择
+ * ============================================================ */
+const WORD_FAMILIES = [
+  { id: 'ake', name: '-ake 家族', emoji: '🍰', words: ['cake', 'lake', 'make', 'take', 'snake'] },
+  { id: 'ight', name: '-ight 家族', emoji: '🌙', words: ['light', 'night', 'right', 'bright', 'fight'] },
+  { id: 'sh', name: 'sh- 家族', emoji: '🐟', words: ['ship', 'shop', 'sheep', 'shoe', 'fish'] },
+  { id: 'ing', name: '-ing 家族', emoji: '🎵', words: ['sing', 'king', 'ring', 'spring', 'morning'] },
+  { id: 'all', name: '-all 家族', emoji: '🏀', words: ['ball', 'tall', 'wall', 'small', 'call'] },
+  { id: 'oat', name: '-oat 家族', emoji: '🛶', words: ['boat', 'coat', 'goat', 'soap', 'float'] }
+];
+
+/* ============================================================
+ * 英语每日小短文（拔高加餐，不占每日任务）
+ * 一天推荐一篇；r01~r06 同步四上教材话题，r07 起为五/六年级水平
+ * 每篇 2 道判断（T/F）+ 2 道选词填空，全英文作答；gloss 为难词中文注释
+ * ============================================================ */
+const ENGLISH_READINGS = [
+  {
+    id: 'r01', title: 'A Happy Sunday', emoji: '🌅', level: '四上同步',
+    text: 'Tom gets up at seven. He feeds his dog Lucky and waters the flowers. Then he helps Mum wash the dishes. Mum says, "Good job!" After that, he rides his bike to the park with his friend Amy.',
+    gloss: 'waters 浇水 · rides 骑',
+    qs: [
+      { kind: 'judge', q: 'Tom gets up at seven.', ans: true },
+      { kind: 'judge', q: 'Tom goes to school today.', ans: false },
+      { kind: 'cloze', q: 'He ____ his dog Lucky.', opts: ['feeds', 'sweeps', 'cooks'], ans: 0 },
+      { kind: 'cloze', q: 'He rides his bike to the ____.', opts: ['park', 'library', 'supermarket'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r02', title: 'Sports Day', emoji: '⚽', level: '四上同步',
+    text: 'Today is Sports Day at school. Mike can jump very high. Lily runs fast, but she doesn\'t want to lose. "Try your best!" says the teacher. At last, Lily is the star player. Everyone is happy for her.',
+    gloss: 'At last 最后',
+    qs: [
+      { kind: 'judge', q: 'Mike can jump very high.', ans: true },
+      { kind: 'judge', q: 'Lily wants to lose the game.', ans: false },
+      { kind: 'cloze', q: '"____ your best!" says the teacher.', opts: ['Try', 'Keep', 'Give'], ans: 0 },
+      { kind: 'cloze', q: 'Lily is the star ____. ', opts: ['player', 'teacher', 'doctor'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r03', title: 'The Weather Diary', emoji: '⛅', level: '四上同步',
+    text: 'Amy keeps a weather diary. On Monday it is sunny. On Tuesday it is rainy, so she stays at home. On Wednesday the wind blows hard. She flies a kite with Dad on Thursday, because it is cool and cloudy that day.',
+    gloss: 'stays 待在 · blows 吹',
+    qs: [
+      { kind: 'judge', q: 'It is sunny on Monday.', ans: true },
+      { kind: 'judge', q: 'Amy flies a kite on Wednesday.', ans: false },
+      { kind: 'cloze', q: 'On Tuesday it is ____, so she stays at home.', opts: ['rainy', 'sunny', 'snowy'], ans: 0 },
+      { kind: 'cloze', q: 'She flies a kite because it is cool and ____. ', opts: ['cloudy', 'stormy', 'hot'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r04', title: 'Four Seasons', emoji: '🍂', level: '四上同步',
+    text: 'There are four seasons in a year. In spring, flowers come out and birds fly back. In summer, I can swim in the sea. Autumn is cool, and the leaves fall. In winter, it often snows. My favourite season is summer, because I can eat ice cream every day!',
+    gloss: 'come out 开放 · leaves 叶子',
+    qs: [
+      { kind: 'judge', q: 'The writer can swim in summer.', ans: true },
+      { kind: 'judge', q: 'Winter is the writer\'s favourite season.', ans: false },
+      { kind: 'cloze', q: 'In autumn the ____ fall.', opts: ['leaves', 'stars', 'raindrops'], ans: 0 },
+      { kind: 'cloze', q: 'My favourite season is ____. ', opts: ['summer', 'winter', 'autumn'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r05', title: 'A Trip to the City', emoji: '🚌', level: '四上同步',
+    text: 'Tomorrow my family will go to the city. We go there by train, because the train is fast. First, we visit the museum. Then we have a picnic in the park near the river. I can\'t wait. It will be a great trip!',
+    gloss: 'will 将要 · can\'t wait 等不及',
+    qs: [
+      { kind: 'judge', q: 'They go to the city by bus.', ans: false },
+      { kind: 'judge', q: 'They visit the museum first.', ans: true },
+      { kind: 'cloze', q: 'We go there by ____, because it is fast.', opts: ['train', 'plane', 'ship'], ans: 0 },
+      { kind: 'cloze', q: 'Then we have a ____ in the park. ', opts: ['picnic', 'party', 'lesson'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r06', title: 'Finding the Library', emoji: '🗺️', level: '四上同步',
+    text: 'A woman asks Tom the way. "Go straight on, then turn left at the supermarket. The library is next to the cinema," says Tom. "Thank you very much!" The woman is happy. Tom likes to help people. He is a helpful boy.',
+    gloss: 'asks the way 问路 · next to 紧挨着',
+    qs: [
+      { kind: 'judge', q: 'The woman asks Tom the way.', ans: true },
+      { kind: 'judge', q: 'Tom says to turn right at the supermarket.', ans: false },
+      { kind: 'cloze', q: 'Go straight on, then turn ____ at the supermarket.', opts: ['left', 'right', 'back'], ans: 0 },
+      { kind: 'cloze', q: 'The library is next to the ____. ', opts: ['cinema', 'hospital', 'museum'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r07', title: 'My Pet Hamster', emoji: '🐹', level: '五年级',
+    text: 'I have a small pet hamster. His name is Coco. He is brown and white. Coco likes to run in his wheel at night. Every day I feed him nuts and vegetables. He carries food in his cheeks! Hamsters are clean and quiet, so they are good pets for children.',
+    gloss: 'hamster 仓鼠 · cheeks 脸颊 · nuts 坚果',
+    qs: [
+      { kind: 'judge', q: 'Coco is brown and white.', ans: true },
+      { kind: 'judge', q: 'Coco runs in his wheel in the morning.', ans: false },
+      { kind: 'cloze', q: 'I feed him ____ and vegetables.', opts: ['nuts', 'bread', 'fish'], ans: 0 },
+      { kind: 'cloze', q: 'Hamsters are ____ and quiet. ', opts: ['clean', 'dangerous', 'noisy'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r08', title: 'A Birthday Party', emoji: '🎂', level: '五年级',
+    text: 'Last Saturday was Kate\'s birthday. She had a party in her garden. Mum made a big cake with ten candles. We sang songs and danced. Kate\'s uncle gave her a camera. There were balloons everywhere. It was a delicious cake and a wonderful party!',
+    gloss: 'made 做（make 过去式） · gave 给（give 过去式）',
+    qs: [
+      { kind: 'judge', q: 'Kate\'s party was in the garden.', ans: true },
+      { kind: 'judge', q: 'There were five candles on the cake.', ans: false },
+      { kind: 'cloze', q: 'Mum made a big ____ with ten candles.', opts: ['cake', 'dish', 'sandwich'], ans: 0 },
+      { kind: 'cloze', q: 'Kate\'s uncle gave her a ____. ', opts: ['camera', 'balloon', 'kite'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r09', title: 'The Magic Magnet', emoji: '🧲', level: '五年级 · 科学',
+    text: 'In science class, we did an experiment with a magnet. The magnet can pick up pins and paper clips. But it cannot pick up plastic or wood. Our teacher says magnets have two poles. The same poles push away, and different poles pull together. Science is so interesting!',
+    gloss: 'magnet 磁铁 · poles 磁极 · push away 排斥 · pull 吸引',
+    qs: [
+      { kind: 'judge', q: 'A magnet can pick up wood.', ans: false },
+      { kind: 'judge', q: 'The same poles push away.', ans: true },
+      { kind: 'cloze', q: 'The magnet can pick up pins and paper ____. ', opts: ['clips', 'cakes', 'books'], ans: 0 },
+      { kind: 'cloze', q: 'Magnets have two ____. ', opts: ['poles', 'lights', 'doors'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r10', title: 'Save Our Earth', emoji: '🌍', level: '六年级',
+    text: 'The Earth is our home, but it is getting sick. Cars make the air dirty. Plastic is bad for the sea and the fish. We should walk or ride bikes more. We should recycle paper and bottles. Everyone can do something small. Together we can protect our beautiful Earth.',
+    gloss: 'sick 生病的 · recycle 回收 · protect 保护',
+    qs: [
+      { kind: 'judge', q: 'Plastic is good for the fish in the sea.', ans: false },
+      { kind: 'judge', q: 'We should walk or ride bikes more.', ans: true },
+      { kind: 'cloze', q: 'Cars make the air ____. ', opts: ['dirty', 'clean', 'cool'], ans: 0 },
+      { kind: 'cloze', q: 'We should ____ paper and bottles. ', opts: ['recycle', 'eat', 'throw'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r11', title: 'A Trip to Space', emoji: '🚀', level: '六年级',
+    text: 'Ming dreams of flying to space. In space, there is no gravity, so people float like birds! Astronauts eat special food and sleep in sleeping bags. They do experiments every day. Ming wants to be an astronaut and discover new planets. "Study hard," says Dad, "and your dream will come true."',
+    gloss: 'gravity 重力 · float 漂浮 · astronaut 宇航员 · come true 实现',
+    qs: [
+      { kind: 'judge', q: 'People float in space because there is no gravity.', ans: true },
+      { kind: 'judge', q: 'Astronauts sleep in soft beds.', ans: false },
+      { kind: 'cloze', q: 'In space there is no ____. ', opts: ['gravity', 'grass', 'gold'], ans: 0 },
+      { kind: 'cloze', q: 'Ming wants to discover new ____. ', opts: ['planets', 'animals', 'shops'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r12', title: 'Grandma\'s Dumplings', emoji: '🥟', level: '五年级',
+    text: 'On cold winter days, my grandma makes dumplings. She mixes meat and vegetables, then wraps them in thin skins. I help her, but my dumplings look funny! We cook them in hot water. The dumplings taste delicious. In China, people eat dumplings at the Spring Festival for good luck.',
+    gloss: 'wraps 包 · skins 皮 · the Spring Festival 春节',
+    qs: [
+      { kind: 'judge', q: 'Grandma makes dumplings with meat and vegetables.', ans: true },
+      { kind: 'judge', q: 'The writer\'s dumplings look better than grandma\'s.', ans: false },
+      { kind: 'cloze', q: 'We cook them in hot ____. ', opts: ['water', 'oil', 'milk'], ans: 0 },
+      { kind: 'cloze', q: 'People eat dumplings at the ____ Festival. ', opts: ['Spring', 'Autumn', 'Mid-Autumn'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r13', title: 'The Rainy Weekend', emoji: '🌧️', level: '五年级',
+    text: 'It is raining hard, so we stay at home. Dad reads a book about famous people. Mum cleans the kitchen. I draw a picture of my family and listen to music. Later, the rain stops. A rainbow comes out! We put on our coats and go outside to play.',
+    gloss: 'raining hard 雨下得很大 · famous 著名的',
+    qs: [
+      { kind: 'judge', q: 'The family stays at home because it rains.', ans: true },
+      { kind: 'judge', q: 'Dad cleans the kitchen.', ans: false },
+      { kind: 'cloze', q: 'I draw a picture of my ____ and listen to music.', opts: ['family', 'dog', 'school'], ans: 0 },
+      { kind: 'cloze', q: 'A ____ comes out after the rain. ', opts: ['rainbow', 'storm', 'moon'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r14', title: 'The School Concert', emoji: '🎻', level: '六年级',
+    text: 'Our school had a concert last Friday. Lisa played the violin. Her music was beautiful. Tom sang an English song, but he was nervous. "Don\'t be afraid to fail," said Miss Wang. Tom sang loudly at last, and everyone clapped. It was a wonderful evening.',
+    gloss: 'violin 小提琴 · nervous 紧张的 · clapped 鼓掌',
+    qs: [
+      { kind: 'judge', q: 'Lisa played the violin.', ans: true },
+      { kind: 'judge', q: 'Tom sang a Chinese song.', ans: false },
+      { kind: 'cloze', q: 'Lisa played the ____. ', opts: ['violin', 'piano', 'drum'], ans: 0 },
+      { kind: 'cloze', q: 'Everyone ____ at last. ', opts: ['clapped', 'slept', 'left'], ans: 0 }
+    ]
+  }
+];
+
 const GOLD_RATE = 0.10;          // 稀有"超新星"贴纸概率
 const COIN_NEW = 10;             // 新词拼对奖励
 const COIN_REVIEW = 5;           // 复习正确奖励
 const COIN_QUEST_BONUS = 20;     // 完成每日任务奖励
 const COIN_BOSS = 50;            // 周日 BOSS 挑战通关奖励
-const HINT_COST = 2;             // 每次提示扣除的奖励
+const HINT_COST = 2;             // 提示费用（直接花金币）
+const COIN_CHALLENGE_NEW = 5;    // 高年级挑战词新词加成（难度越高越值钱）
+const COIN_CHALLENGE_REVIEW = 2; // 挑战词复习加成
+const STAR_BOX_COST = 80;        // 神秘星盒单价（每天限 2 个）
 
 /* Leitner 盒子间隔（天） */
 const BOX_INTERVALS = [1, 2, 4, 7, 15];
@@ -524,5 +788,27 @@ const ACHIEVEMENTS = [
   { id: 'planets-10',   emoji: '🌌', name: '行星征服者', desc: '点亮全部 10 颗数学行星',
     cond: s => s.math && (s.math.planets || 0) >= 10 },
   { id: 'pet-max',      emoji: '🤖', name: '机械大师',   desc: '把机器伙伴养成最终形态',
-    cond: s => s.pet.fed >= PET_STAGES[PET_STAGES.length - 1].need }
+    cond: s => s.pet.fed >= PET_STAGES[PET_STAGES.length - 1].need },
+  { id: 'first-think',  emoji: '🧠', name: '思维启航',   desc: '完成第一组思维挑战',
+    cond: s => s.stats && (s.stats.thinkDone || 0) >= 1 },
+  { id: 'think-10',     emoji: '🧩', name: '思维大师',   desc: '完成 10 组思维挑战',
+    cond: s => s.stats && (s.stats.thinkDone || 0) >= 10 },
+  { id: 'first-enread', emoji: '📚', name: '阅读启航',   desc: '读完第一篇英语小短文',
+    cond: s => s.enRead && s.enRead.reads.length >= 1 },
+  { id: 'enread-10',    emoji: '🗞️', name: '阅读达人',   desc: '累计读完 10 篇英语短文',
+    cond: s => s.enRead && s.enRead.reads.length >= 10 },
+  { id: 'first-outfit', emoji: '🎩', name: '打扮一下',   desc: '获得第一件机器伙伴装扮',
+    cond: s => s.pet && s.pet.outfits && s.pet.outfits.owned.length >= 1 },
+  { id: 'outfit-all',   emoji: '✨', name: '时装收藏家', desc: '收集全部机器伙伴装扮',
+    cond: s => s.pet && s.pet.outfits && s.pet.outfits.owned.length >= PET_OUTFITS.length },
+  { id: 'first-box',    emoji: '🎁', name: '星盒初开',   desc: '第一次打开神秘星盒',
+    cond: s => s.stats && (s.stats.boxesOpened || 0) >= 1 },
+  { id: 'challenge-10', emoji: '🌠', name: '摘星者',     desc: '学会 10 个高年级挑战词',
+    cond: (s, Store) => Object.keys(s.srs).filter(id => { const w = Store.findWord(id); return w && w.grade && w.grade > s.settings.grade; }).length >= 10 },
+  { id: 'poem-15',      emoji: '🌕', name: '诗心闪耀',   desc: '点亮 15 首诗词',
+    cond: s => s.chinese && Object.keys(s.chinese.stars || {}).length >= 15 },
+  { id: 'guwen-all',    emoji: '🧧', name: '小古文达人', desc: '读完全部小古文',
+    cond: s => s.chinese && s.chinese.guwen && s.chinese.guwen.length >= CN_GUWEN.length },
+  { id: 'phonics-first', emoji: '🔤', name: '拼读新星',  desc: '完成第一组词族拼读',
+    cond: s => s.phonics && (s.phonics.rounds || 0) >= 1 }
 ];

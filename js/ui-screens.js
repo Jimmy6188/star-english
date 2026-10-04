@@ -11,7 +11,23 @@ function updateTop() {
 }
 
 /* ---------------- 机器宠物 SVG ---------------- */
+/* 装扮图层：cape 画在身体后面，其余画在头上/脸上/脖子上（PET_OUTFITS 数据见 data.js） */
 function robotSVG(stage) {
+  const worn = (Store.state.pet.outfits && Store.state.pet.outfits.worn) || {};
+  const ACC = {
+    hat: '<g><ellipse cx="100" cy="26" rx="32" ry="6" fill="#2b3f6e" stroke="#4fd1ff" stroke-width="1.5"/><rect x="82" y="4" width="36" height="22" rx="4" fill="#2b3f6e"/><rect x="82" y="19" width="36" height="7" fill="#ff6bd6"/></g>',
+    crown: '<g><polygon points="76,28 81,8 92,20 100,4 108,20 119,8 124,28" fill="#ffd166" stroke="#e0a63c" stroke-width="2"/><circle cx="100" cy="18" r="3.2" fill="#ff6bd6"/></g>',
+    bow: '<g><polygon points="128,22 146,13 146,31" fill="#ff8fab" stroke="#ff6bd6" stroke-width="1.5"/><polygon points="164,22 146,13 146,31" fill="#ff8fab" stroke="#ff6bd6" stroke-width="1.5"/><circle cx="146" cy="22" r="4.5" fill="#ff6bd6"/></g>',
+    shades: '<g><rect x="68" y="54" width="27" height="17" rx="8" fill="#141d38"/><rect x="105" y="54" width="27" height="17" rx="8" fill="#141d38"/><line x1="95" y1="62" x2="105" y2="62" stroke="#141d38" stroke-width="3"/><line x1="74" y1="58" x2="84" y2="58" stroke="#4fd1ff" stroke-width="2" opacity=".7"/><line x1="111" y1="58" x2="121" y2="58" stroke="#4fd1ff" stroke-width="2" opacity=".7"/></g>',
+    starg: '<g><circle cx="83" cy="62" r="11" fill="rgba(255,209,102,.15)" stroke="#ffd166" stroke-width="3"/><circle cx="117" cy="62" r="11" fill="rgba(255,209,102,.15)" stroke="#ffd166" stroke-width="3"/><line x1="94" y1="62" x2="106" y2="62" stroke="#ffd166" stroke-width="3"/><text x="83" y="67" text-anchor="middle" font-size="12">⭐</text><text x="117" y="67" text-anchor="middle" font-size="12">⭐</text></g>',
+    scarf: '<g><rect x="60" y="95" width="80" height="13" rx="6.5" fill="#ff5d73"/><rect x="120" y="104" width="15" height="28" rx="6" fill="#ff5d73"/><line x1="66" y1="101" x2="134" y2="101" stroke="#ffd9de" stroke-width="2" opacity=".6"/></g>',
+    cape: '<g><polygon points="56,100 144,100 172,180 28,180" fill="#4a2f8f"/><polygon points="56,100 100,100 100,180 28,180" fill="#5b3fa8"/><circle cx="100" cy="106" r="4" fill="#ffd166"/></g>'
+  };
+  const back = worn.neck === 'cape' ? ACC.cape : '';
+  const front =
+    ['hat', 'crown', 'bow'].filter(k => worn.head === k).map(k => ACC[k]).join('') +
+    ['shades', 'starg'].filter(k => worn.face === k).map(k => ACC[k]).join('') +
+    (worn.neck === 'scarf' ? ACC.scarf : '');
   return `
   <svg viewBox="0 0 200 190" class="robot stage-${stage}">
     <defs>
@@ -28,6 +44,7 @@ function robotSVG(stage) {
       <polygon points="148,118 192,92 180,140" fill="#2b3f6e" stroke="#4fd1ff" stroke-width="2"/>
       <circle cx="22" cy="112" r="3.5" fill="#ff6bd6"/><circle cx="178" cy="112" r="3.5" fill="#ff6bd6"/>
     </g>
+    ${back}
     <g class="r-body">
       <rect x="55" y="98" width="90" height="68" rx="20" fill="url(#metal)"/>
       <rect x="72" y="116" width="56" height="32" rx="10" fill="url(#visor)"/>
@@ -45,6 +62,7 @@ function robotSVG(stage) {
       <ellipse class="eye" cx="115" cy="62" rx="7" ry="8.5" fill="#4fd1ff"/>
       <path d="M86 84 Q100 94 114 84" stroke="#31446e" stroke-width="3" fill="none" stroke-linecap="round"/>
     </g>
+    ${front}
     <g class="r-flame">
       <path d="M92 172 Q100 190 108 172 Q100 180 92 172" fill="#ffd166"/>
     </g>
@@ -152,6 +170,26 @@ function renderHome() {
   /* 学科星系宫格 */
   renderSubjects();
 
+  /* 今日英语小短文（拔高加餐） */
+  const enSlot = $('#enread-slot');
+  if (enSlot && typeof ENGLISH_READINGS !== 'undefined') {
+    const reads = (s.enRead && s.enRead.reads) || [];
+    const nextP = ENGLISH_READINGS.find(r => !reads.includes(r.id))
+      || ENGLISH_READINGS[reads.length % ENGLISH_READINGS.length];
+    const enDoneToday = !!s.today.enReadDone;
+    enSlot.innerHTML = '';
+    enSlot.appendChild(h('div', { class: 'card math-card' },
+      h('div', { class: 'math-head' },
+        h('span', { class: 'math-emoji' }, '📚'),
+        h('div', { class: 'math-info' },
+          h('div', { style: 'font-weight:800' }, enDoneToday ? '今日短文已读完 ✅' : '今日英语小短文'),
+          h('div', { class: 'tiny' }, `《${nextP.title}》 · ${nextP.level} · 2 判断 + 2 填空`)
+        ),
+        h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); EnRead.start(); } }, enDoneToday ? '再读一篇' : '去读')
+      )
+    ));
+  }
+
   /* 成长足迹卡 */
   const growSlot = $('#growth-slot');
   if (growSlot) renderGrowthCard(growSlot);
@@ -227,7 +265,7 @@ function renderHome() {
       h('span', { class: 'weak-icon' }, '👑'),
       h('span', { class: 'weak-text' },
         h('b', {}, boss.done ? '本周 BOSS 已被击败！' : 'BOSS 周挑战！'),
-        h('span', { class: 'tiny' }, boss.done ? `最佳成绩 ${boss.best}/${boss.total || 10} · 点此再战一次` : `10 道高阶大题，失误 2 次内通关 +${COIN_BOSS} 🪙（仅周日出现）`)
+        h('span', { class: 'tiny' }, boss.done ? `最佳成绩 ${boss.best}/${boss.total || 10} · 友谊赛再战（+3 🪙）` : `10 道纯拼写高阶题 · 失误 ≤1 击败 +${COIN_BOSS} 🪙 / ≤3 击伤 +10（仅周日）`)
       ),
       h('span', { class: 'weak-go boss-go' }, boss.done ? '再战' : '开战')
     ));
@@ -263,7 +301,8 @@ function renderSubjects() {
   const m = s.math;
   const tiles = [
     subjectTile('🪐', '数学星系', `${s.today.mathDone ? '✅ ' : ''}口算 · 练习场 · ${m.best || 0} 题/轮`, openMathHub),
-    subjectTile('📖', '语文星系', `${(s.today.cnRounds || 0) ? '✅ ' : ''}诗词 ⭐${Object.keys(s.chinese.stars).length}/${CN_POEMS.length} · 阅读 · 词语`, openCnHub)
+    subjectTile('📖', '语文星系', `${(s.today.cnRounds || 0) ? '✅ ' : ''}诗词 ⭐${Object.keys(s.chinese.stars).length}/${CN_POEMS.length} · 阅读 · 词语`, openCnHub),
+    subjectTile('🔤', '拼读星系', `${(Store.state.phonics && Store.state.phonics.rounds) ? '✅ ' : ''}词族 · 自然拼读`, () => Phonics.start())
   ];
   /* 次科模块加载后自动出现在宫格里 */
   if (typeof SubjectUI !== 'undefined') SubjectUI.tiles().forEach(t => tiles.push(t));
@@ -288,20 +327,30 @@ function openMathHub() {
       }, '🪐 限时口算冲刺'));
       el.appendChild(h('button', {
         class: 'btn big', style: 'margin-top:10px',
+        onclick: () => { close(); MathThink.start(); }
+      }, '🧠 思维挑战场（拔高）'));
+      el.appendChild(h('button', {
+        class: 'btn big', style: 'margin-top:10px',
         onclick: () => { close(); MathDrill.start(); }
       }, '📐 练习场（笔算 + 应用题）'));
-      el.appendChild(h('div', { class: 'tiny center', style: 'margin-top:10px' }, '练习场不计时，5 题一组，答对每题 +5 🪙'));
+      el.appendChild(h('button', {
+        class: 'btn big', style: 'margin-top:10px',
+        onclick: () => { close(); Sudoku.start(4); }
+      }, '🔢 数独挑战（四宫 +20 / 六宫 +30 🪙）'));
+      el.appendChild(h('div', { class: 'tiny center', style: 'margin-top:10px' },
+        `思维场答对每题 +8 🪙 · 数独唯一解程序生成 · 首刷全额，当天重刷减半${Store.state.settings.dailyCoinCap ? ` · 每日上限 ${Store.state.settings.dailyCoinCap} 🪙` : ''}`));
     }
   });
 }
 
 function openCnHub() {
   const c = Store.state.chinese;
+  const guwenN = (c.guwen || []).length;
   showModal({
     title: '📖 语文星系',
     build(el, close) {
       el.appendChild(h('div', { class: 'tiny center', style: 'margin-bottom:12px' },
-        `诗词 ⭐${Object.keys(c.stars).length}/${CN_POEMS.length} · 阅读 ${c.reads.length}/${CN_READINGS.length} 篇${c.wrong.length ? ` · 错题 ${c.wrong.length}` : ''}`));
+        `诗词 ⭐${Object.keys(c.stars).length}/${CN_POEMS.length} · 阅读 ${c.reads.length}/${CN_READINGS.length} 篇 · 小古文 ${guwenN}/${CN_GUWEN.length} 篇${c.wrong.length ? ` · 错题 ${c.wrong.length}` : ''}`));
       el.appendChild(h('button', {
         class: 'btn btn-main big', style: 'margin-top:0',
         onclick: () => { close(); Chinese.poemList(); }
@@ -310,6 +359,10 @@ function openCnHub() {
         class: 'btn big', style: 'margin-top:10px',
         onclick: () => { close(); Chinese.readList(); }
       }, '📖 阅读训练营'));
+      el.appendChild(h('button', {
+        class: 'btn big', style: 'margin-top:10px',
+        onclick: () => { close(); Chinese.guwenList(); }
+      }, '🧧 小古文启蒙（拔高）'));
       el.appendChild(h('button', {
         class: 'btn big', style: 'margin-top:10px',
         onclick: () => { close(); Chinese.words(); }
@@ -334,6 +387,9 @@ function bindHome() {
     }
     renderHome();
   });
+  const wBtn = $('#btn-wardrobe'), bBtn = $('#btn-box');
+  if (wBtn) wBtn.addEventListener('click', () => { Sound.tap(); Extras.openWardrobe(); });
+  if (bBtn) bBtn.addEventListener('click', () => { Sound.tap(); Extras.openBox(); });
 }
 
 /* ---------------- 星际图鉴 ---------------- */
@@ -528,7 +584,8 @@ function renderParent() {
   const rk = Store.rankInfo();
   const boss = Store.bossInfo();
   const accHint = (acc >= 92 && learnedIds.length >= 30)
-    ? h('div', { class: 'acc-hint' }, `🌟 孩子正确率高达 ${acc}%，学有余力！建议把下方「词汇范围」改为「全部词库」，加入高年级挑战词，或让孩子挑战周日 BOSS。`)
+    ? h('div', { class: 'acc-hint' },
+      `🌟 孩子正确率高达 ${acc}%，学有余力！建议：① 把下方「数学星系」的口算难度切到「挑战」；② 把「每天挑战词数」调到 2~3，混入五六年级词；③ 首页的「英语小短文」每天读一篇；④ 周日 BOSS 挑战。`)
     : '';
   root.appendChild(h('div', { class: 'card' },
     h('div', { class: 'sec-title' }, '📊 学习概览'),
@@ -576,9 +633,13 @@ function renderParent() {
       set.range, v => Store.setSetting('range', v)),
     numInput('每天温故词数', 'warmupPerDay', set.warmupPerDay === undefined ? 1 : set.warmupPerDay, 0, 3),
     h('div', { class: 'tiny', style: 'margin:2px 0 10px' }, '每天的新词 = 当前年级词汇为主 + 至多数个低年级温故词热身（设为 0 则全部当前年级）；学习卡上会标注「温故/挑战」'),
+    numInput('每天挑战词数（五六年级拔高）', 'challengePerDay', set.challengePerDay === undefined ? 1 : set.challengePerDay, 0, 3),
+    h('div', { class: 'tiny', style: 'margin:2px 0 10px' }, '无视词汇范围，每天从「挑战星系」限量混入高年级词，答对金币更多（+5）；学习卡上标注「挑战 · N年级词」'),
     numInput('每天新词数', 'dailyNew', set.dailyNew, 1, 10),
     numInput('每天复习量', 'dailyReview', set.dailyReview, 3, 30),
     numInput('单次时长提醒（分钟）', 'sessionLimitMin', set.sessionLimitMin, 5, 60),
+    numInput('每日金币上限', 'dailyCoinCap', set.dailyCoinCap === undefined ? 200 : set.dailyCoinCap, 60, 500),
+    h('div', { class: 'tiny', style: 'margin:2px 0 10px' }, '每天最多能赚的金币数（段位晋升和周日 BOSS 不受限）；可重复的活动当天首刷全额、第二次半价、之后只给 1~2 枚'),
     h('label', { class: 'check-row' },
       h('input', { type: 'checkbox', checked: !set.soundOff ? '' : null, onchange: e => Store.setSetting('soundOff', !e.target.checked) }),
       ' 音效与发音'
@@ -689,6 +750,20 @@ function renderParent() {
         renderParent();
       }
     }, '添加奖励'),
+    h('button', {
+      class: 'btn', style: 'margin-top:8px', onclick: () => {
+        let n = 0;
+        PRIVILEGE_PACK.forEach(p => {
+          if (!shop.rewards.some(r => r.name === p.name)) {
+            Store.addShopReward(p.emoji, p.name, p.cost);
+            n++;
+          }
+        });
+        toast(n ? `已添加 ${n} 张特权券，价格可在下方自行调整` : '特权券都已经添加过啦');
+        if (n) renderParent();
+      }
+    }, '🎫 一键添加特权券包'),
+    h('div', { class: 'tiny', style: 'margin-top:6px' }, '特权券 = 孩子用金币换家庭特权（选晚餐、晚睡 15 分钟、决定周末活动…），比实物礼物更好用；兑换后同样在这里确认'),
     shop.rewards.length ? shop.rewards.map(r => h('div', { class: 'pack-row' },
       h('span', { class: 'pack-info' }, `${r.emoji} ${r.name}`, h('span', { class: 'tiny' }, `　${r.cost} 🪙`)),
       h('button', { class: 'btn small danger', onclick: () => { Store.removeShopReward(r.id); renderParent(); } }, '删除')
@@ -928,8 +1003,9 @@ function openSettlement() {
         h('div', { class: 'receipt-row' }, h('b', {}, '🚀 英语'), h('span', {}, `新词 ${s.newDone}/${Store.state.settings.dailyNew} · 复习 ${s.revDone}/${Store.state.settings.dailyReview}${spoken ? ` · 跟读 ${spoken} 词` : ''}`)),
         h('div', { class: 'receipt-row' }, h('b', {}, '🪐 数学'), h('span', {}, s.mathDone ? `冲刺完成${lastRun ? ` · 最近答对 ${lastRun.correct} 题` : ''}` : '今天还没冲刺')),
         h('div', { class: 'receipt-row' }, h('b', {}, '📖 语文'), h('span', {}, (s.cnRounds || 0) ? `完成 ${s.cnRounds} 轮练习` : '今天还没开始')),
+        h('div', { class: 'receipt-row' }, h('b', {}, '📚 短文'), h('span', {}, s.enReadDone ? '今日英语短文已读完 ✅' : '今天的小短文还在等你')),
         h('div', { class: 'receipt-div' }),
-        h('div', { class: 'receipt-row' }, h('b', {}, '💰 今日收入'), h('span', {}, `+${s.coinsEarned || 0} 🪙`)),
+        h('div', { class: 'receipt-row' }, h('b', {}, '💰 今日收入'), h('span', {}, `+${s.coinsEarned || 0} 🪙${c.settings.dailyCoinCap && s.capHit ? `（已达上限 ${c.settings.dailyCoinCap}）` : ''}`)),
         h('div', { class: 'receipt-row' }, h('b', {}, '⏱ 今日用时'), h('span', {}, `${s.minutes} 分钟`)),
         h('div', { class: 'receipt-row' }, h('b', {}, '🔥 连续航行'), h('span', {}, `${c.streak.count} 天`)),
         h('div', { class: 'receipt-row' }, h('b', {}, '📅 明天待复习'), h('span', {}, `${due} 个词`)),

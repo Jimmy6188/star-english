@@ -25,7 +25,6 @@ const Chinese = {
           if (wasOk !== null) return;
           wasOk = m.ok;
           if (m.ok) {
-            Store.addCoins(4);
             Sound.correct();
             e.currentTarget.classList.add('right');
             const c = centerOf(e.currentTarget);
@@ -122,14 +121,14 @@ const Chinese = {
     const step = () => {
       if (idx >= qs.length) {
         const allOk = correct === qs.length;
-        Store.markCnStar(p.id, allOk);
+        const gained = Store.markCnStar(p.id, allOk);
         Store.state.today.cnRounds = (Store.state.today.cnRounds || 0) + 1;
         Store.save();
         Store.completeQuest();
         Sound.gold();
         this.summary(allOk ? '⭐' : '📜',
           allOk ? `点亮 ⭐《${p.title}》` : `《${p.title}》挑战完成`,
-          allOk ? `获得 +15 🪙 · 星河诗卷 ${Object.keys(Store.state.chinese.stars).length}/${CN_POEMS.length}` : '有错题已收进语文错题本，明天来消灭它们！');
+          `获得 +${gained} 🪙 · 星河诗卷 ${Object.keys(Store.state.chinese.stars).length}/${CN_POEMS.length}${!allOk ? ' · 错题已收进语文错题本，明天来消灭它们！' : (allOk && (Store.state.today.mint.poem || 0) > 1 ? ' · 今日重刷，奖励减半' : '')}`);
         renderHome();
         return;
       }
@@ -152,7 +151,7 @@ const Chinese = {
     root.appendChild(h('div', { class: 'card drill-card' },
       h('div', { class: 'drill-tag' }, next.title),
       h('div', { class: 'drill-text', style: 'text-align:left' }, next.text),
-      h('div', { class: 'tiny', style: 'margin-bottom:8px' }, '读完点下方开始答题（3 题，每题 +4 🪙）'),
+      h('div', { class: 'tiny', style: 'margin-bottom:8px' }, '读完点下方开始答题（3 题，答对得金币）'),
       h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.readQuiz(next); } }, '开始答题 →')
     ));
   },
@@ -161,19 +160,74 @@ const Chinese = {
     let idx = 0, correct = 0;
     const step = () => {
       if (idx >= passage.qs.length) {
-        const allOk = correct === passage.qs.length;
-        Store.markCnRead(passage.id);
+        const gained = Store.finishCnRead(passage.id, correct, passage.qs.length);
         Store.state.today.cnRounds = (Store.state.today.cnRounds || 0) + 1;
         Store.save();
         Store.completeQuest();
-        if (allOk) Store.addCoins(5);
         Sound.gold();
+        const allOk = correct === passage.qs.length;
         this.summary(allOk ? '💯' : '📖', allOk ? '全对！阅读小能手！' : '阅读完成！',
-          `答对 ${correct}/${passage.qs.length} · 获得 +${correct * 4 + (allOk ? 5 : 0)} 🪙 · 完成篇数 ${Store.state.chinese.reads.length}/${CN_READINGS.length}`);
+          `答对 ${correct}/${passage.qs.length} · 获得 +${gained} 🪙 · 完成篇数 ${Store.state.chinese.reads.length}/${CN_READINGS.length}${(Store.state.today.mint.cnread || 0) > 1 ? ' · 今日重刷，奖励减半' : ''}`);
         renderHome();
         return;
       }
       this.ask(passage.qs[idx], idx, passage.qs.length, ok => { idx++; if (ok) correct++; step(); });
+    };
+    step();
+  },
+
+  /* ---------- 小古文启蒙（拔高） ---------- */
+  guwenList() {
+    Sound.stopSpeak();
+    const done = (Store.state.chinese.guwen || []);
+    const next = CN_GUWEN.find(g => !done.includes(g.id)) || this.pick(CN_GUWEN);
+    showScreen('quest');
+    const root = $('#quest-root');
+    root.innerHTML = '';
+    root.appendChild(h('div', { class: 'quest-top' },
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('div', { class: 'quest-prog' }, `🧧 小古文 ${done.length}/${CN_GUWEN.length}`)
+    ));
+    root.appendChild(h('div', { class: 'card drill-card' },
+      h('div', { class: 'drill-tag' }, `${next.emoji} ${next.title}`, h('span', { class: 'level-badge' }, next.source)),
+      h('div', { class: 'gw-text' }, next.text),
+      h('div', { class: 'tiny en-gloss', style: 'text-align:left' }, `📖 字词卡：${next.gloss}`),
+      h('div', { class: 'tiny', style: 'margin-top:8px' }, '先自己读一读、猜猜意思，再答 3 道题（白话翻译在最后揭晓）'),
+      h('button', { class: 'btn btn-main big', style: 'margin-top:10px', onclick: () => { Sound.tap(); this.guwenQuiz(next); } }, '开始答题 →')
+    ));
+  },
+
+  guwenQuiz(p) {
+    let idx = 0, correct = 0;
+    const step = () => {
+      if (idx >= p.qs.length) {
+        const gained = Store.finishCnGuwen(p.id, correct, p.qs.length);
+        Store.state.today.cnRounds = (Store.state.today.cnRounds || 0) + 1;
+        Store.save();
+        Store.completeQuest();
+        Sound.gold();
+        const allOk = correct === p.qs.length;
+        const root = $('#quest-root');
+        root.innerHTML = '';
+        root.appendChild(h('div', { class: 'card finish-card' },
+          h('div', { class: 'finish-stamp' }, allOk ? '💯' : p.emoji),
+          h('div', { class: 'finish-title' }, `《${p.title}》 ${correct}/${p.qs.length}`),
+          h('div', { class: 'finish-sub' }, `获得 +${gained} 🪙${(Store.state.today.mint.guwen || 0) > 1 ? ' · 今日重刷，奖励减半' : ''} · 已读 ${Store.state.chinese.guwen.length}/${CN_GUWEN.length} 篇`),
+          h('div', { class: 'card', style: 'padding:12px;margin:10px 0;text-align:left' },
+            h('div', { class: 'tiny', style: 'margin-bottom:4px;font-weight:800' }, '📖 白话翻译'),
+            h('div', { style: 'font-size:15px;line-height:1.9' }, p.trans)),
+          h('div', { class: 'finish-pet' }, `“${rnd(PET_LINES.praise)}” —— ${Store.state.pet.name}`),
+          h('div', { class: 'row-gap' },
+            h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); Chinese.guwenList(); } }, '🧧 再读一篇'),
+            h('button', { class: 'btn btn-main', style: 'flex:1', onclick: () => { showScreen('home'); renderHome(); } }, '返回空间站')
+          )
+        ));
+        const c = centerOf($('.finish-stamp'));
+        burst(c.x, c.y, { count: 22, emojis: [p.emoji, '⭐', '✨'], power: 120 });
+        renderHome();
+        return;
+      }
+      this.ask(p.qs[idx], idx, p.qs.length, ok => { idx++; if (ok) correct++; step(); });
     };
     step();
   },
@@ -192,11 +246,12 @@ const Chinese = {
     let idx = 0, correct = 0;
     const step = () => {
       if (idx >= qs.length) {
+        const gained = Store.finishCnWords(correct);
         Store.state.today.cnRounds = (Store.state.today.cnRounds || 0) + 1;
         Store.save();
         Store.completeQuest();
         Sound.gold();
-        this.summary('🈶', `词语实战 ${correct}/${qs.length}`, `获得 +${correct * 4} 🪙${correct === qs.length ? ' · 全对！' : ' · 错题已记录，明天再战'}`);
+        this.summary('🈶', `词语实战 ${correct}/${qs.length}`, `获得 +${gained} 🪙${correct === qs.length ? ' · 全对！' : ' · 错题已记录，明天再战'}${(Store.state.today.mint.cnwords || 0) > 1 ? ' · 今日重刷，奖励减半' : ''}`);
         renderHome();
         return;
       }

@@ -1,5 +1,5 @@
 /* 星际求知号 - 离线缓存（仅在 http(s) 环境生效） */
-const CACHE = 'star-english-v16';
+const CACHE = 'star-english-v18';
 const ASSETS = [
   './',
   './index.html',
@@ -11,11 +11,15 @@ const ASSETS = [
   './js/ui-screens.js',
   './js/ui-quest.js',
   './js/ui-math.js',
+  './js/ui-think.js',
+  './js/ui-phonics.js',
   './js/data-chinese.js',
   './js/ui-subject.js',
   './js/data-science.js',
   './js/data-daofa.js',
   './js/ui-chinese.js',
+  './js/ui-reading.js',
+  './js/ui-extras.js',
   './js/app.js',
   './manifest.webmanifest',
   './icons/icon-192.png',

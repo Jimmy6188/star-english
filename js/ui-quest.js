@@ -19,6 +19,7 @@ const Quest = {
     this.dictMode = false;
     this.dictResults = [];
     this.bossWrong = 0;
+    this.bossWasDone = false;
     const s = Store.state;
     if (!free) {
       const newCap = Math.max(0, s.settings.dailyNew - s.today.newDone);
@@ -63,7 +64,8 @@ const Quest = {
     this.splash();
   },
 
-  /* 每周日 BOSS 挑战：10 道高阶大题，失误 ≤2 次算通关 */
+  /* 每周日 BOSS 挑战：10 道纯拼写高阶题，失误 ≤1 击败 / ≤3 击伤 / 更多则战败
+   * 战败词自动进错题本，当天可无限次再战（奖励每周只发一次） */
   startBoss() {
     Sound.stopSpeak();
     const pool = Object.keys(Store.state.srs).filter(id => Store.state.srs[id].box >= 3 && Store.findWord(id));
@@ -73,6 +75,7 @@ const Quest = {
     this.bossMode = true;
     this.dictMode = false;
     this.bossWrong = 0;
+    this.bossWasDone = Store.bossInfo().done; // 本周已通关 → 本次是友谊赛
     this.items = shuffle(pool).slice(0, 10).map(id => ({ id, kind: 'review' }));
     this.idx = 0;
     this.startedTs = Date.now();
@@ -186,7 +189,7 @@ const Quest = {
     this.qroot().innerHTML = '';
     const icon = this.dictMode ? '📝' : (this.bossMode ? '👑' : (this.drillMode ? '⚡' : '🚀'));
     const title = this.dictMode ? '听写小测验' : (this.bossMode ? 'BOSS 周挑战！' : (this.drillMode ? '错词来袭！' : (this.freeMode ? '自由练习起飞！' : '今日冒险开始！')));
-    const sub = this.dictMode ? `${n} 个词 · 每词只有一次机会` : (this.bossMode ? `${n} 道高阶大题，失误 2 次以内通关` : (this.drillMode ? `${n} 个老对手等你击退` : (this.freeMode ? '5 个复习挑战' : `共 ${n} 个挑战关卡`)));
+    const sub = this.dictMode ? `${n} 个词 · 每词只有一次机会` : (this.bossMode ? `${n} 道纯拼写高阶题 · 失误 ≤1 击败 · ≤3 击伤` : (this.drillMode ? `${n} 个老对手等你击退` : (this.freeMode ? '5 个复习挑战' : `共 ${n} 个挑战关卡`)));
     this.qroot().appendChild(h('div', { class: 'card quest-splash' },
       h('div', { class: 'splash-rocket' }, icon),
       h('div', { class: 'splash-title' }, title),
@@ -212,11 +215,9 @@ const Quest = {
     const box = rec ? rec.box : 1;
     const isPhrase = !!(w && w.phrase);
     if (this.bossMode) {
-      if (isPhrase) return box >= 3 ? (Math.random() < 0.6 ? 'orderHard' : 'order') : 'wordPick';
-      if (box >= 4) return 'spellHard';
-      if (box === 3) return Math.random() < 0.6 ? 'cloze' : 'spellDecoy';
-      if (box === 2) return 'wordPick';
-      return 'listen';
+      /* BOSS 只考主动输出：词组=听写词块排序；单词=听写拼写 或 句子填空拼写（无中文、无选项） */
+      if (isPhrase) return 'orderHard';
+      return Math.random() < 0.4 && this.canClozeSpell(w) ? 'clozeSpell' : 'spellHard';
     }
     if (this.drillMode) return isPhrase ? 'order' : 'spell';
     if (isPhrase) {
@@ -242,6 +243,7 @@ const Quest = {
     const mode = this.pickReviewMode(item);
     item.mode = mode;
     if (mode === 'spellHard') this.renderSpelling(w, false, { hardMode: true, decoys: true });
+    else if (mode === 'clozeSpell') this.renderSpelling(w, false, { hardMode: true, decoys: true, cloze: true });
     else if (mode === 'spellDecoy') this.renderSpelling(w, false, { decoys: true });
     else if (mode === 'spell') this.renderSpelling(w, false);
     else if (mode === 'orderHard') this.renderWordOrder(w, { hardMode: true });
@@ -275,6 +277,14 @@ const Quest = {
     return shuffle(pool).slice(0, n);
   },
 
+  /* 句子填空拼写：例句里必须出现该词（允许 s/es 变形）才可用 */
+  clozeRe(w) {
+    return new RegExp('\\b' + w.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(s|es)?\\b', 'i');
+  },
+  canClozeSpell(w) {
+    return !!w.ex && this.clozeRe(w).test(w.ex);
+  },
+
   /* ---------- 新词学习卡 ---------- */
   renderIntro(w) {
     const root = this.qroot();
@@ -298,6 +308,7 @@ const Quest = {
         h('span', {}, w.ex)
       ),
       h('div', { class: 'tiny intro-exzh' }, w.exZh),
+      w.phrase ? '' : h('button', { class: 'btn small', style: 'margin:4px 0', onclick: () => Sound.speak(w.word.split('').join(', ') + '. ' + w.word, 0.7) }, '🔤 拼读一下（听每个字母）'),
       buildSpeakPanel(w),
       h('button', {
         class: 'btn btn-main big',
@@ -308,8 +319,9 @@ const Quest = {
     setTimeout(() => Sound.speak(w.word), 400);
   },
 
-  /* ---------- 拼写挑战 ---------- */
-  /* opts: hardMode=听写挑战(隐藏中文) decoys=混入干扰字母 */
+  /* ---------- 拼写挑战 ----------
+   * opts: hardMode=听写挑战(隐藏中文) decoys=混入干扰字母 cloze=句子填空拼写（BOSS 专用：给英文句子语境，不给中文）
+   * BOSS 规则：不显示幽灵答案、不提供提示；同一题错 2 次即失守，词自动进错题本 */
   renderSpelling(w, isNew, opts = {}) {
     const root = this.qroot();
     root.innerHTML = '';
@@ -317,6 +329,16 @@ const Quest = {
     const target = w.word.toLowerCase();
     let answer = [];
     let hints = 0, wrongs = 0;
+
+    /* 句子填空拼写：从例句挖出目标词，靠语境拼词 */
+    const useCloze = !!opts.cloze && this.canClozeSpell(w);
+    let clozeBefore = '', clozeAfter = '', spokenText = w.word;
+    if (useCloze) {
+      const m = w.ex.match(this.clozeRe(w));
+      clozeBefore = w.ex.slice(0, m.index);
+      clozeAfter = w.ex.slice(m.index + m[0].length);
+      spokenText = w.ex.replace(this.clozeRe(w), 'something');
+    }
 
     const slotsEl = h('div', { class: 'slots' });
     const tilesEl = h('div', { class: 'tiles' });
@@ -356,6 +378,7 @@ const Quest = {
           t.classList.add('used');
           answer.push({ ch, tile: t });
           Sound.tap();
+          Sound.speak(ch, 1.1); // 字母点读：放一个字母听一个字母音
           refresh();
           if (answer.length === target.length) setTimeout(check, 250);
         }
@@ -365,6 +388,9 @@ const Quest = {
 
     function doHint() {
       if (answer.length >= target.length) return;
+      /* 提示直接花金币（复习和新词统一），金币不够时不可用 */
+      if (!Store.spend(HINT_COST)) { toast('金币不够啦，提示需要 2 🪙'); return; }
+      updateTop();
       const needCh = target[answer.length];
       let tile = Array.from(tilesEl.children).find(t => !t.classList.contains('used') && t.textContent === needCh);
       while (!tile && answer.length) { // 需要的字母被误放在前面时，先释放最前面的字母
@@ -391,6 +417,12 @@ const Quest = {
         if (self.bossMode) self.bossWrong++;
         Store.addMistake();
         Sound.wrong();
+        if (self.bossMode && wrongs >= 2) {
+          /* BOSS：本题失守，不亮答案硬扛；词记入错题本，看一眼正确拼写后继续 */
+          Store.reviewWord(target, false);
+          self.bossFail(w);
+          return;
+        }
         slotsEl.classList.add('shake');
         setTimeout(() => slotsEl.classList.remove('shake'), 450);
         answer = [];
@@ -402,18 +434,37 @@ const Quest = {
 
     root.appendChild(h('div', { class: 'card spell-card' },
       h('div', { class: 'spell-prompt' },
-        isNew ? '把新单词拼出来！' : (opts.hardMode ? '⚡ 听写挑战：听发音拼写' : '复习：拼出这个单词')),
+        useCloze ? '📖 读句子，把缺的词拼出来！'
+          : (isNew ? '把新单词拼出来！' : (opts.hardMode ? '⚡ 听写挑战：听发音拼写' : '复习：拼出这个单词'))),
       opts.hardMode ? '' : h('div', { class: 'spell-zh' }, w.zh),
-      h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(w.word) }, '🔊'),
-      h('div', { class: 'tiny' }, opts.decoys ? '小心！字母块里有捣蛋鬼' : '听发音，从下面选出字母'),
+      useCloze ? h('div', { class: 'cloze-line' }, clozeBefore, h('span', { class: 'cloze-blank' }, '＿＿＿＿'), clozeAfter) : '',
+      h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(spokenText) }, '🔊'),
+      h('div', { class: 'tiny' },
+        useCloze ? '🔊 可重听整句（缺的词会读成 something）· 不给中文，靠句子猜词'
+          : (opts.decoys ? '小心！字母块里有捣蛋鬼' : '听发音，从下面选出字母')),
       slotsEl,
       ghostEl,
       tilesEl,
-      h('div', { class: 'row-gap center' },
+      this.bossMode ? '' : h('div', { class: 'row-gap center' },
+        h('button', { class: 'btn', onclick: () => Sound.speak(w.word.split('').join(', ') + '. ' + w.word, 0.7) }, '🔤 拼读一下'),
         h('button', { class: 'btn', onclick: doHint }, '💡 提示一下 (-2🪙)')
       )
     ));
-    setTimeout(() => Sound.speak(w.word), 350);
+    setTimeout(() => Sound.speak(spokenText), 350);
+  },
+
+  /* BOSS 战败一题：亮出正确答案加深印象，随后自动进入下一题 */
+  bossFail(w) {
+    const root = this.qroot();
+    root.innerHTML = '';
+    root.appendChild(this.progressHeader());
+    root.appendChild(h('div', { class: 'card spell-card center' },
+      h('div', { class: 'intro-emoji', style: 'filter:grayscale(1) opacity(.6)' }, w.emoji),
+      h('div', { class: 'mz-word' }, w.word),
+      h('div', { class: 'intro-zh' }, w.zh),
+      h('div', { class: 'tiny', style: 'margin-top:8px' }, '💥 这一题失守！正确拼写记住了吗？词已收进错题本')
+    ));
+    setTimeout(() => { this.idx++; this.next(); }, 2000);
   },
 
   /* ---------- 词组排序挑战（词块组装） ---------- */
@@ -469,6 +520,9 @@ const Quest = {
 
     function doHint() {
       if (answer.length >= chunks.length) return;
+      /* 提示直接花金币（复习和新词统一），金币不够时不可用 */
+      if (!Store.spend(HINT_COST)) { toast('金币不够啦，提示需要 2 🪙'); return; }
+      updateTop();
       const need = chunks[answer.length].toLowerCase();
       let tile = Array.from(tilesEl.children).find(t => !t.classList.contains('used') && t.textContent.toLowerCase() === need);
       while (!tile && answer.length) {
@@ -495,6 +549,12 @@ const Quest = {
         if (self.bossMode) self.bossWrong++;
         Store.addMistake();
         Sound.wrong();
+        if (self.bossMode && wrongs >= 2) {
+          /* BOSS：本题失守，词记入错题本后继续 */
+          Store.reviewWord(target, false);
+          self.bossFail(w);
+          return;
+        }
         slotsEl.classList.add('shake');
         setTimeout(() => slotsEl.classList.remove('shake'), 450);
         answer = [];
@@ -512,7 +572,7 @@ const Quest = {
       slotsEl,
       ghostEl,
       tilesEl,
-      h('div', { class: 'row-gap center' },
+      this.bossMode ? '' : h('div', { class: 'row-gap center' },
         h('button', { class: 'btn', onclick: doHint }, '💡 提示一下 (-2🪙)')
       )
     ));
@@ -700,6 +760,7 @@ const Quest = {
   /* ---------- 完成 ---------- */
   finish() {
     this.addMinutes();
+    updateTop(); // 结算页立刻同步顶栏金币
     if (!this.freeMode && !this.drillMode && !this.bossMode && !this.dictMode) {
       Store.markEnglishDone();
       Store.completeQuest();
@@ -721,14 +782,34 @@ const Quest = {
       title = `听写成绩 ${correct} / ${total}`;
       sub = correct === total ? '满分！太厉害了！🎉' : (correct >= Math.ceil(total * 0.8) ? '很棒！错词已收进错题本' : '错词已收进错题本，练一练再测一次！');
     } else if (this.bossMode) {
+      /* 分级结算：≤1 击败 +50（每周一次）/ ≤3 击伤 +10 / 更多失败 0 币；友谊赛（本周已通关再战）+3 参与奖 */
       const total = this.items.length;
       const score = Math.max(0, total - this.bossWrong);
-      const passed = this.bossWrong <= 2;
-      Store.bossComplete(score, total, passed);
-      if (passed) { Store.addCoins(COIN_BOSS); Sound.gold(); }
-      icon = passed ? '👑' : '🛡️';
-      title = passed ? 'BOSS 被击败啦！' : 'BOSS 没被击倒，再来一次！';
-      sub = `成绩 ${score}/${total} · ` + (passed ? `通关奖励 +${COIN_BOSS} 🪙（本周已通关）` : '失误超过 2 次没通关，回去练练再战！');
+      if (this.bossWasDone) {
+        Store.bossComplete(score, total, true);
+        Store.addCoins(3); // 友谊赛参与奖，受每日上限约束
+        icon = '🤝'; title = '友谊赛完成！';
+        sub = `成绩 ${score}/${total} · 本周的 BOSS 已被击败，切磋奖励 +3 🪙`;
+      } else if (this.bossWrong <= 1) {
+        Store.bossComplete(score, total, true);
+        Store.addCoins(COIN_BOSS, { ignoreCap: true }); // 周挑战是里程碑，不受每日上限影响
+        Sound.gold();
+        icon = '👑'; title = 'BOSS 被击败啦！';
+        sub = `成绩 ${score}/${total} · 失误 ${this.bossWrong} · 通关奖励 +${COIN_BOSS} 🪙（本周只发这一次）`;
+      } else if (this.bossWrong <= 3) {
+        Store.bossComplete(score, total, false);
+        const firstHurt = Store.bossHurtReward();
+        if (firstHurt) Store.addCoins(10, { ignoreCap: true });
+        else Store.addCoins(3);
+        icon = '🛡️'; title = 'BOSS 残血逃跑了！';
+        sub = `成绩 ${score}/${total} · 失误 ${this.bossWrong} · ` +
+          (firstHurt ? '击伤奖励 +10 🪙（本周一次）' : '本周击伤奖已领过，切磋 +3 🪙') +
+          ' · 今天可再战，或练练错题下周日复仇！';
+      } else {
+        Store.bossComplete(score, total, false);
+        icon = '💀'; title = 'BOSS 挡住了这次进攻…';
+        sub = `成绩 ${score}/${total} · 失误 ${this.bossWrong} · 答错的词已收进错题本，先去练一练再回来报仇！`;
+      }
     }
     Sound.coin();
     const root = this.qroot();
@@ -743,7 +824,10 @@ const Quest = {
           h('span', {}, r.ok ? '✅' : '❌')
         ))) : '',
       h('div', { class: 'finish-pet' }, `“${rnd(PET_LINES.praise)}” —— ${Store.state.pet.name}`),
-      h('button', { class: 'btn btn-main big', onclick: () => { showScreen('home'); renderHome(); } }, '返回空间站')
+      this.bossMode ? h('div', { class: 'row-gap' },
+        h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.startBoss(); } }, '⚔️ 再战一次'),
+        h('button', { class: 'btn btn-main', style: 'flex:1', onclick: () => { showScreen('home'); renderHome(); } }, '返回空间站')
+      ) : h('button', { class: 'btn btn-main big', onclick: () => { showScreen('home'); renderHome(); } }, '返回空间站')
     );
     root.appendChild(card);
     setTimeout(() => {

@@ -50,7 +50,7 @@ const SubjectUI = {
           }, `${u.emoji} ${u.name}（已练 ${doneL}/${u.lessons.length} 课）`));
         });
         el.appendChild(h('div', { class: 'tiny center', style: 'margin-top:12px' },
-          `完成任意一轮都算盖章 · 每周建议 ${def.weeklyGoal} 轮，多玩多赚 🪙`));
+          `完成任意一轮都算盖章 · 每周建议 ${def.weeklyGoal} 轮（首刷金币全额，重刷减半）`));
       }
     });
   },
@@ -86,15 +86,13 @@ const SubjectUI = {
     const step = () => {
       if (idx >= qs.length) {
         const allOk = correct === qs.length;
-        Store.subjectAddRound(def.id);
+        const gained = Store.finishSubjectRound(def.id, correct, qs.length);
         qs.forEach(q => Store.subjectMarkDone(def.id, q.lesson));
         Store.completeQuest();
-        if (allOk) Store.addCoins(5);
         Sound.gold();
-        const coins = correct * 4 + (allOk ? 5 : 0);
         this.summary(def, allOk ? '💯' : def.emoji,
           allOk ? '全对！太厉害了！' : `答对 ${correct}/${qs.length}`,
-          `获得 +${coins} 🪙 · ${wrongOnly ? '错题挑战' : unit.name} · 本周探索 ${Store.subjectWeek(def.id)}/${def.weeklyGoal} 轮${!allOk ? ' · 错题已收进错题本' : ''}`);
+          `获得 +${gained} 🪙 · ${wrongOnly ? '错题挑战' : unit.name} · 本周探索 ${Store.subjectWeek(def.id)}/${def.weeklyGoal} 轮${!allOk ? ' · 错题已收进错题本' : ''}${(Store.state.today.mint[def.id] || 0) > 1 ? ' · 今日重刷，奖励减半' : ''}`);
         renderHome();
         return;
       }
@@ -116,7 +114,7 @@ const SubjectUI = {
     const grade = ok => {
       if (wasOk !== null) return;
       wasOk = ok;
-      if (ok) { Store.addCoins(4); Sound.correct(); }
+      if (ok) Sound.correct();
       else { Sound.wrong(); Store.subjectAddWrong(def.id, q); }
     };
     const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px' }, '');

@@ -187,6 +187,7 @@ const MathSprint = {
   },
 
   finish() {
+    updateTop(); // 结算页立刻同步顶栏金币
     this.running = false;
     clearInterval(this.timer); clearInterval(this.tickTimer);
     const r = Store.finishMathRun(this.correct, this.seconds, this.wrongThisRun);
@@ -198,6 +199,7 @@ const MathSprint = {
       h('div', { class: 'finish-title' }, `答对 ${this.correct} 题！`),
       h('div', { class: 'finish-sub' },
         `最高连对 ${this.streakBest} · 获得 +${r.coinsGain} 🪙` +
+        ((Store.state.today.mint.sprint || 0) > 1 ? '（今日重刷，奖励减半）' : '') +
         (r.isNewBest ? ' · 🏅新纪录！' : '') +
         (r.planetLit ? ' · 🌟 点亮了一颗新行星！' : '')),
       h('div', { class: 'tiny', style: 'margin-top:4px' },
@@ -293,7 +295,7 @@ const MathDrill = {
     root.appendChild(h('div', { class: 'card quest-splash' },
       h('div', { class: 'splash-rocket' }, '📐'),
       h('div', { class: 'splash-title' }, '数学练习场'),
-      h('div', { class: 'splash-sub' }, `5 道题 · 笔算和应用题 · 不计时，答对每题 +5 🪙${this.items.some(i => i.fromWrong) ? ' · 含之前的错题' : ''}`),
+      h('div', { class: 'splash-sub' }, `5 道题 · 笔算和应用题 · 不计时 · 首刷全额，当天重刷减半${this.items.some(i => i.fromWrong) ? ' · 含之前的错题' : ''}`),
       h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.next(); } }, '开始 →')
     ));
   },
@@ -340,7 +342,6 @@ const MathDrill = {
     const ok = this.input !== '' && parseInt(this.input, 10) === item.ans;
     if (ok) {
       this.correct++;
-      Store.addCoins(5);
       Sound.correct();
     } else {
       Store.addPracticeWrong(item);
@@ -353,7 +354,7 @@ const MathDrill = {
     ));
     root.appendChild(h('div', { class: 'card spell-card center' },
       h('div', { class: 'intro-emoji', style: ok ? '' : 'filter:grayscale(1) opacity(.55)' }, item.kind === 'app' ? '📖' : '✖️'),
-      h('div', { class: 'mz-word' }, ok ? '答对了！+5 🪙' : '再看一遍'),
+      h('div', { class: 'mz-word' }, ok ? '答对了！' : '再看一遍'),
       h('div', { class: 'drill-text', style: 'margin-top:8px' }, item.text),
       h('div', { class: 'intro-zh', style: 'margin-top:8px' }, ok ? (item.tip || '') : `正确答案：${item.tip || item.ans}`),
       h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.idx++; this.next(); } }, this.idx + 1 >= this.items.length ? '看成绩 →' : '下一题 →')
@@ -361,12 +362,14 @@ const MathDrill = {
   },
 
   finish() {
+    updateTop(); // 结算页立刻同步顶栏金币
+    const gain = Store.finishPracticeRun(this.correct);
     const root = $('#quest-root');
     root.innerHTML = '';
     const card = h('div', { class: 'card finish-card' },
       h('div', { class: 'finish-stamp' }, '📐'),
       h('div', { class: 'finish-title' }, `练习完成 ${this.correct}/${this.items.length}`),
-      h('div', { class: 'finish-sub' }, `获得 +${this.correct * 5} 🪙`),
+      h('div', { class: 'finish-sub' }, `获得 +${gain} 🪙${(Store.state.today.mint.practice || 0) > 1 ? '（今日重刷，奖励减半）' : ''}`),
       h('div', { class: 'finish-pet' }, `“${rnd(PET_LINES.praise)}” —— ${Store.state.pet.name}`),
       h('div', { class: 'row-gap' },
         h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.start(); } }, '再来一组'),

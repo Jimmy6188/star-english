@@ -26,13 +26,13 @@ const Store = (() => {
   function freshState() {
     return {
       v: 1,
-      settings: { dailyNew: 4, dailyReview: 10, sessionLimitMin: 20, soundOff: false, pin: '1234', activePacks: null, grade: 4, range: 'below', warmupPerDay: 1, theme: 'auto' },
+      settings: { dailyNew: 4, dailyReview: 10, sessionLimitMin: 20, soundOff: false, pin: '1234', activePacks: null, grade: 4, range: 'below', warmupPerDay: 1, theme: 'auto', dailyCoinCap: 200, challengePerDay: 1 },
       coins: 0,
-      pet: { name: '小星', fed: 0 },
+      pet: { name: '小星', fed: 0, outfits: { owned: [], worn: {} } },
       streak: { count: 0, best: 0, lastDone: null, shields: 2, shieldWeek: null },
       srs: {},        // id -> {box, due, ok, bad, wrongStreak, learnedAt}
       album: {},      // id -> {at, gold}
-      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0, tripleDone: false },
+      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0, tripleDone: false, mint: {}, capHit: false, capToastShown: false, boxOpened: 0, enReadDone: false },
       subjects: { science: subjFresh(), daofa: subjFresh() },
       shop: { rewards: [], pending: [], history: [] },
       history: {},    // date -> {done, minutes, news, revs, shieldUsed}
@@ -45,8 +45,10 @@ const Store = (() => {
       dictations: [],        // 听写测验记录 {at, correct, total}
       spoken: {},            // 跟读过的词 id -> 日期（奖励每词一次）
       math: { wrong: [], wrongP: [], best: 0, runs: [], planets: 0, goodRuns: 0, level: 2, seconds: 60 },
-      chinese: { stars: {}, reads: [], wrong: [] },
-      stats: { drillsDone: 0 }
+      chinese: { stars: {}, reads: [], wrong: [], guwen: [] },
+      phonics: { rounds: 0 }, // 词族拼读累计轮数
+      enRead: { reads: [] }, // 已读完的英语短文 id
+      stats: { drillsDone: 0, thinkDone: 0, boxesOpened: 0 }
     };
   }
 
@@ -67,9 +69,24 @@ const Store = (() => {
     if (!state.chinese.stars) state.chinese.stars = {};
     if (!state.chinese.reads) state.chinese.reads = [];
     if (!state.chinese.wrong) state.chinese.wrong = [];
+    if (!state.chinese.guwen) state.chinese.guwen = [];
+    if (!state.phonics) state.phonics = { rounds: 0 };
     if (!state.shop) state.shop = { rewards: [], pending: [], history: [] };
     if (state.today && state.today.coinsEarned === undefined) state.today.coinsEarned = 0;
     if (state.today && state.today.cnRounds === undefined) state.today.cnRounds = 0;
+    if (state.today && state.today.mint === undefined) state.today.mint = {};
+    if (state.today && state.today.capHit === undefined) state.today.capHit = false;
+    if (state.today && state.today.capToastShown === undefined) state.today.capToastShown = false;
+    if (state.today && state.today.boxOpened === undefined) state.today.boxOpened = 0;
+    if (state.today && state.today.enReadDone === undefined) state.today.enReadDone = false;
+    if (!state.enRead) state.enRead = { reads: [] };
+    if (!state.pet.outfits) state.pet.outfits = { owned: [], worn: {} };
+    if (state.stats && !state.stats.thinkDone) state.stats.thinkDone = 0;
+    if (state.stats && !state.stats.boxesOpened) state.stats.boxesOpened = 0;
+    if (state.settings.dailyCoinCap === undefined) state.settings.dailyCoinCap = 200;
+    if (state.settings.challengePerDay === undefined) state.settings.challengePerDay = 1;
+    /* 新增挑战星系后，老存档的 activePacks 里可能没有它，补上 */
+    if (Array.isArray(state.settings.activePacks) && !state.settings.activePacks.includes('challenge')) state.settings.activePacks.push('challenge');
     if (!state.stats) state.stats = { drillsDone: 0 };
     if (state.today && state.today.mistakes === undefined) state.today.mistakes = 0;
     if (state.settings.warmupPerDay === undefined) state.settings.warmupPerDay = 1;
@@ -114,7 +131,7 @@ const Store = (() => {
 
   function ensureToday() {
     const t = todayStr();
-    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0, tripleDone: false };
+    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0, tripleDone: false, mint: {}, capHit: false, capToastShown: false, boxOpened: 0, enReadDone: false };
   }
 
   /* 护盾桥接：昨天漏打卡时自动消耗一张护盾保住连击 */
@@ -160,7 +177,7 @@ const Store = (() => {
     return w.grade <= grade;
   }
 
-  /* 新词池：当前年级词为主，低年级温故词每天限量穿插（默认 1 个），教材包优先 */
+  /* 新词池：当前年级词为主，低年级温故词 + 高年级挑战词每天限量穿插，教材包优先 */
   function newPool(cap) {
     const grade = state.settings.grade;
     const queues = activePacks().map(p => ({
@@ -182,19 +199,35 @@ const Store = (() => {
         }
       }
     }
-    /* 分池：当前年级（含自定义词）为主池，其它年级为温故/挑战池 */
+    /* 分池：当前年级（含自定义词）为主池，其它年级为温故池 */
     const main = seq.filter(id => { const w = findWord(id); return !w.grade || w.grade === grade; });
     const other = seq.filter(id => !main.includes(id))
       .sort((a, b) => (findWord(a).grade || grade) - (findWord(b).grade || grade));
-    /* 组合：把温故/挑战词均匀撒进队列，数量受 warmupPerDay 限制 */
+
+    /* 挑战池：高年级词无视词汇范围限量混入（学有余力也够得着） */
     const warmN = Math.min(cap, other.length, Math.max(0, state.settings.warmupPerDay == null ? 1 : state.settings.warmupPerDay));
-    const warmIdx = new Set();
-    for (let j = 0; j < warmN; j++) warmIdx.add(Math.min(cap - 1, Math.floor((j + 0.5) * cap / warmN)));
+    const chN = Math.min(Math.max(0, state.settings.challengePerDay == null ? 1 : state.settings.challengePerDay), Math.max(0, cap - warmN));
+    const chIds = [];
+    if (chN > 0) {
+      const cand = [];
+      activePacks().forEach(p => p.words.forEach(w => {
+        const id = w.word.toLowerCase();
+        if (w.grade && w.grade > grade && !state.srs[id] && !main.includes(id) && !other.includes(id)) cand.push(id);
+      }));
+      cand.sort((a, b) => (findWord(a).grade - findWord(b).grade) || ((findWord(a).level || 1) - (findWord(b).level || 1)));
+      chIds.push(...cand.slice(0, chN));
+    }
+
+    /* 组合：把温故/挑战词均匀撒进队列 */
+    const spice = other.slice(0, warmN).concat(chIds);
+    const spiceIdx = new Set();
+    for (let j = 0; j < spice.length; j++) spiceIdx.add(Math.min(cap - 1, Math.floor((j + 0.5) * cap / spice.length)));
     const out = [];
-    const mainQ = main.slice(), otherQ = other.slice();
+    const mainQ = main.slice(), spiceQ = spice.slice(), otherQ = other.slice(warmN);
     for (let i = 0; i < cap; i++) {
-      if (warmIdx.has(i) && otherQ.length) out.push(otherQ.shift());
+      if (spiceIdx.has(i) && spiceQ.length) out.push(spiceQ.shift());
       else if (mainQ.length) out.push(mainQ.shift());
+      else if (spiceQ.length) out.push(spiceQ.shift());
       else if (otherQ.length) out.push(otherQ.shift());
       else break;
     }
@@ -214,7 +247,7 @@ const Store = (() => {
   }
 
   /* ---------- 学习记录 ---------- */
-  /* 新词首次拼对：进入 SRS + 发贴纸 */
+  /* 新词首次拼对：进入 SRS + 发贴纸；高年级挑战词金币加成（提示改为直接花金币，不再扣奖励） */
   function masterWord(id, hintsUsed, hadWrong) {
     const t = todayStr();
     const rec = state.srs[id] || { box: 0, ok: 0, bad: 0 };
@@ -232,8 +265,9 @@ const Store = (() => {
       state.album[id] = { at: t, gold };
       newSticker = true;
     }
-    const reward = Math.max(2, COIN_NEW - hintsUsed * HINT_COST - (hadWrong ? 2 : 0));
-    earn(reward);
+    const w = findWord(id);
+    const isChallenge = !!(w && w.grade && w.grade > state.settings.grade);
+    const reward = earn(Math.max(2, COIN_NEW + (isChallenge ? COIN_CHALLENGE_NEW : 0) - (hadWrong ? 2 : 0)));
     if (hadWrong) addMistake();
     const promo = checkRank();
     checkBadges();
@@ -241,7 +275,7 @@ const Store = (() => {
     return { gold, newSticker, reward, promo };
   }
 
-  /* 复习结果 */
+  /* 复习结果；挑战词复习答对小加成 */
   function reviewWord(id, correct) {
     const t = todayStr();
     const rec = state.srs[id];
@@ -260,8 +294,12 @@ const Store = (() => {
       addMistake();
     }
     state.today.revDone++;
-    const reward = correct ? COIN_REVIEW : 1;
-    earn(reward);
+    let reward = 0;
+    if (correct) {
+      const w = findWord(id);
+      const isChallenge = !!(w && w.grade && w.grade > state.settings.grade);
+      reward = earn(COIN_REVIEW + (isChallenge ? COIN_CHALLENGE_REVIEW : 0));
+    } else reward = earn(1);
     save();
     return reward;
   }
@@ -285,11 +323,42 @@ const Store = (() => {
       .slice(0, cap);
   }
 
-  function earn(n) {
-    state.coins += n;
-    state.today.coinsEarned = (state.today.coinsEarned || 0) + n;
+  /* ---------- 金币经济 ----------
+   * earn(n, opts): 唯一入账口。受每日上限约束（opts.ignoreCap 可豁免，用于段位/BOSS 等里程碑），
+   * 返回实际入账数（触顶时可能小于 n）。
+   * earnScaled(type, base): 可重复活动专用——当天第 1 次全额、第 2 次半价、第 3 次起 1~2 枚，
+   * 引导"首刷"而不是刷重复内容。 */
+  function earn(n, opts) {
+    let added = Math.max(0, Math.round(n));
+    const cap = Math.max(0, state.settings.dailyCoinCap || 0);
+    const already = state.today.coinsEarned || 0;
+    if (cap > 0 && !(opts && opts.ignoreCap) && already + added > cap) {
+      added = Math.max(0, cap - already);
+      state.today.capHit = true;
+      if (!state.today.capToastShown) {
+        state.today.capToastShown = true;
+        try { toast(`🪙 今日金币已达上限 ${cap}，明天继续加油！`); } catch (e) { /* UI 未就绪时忽略 */ }
+      }
+    }
+    if (added > 0) { state.coins += added; state.today.coinsEarned = already + added; }
+    return added;
   }
-  function addCoins(n) { earn(n); save(); }
+  function earnScaled(type, base) {
+    if (!state.today.mint) state.today.mint = {};
+    const n = state.today.mint[type] || 0;
+    state.today.mint[type] = n + 1;
+    const mult = n === 0 ? 1 : (n === 1 ? 0.5 : 0.08);
+    const amt = n >= 2 ? Math.min(2, Math.max(1, Math.round(base * mult))) : Math.round(base * mult);
+    return earn(amt);
+  }
+  /* 花金币（提示、星盒、装扮）：钱不够返回 false */
+  function spend(n) {
+    if (state.coins < n) return false;
+    state.coins -= n;
+    save();
+    return true;
+  }
+  function addCoins(n, opts) { const got = earn(n, opts); save(); return got; }
 
   function addMinutes(min) {
     state.today.minutes = Math.min(180, state.today.minutes + min);
@@ -324,7 +393,7 @@ const Store = (() => {
     if (r > (state.rankIdx || 0)) {
       state.rankIdx = r;
       const reward = RANKS[r].reward || 0;
-      earn(reward);
+      earn(reward, { ignoreCap: true }); // 段位晋升是里程碑奖励，不受每日上限影响
       state.pendingPromotion = { name: RANKS[r].name, reward, idx: r };
       return state.pendingPromotion;
     }
@@ -346,6 +415,14 @@ const Store = (() => {
     checkBadges();
     save();
   }
+  /* 击伤奖励每周只发一次；返回 true 表示本次是本周第一次击伤 */
+  function bossHurtReward() {
+    const b = bossInfo();
+    if (b.hurtWeek === weekKey()) return false;
+    b.hurtWeek = weekKey();
+    save();
+    return true;
+  }
 
   /* ---------- 成就徽章 ---------- */
   function addMistake() {
@@ -356,13 +433,45 @@ const Store = (() => {
   /* ---------- 语文星系 ---------- */
   function markCnStar(poemId, allOk) {
     if (allOk) state.chinese.stars[poemId] = todayStr();
-    earn(allOk ? 15 : 5);
+    const got = earnScaled('poem', allOk ? 15 : 5);
     checkBadges();
     save();
+    return got;
   }
   function markCnRead(passageId) {
     if (!state.chinese.reads.includes(passageId)) state.chinese.reads.push(passageId);
     save();
+  }
+  /* 阅读训练营一轮结束统一入账（原来每题发一次，改为整轮一次） */
+  function finishCnRead(passageId, correct, total) {
+    const got = earnScaled('cnread', correct * 4 + (correct === total ? 5 : 0));
+    markCnRead(passageId);
+    checkBadges();
+    save();
+    return got;
+  }
+  function finishCnWords(correct) {
+    const got = earnScaled('cnwords', correct * 4);
+    checkBadges();
+    save();
+    return got;
+  }
+  /* 小古文一篇读完（原文+3 题），难度高于普通阅读，单价 5/题 */
+  function finishCnGuwen(passageId, correct, total) {
+    if (!state.chinese.guwen.includes(passageId)) state.chinese.guwen.push(passageId);
+    const got = earnScaled('guwen', correct * 5 + (correct === total ? 5 : 0));
+    checkBadges();
+    save();
+    return got;
+  }
+  /* 词族拼读一轮结束 */
+  function markPhonicsRound(correct, total) {
+    if (!state.phonics) state.phonics = { rounds: 0 };
+    state.phonics.rounds = (state.phonics.rounds || 0) + 1;
+    const got = earnScaled('phonics', correct * 5 + (correct === total ? 5 : 0));
+    checkBadges();
+    save();
+    return got;
   }
   function addCnWrong(q) {
     const w = state.chinese.wrong;
@@ -406,8 +515,10 @@ const Store = (() => {
   }
   function finishMathRun(correct, seconds, wrongList) {
     ensureToday();
-    const coinsGain = correct * 1 + (correct >= 15 ? 10 : correct >= 8 ? 5 : 0);
-    earn(coinsGain);
+    /* 难度加成：挑战档（两步混合）金币 ×1.5；首刷全额、重刷递减 */
+    const lv = state.math.level || 2;
+    const base = correct * 1 + (correct >= 15 ? 10 : correct >= 8 ? 5 : 0);
+    const coinsGain = earnScaled('sprint', Math.round(base * (lv === 3 ? 1.5 : 1)));
     state.today.mathDone = true;
     const m = state.math;
     const isNewBest = correct > (m.best || 0);
@@ -436,6 +547,95 @@ const Store = (() => {
   }
   function clearPracticeWrong(q) {
     state.math.wrongP = state.math.wrongP.filter(x => x.q !== q);
+    save();
+  }
+  /* 练习场一组结束统一入账（原来每题发一次） */
+  function finishPracticeRun(correct) {
+    const got = earnScaled('practice', correct * 5);
+    save();
+    return got;
+  }
+  /* 次科（科学/道法）一轮结束统一入账 */
+  function finishSubjectRound(id, correct, total) {
+    subjectAddRound(id);
+    const got = earnScaled(id, correct * 4 + (correct === total ? 5 : 0));
+    save();
+    return got;
+  }
+  /* 数学思维挑战一组结束 */
+  function finishThinkRun(correct, total) {
+    ensureToday();
+    const got = earnScaled('think', correct * 8 + (correct === total ? 10 : 0));
+    state.stats.thinkDone = (state.stats.thinkDone || 0) + 1;
+    checkBadges();
+    save();
+    return got;
+  }
+
+  /* ---------- 机器伙伴装扮（长期金币出口） ---------- */
+  function outfitState() {
+    if (!state.pet.outfits) state.pet.outfits = { owned: [], worn: {} };
+    return state.pet.outfits;
+  }
+  function buyOutfit(id) {
+    const item = PET_OUTFITS.find(o => o.id === id);
+    if (!item) return { ok: false, msg: '没有这个装扮' };
+    const o = outfitState();
+    if (o.owned.includes(id)) return { ok: false, msg: '已经拥有啦' };
+    if (state.coins < item.price) return { ok: false, msg: '金币还不够' };
+    state.coins -= item.price;
+    o.owned.push(id);
+    checkBadges();
+    save();
+    return { ok: true, item };
+  }
+  function wearOutfit(cat, id) {
+    const o = outfitState();
+    if (id) {
+      if (!o.owned.includes(id)) return;
+      o.worn[cat] = id;
+    } else delete o.worn[cat];
+    save();
+  }
+  /* ---------- 神秘星盒（每天限 2 个，概率掉落装扮/金币） ---------- */
+  function openStarBox() {
+    if ((state.today.boxOpened || 0) >= 2) return { ok: false, msg: '今天已经开过 2 个星盒啦，明天再来！' };
+    if (!spend(STAR_BOX_COST)) return { ok: false, msg: '金币还不够' };
+    ensureToday();
+    state.today.boxOpened = (state.today.boxOpened || 0) + 1;
+    state.stats.boxesOpened = (state.stats.boxesOpened || 0) + 1;
+    const o = outfitState();
+    const unowned = tier => PET_OUTFITS.filter(x => (tier === 'gold' ? !!x.gold : !x.gold) && !o.owned.includes(x.id));
+    const roll = Math.random();
+    let drop;
+    const anyLeft = unowned('normal').length || unowned('gold').length;
+    if (!anyLeft || roll < 0.55) {
+      const c = Math.floor(Math.random() * 36) + 5;
+      earn(c, { ignoreCap: true });
+      drop = { kind: 'coins', n: c };
+    } else {
+      const tier = roll < 0.85 ? 'normal' : 'gold';
+      let pool = unowned(tier);
+      if (!pool.length) pool = unowned(tier === 'gold' ? 'normal' : 'gold');
+      if (pool.length) {
+        const item = pool[Math.floor(Math.random() * pool.length)];
+        o.owned.push(item.id);
+        drop = { kind: 'outfit', item };
+      } else {
+        earn(40, { ignoreCap: true });
+        drop = { kind: 'coins', n: 40 };
+      }
+    }
+    checkBadges();
+    save();
+    return { ok: true, drop };
+  }
+  /* ---------- 英语每日短文 ---------- */
+  function markEnRead(pid) {
+    if (!state.enRead) state.enRead = { reads: [] };
+    if (!state.enRead.reads.includes(pid)) state.enRead.reads.push(pid);
+    state.today.enReadDone = true;
+    checkBadges();
     save();
   }
 
@@ -539,7 +739,14 @@ const Store = (() => {
     save();
   }
   function resetProgress() {
-    const keep = { settings: state.settings, pet: { name: state.pet.name, fed: 0 }, custom: state.custom };
+    /* 只清学习记录（图鉴/连击/错题/成长数据），保留设置、词库、金币、兑换商店和宠物装扮 */
+    const keep = {
+      settings: state.settings,
+      pet: { name: state.pet.name, fed: 0, outfits: state.pet.outfits || { owned: [], worn: {} } },
+      custom: state.custom,
+      coins: state.coins,
+      shop: state.shop
+    };
     state = Object.assign(freshState(), keep);
     save();
   }
@@ -599,13 +806,16 @@ const Store = (() => {
     allPacks, activePacks, isActive, findWord, newPool, dueList,
     masterWord, reviewWord, addMinutes, completeQuest,
     isWeak, weakList, addCoins,
-    rankInfo, checkRank, learnedCount, bossInfo, bossComplete,
+    earnScaled, spend,
+    rankInfo, checkRank, learnedCount, bossInfo, bossComplete, bossHurtReward,
     addMistake, markEnglishDone, checkBadges, popPendingBadge, noteDictation, markDrillDone, markSpoken,
     addMathWrong, clearMathWrong, finishMathRun, setMath, addPracticeWrong, clearPracticeWrong,
-    markCnStar, markCnRead, addCnWrong,
+    finishPracticeRun, finishSubjectRound, finishThinkRun,
+    markCnStar, markCnRead, addCnWrong, finishCnRead, finishCnWords, finishCnGuwen, markPhonicsRound,
     subjectWeek, subjectAddRound, subjectMarkDone, subjectWrong, subjectAddWrong, subjectClearWrong,
     addShopReward, removeShopReward, redeemReward, approveRedeem, rejectRedeem, tomorrowDueCount,
     petStage, feedPet, setSetting,
+    buyOutfit, wearOutfit, openStarBox, markEnRead,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,
     isFirstRun, markGreeted, FEED_COST
