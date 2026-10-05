@@ -89,6 +89,7 @@
   /* 拼图块 / 数字键盘 */
   --tile-bg: linear-gradient(180deg, #33406b, #222c4e);
   --tile-edge: #131a30;
+  --tile-text: #eaf2ff;
 
   /* 时间条 / 计时 */
   --time-grad: linear-gradient(90deg, #58e08a, #ffd166);
@@ -172,6 +173,7 @@
 
   --tile-bg: linear-gradient(180deg, #ffffff, #e3ecfa);
   --tile-edge: #b9cbe6;
+  --tile-text: #24406e;
 
   --time-grad: linear-gradient(90deg, #1fa05c, #ffd166);
 
@@ -362,7 +364,7 @@ body {
   background: var(--tile-bg);
   border: 1px solid var(--line-3);
   box-shadow: 0 4px 0 var(--tile-edge);
-  color: var(--text-on-accent); font-size: 26px; font-weight: 900; font-family: inherit;
+  color: var(--tile-text); font-size: 26px; font-weight: 900; font-family: inherit;
   cursor: pointer; transition: transform .08s;
 }
 .tile:active { transform: translateY(3px); }
@@ -662,10 +664,8 @@ select.input.num { width: auto; min-width: 130px; }
   font-size: 13px; line-height: 1.6; color: var(--gold-soft-text); margin-bottom: 12px;
 }
 
-/* ---------- 词块排序（词组） ---------- */
-.slot.chunk { width: auto; min-width: 56px; padding: 0 12px; font-size: 17px; line-height: 48px; }
-.tile.chunk { width: auto; min-width: 60px; padding: 0 14px; font-size: 15px; }
-.chunk-slots { row-gap: 8px; }
+/* ---------- 词组拼写（全字母） ---------- */
+.slot-gap { width: 12px; flex: none; }
 .intro-word.phrase { font-size: 30px; letter-spacing: 1px; }
 
 /* ---------- 跟读舱 ---------- */
@@ -720,7 +720,7 @@ select.input.num { width: auto; min-width: 130px; }
   font-size: 24px; font-weight: 900; padding: 14px 0;
   border-radius: 14px; background: var(--tile-bg);
   border: 1px solid var(--line-3); box-shadow: 0 4px 0 var(--tile-edge);
-  color: var(--text-on-accent); cursor: pointer; font-family: inherit;
+  color: var(--tile-text); cursor: pointer; font-family: inherit;
 }
 .drill-key:active { transform: translateY(3px); box-shadow: none; }
 .drill-key.wide { grid-column: span 2; }
@@ -862,16 +862,61 @@ select.input.num { width: auto; min-width: 130px; }
 @keyframes popIn { from { transform: scale(.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* ---------- v17-2：数独 / 小古文 ---------- */
-.sdk-grid { display: grid; gap: 4px; background: var(--line-2); padding: 5px; border-radius: 12px; width: fit-content; margin: 12px auto 4px; }
+/* 结构：外框 sdk-grid → 每宫一个粗框 sdk-box → 单元格；粗框把宫的区域圈清楚 */
+.sdk-grid { display: grid; gap: 5px; background: var(--line-2); padding: 5px; border-radius: 12px; width: fit-content; margin: 12px auto 4px; border: 2px solid var(--line-4); }
+.sdk-box { display: grid; gap: 2px; background: var(--fill-2); border: 3px solid var(--line-4); border-radius: 9px; padding: 2px; }
+.sdk-box.alt { background: var(--accent-fill-dim); }
 .sdk-cell {
-  width: 52px; height: 52px; border: none; border-radius: 8px;
-  background: var(--fill-2); font-size: 23px; font-weight: 900;
+  width: var(--sdk-cell, 52px); height: var(--sdk-cell, 52px); border: none; border-radius: 6px;
+  background: var(--fill-3); font-size: var(--sdk-font, 23px); font-weight: 900;
   color: var(--text-hi); font-family: inherit; cursor: pointer; padding: 0;
 }
-.sdk-cell.alt { background: var(--accent-fill); }
+/* 九宫格：整盘撑满卡片宽度，格子自动缩放不溢出 */
+.sdk-grid.flex { width: 100%; }
+.sdk-grid.flex .sdk-box { grid-template-columns: repeat(3, minmax(0, 1fr)); min-width: 0; }
+.sdk-grid.flex .sdk-cell { width: 100%; height: auto; min-width: 0; aspect-ratio: 1; font-size: 16px; }
+.drill-card.sdk-wide { padding-left: 8px; padding-right: 8px; }
 .sdk-cell.given { color: var(--text-low); cursor: default; opacity: .75; }
 .sdk-cell.sel { outline: 3px solid var(--accent); outline-offset: -1px; }
 .sdk-cell.bad { color: var(--red); box-shadow: inset 0 0 0 2px var(--red-line); }
 .sdk-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; max-width: 280px; margin-left: auto; margin-right: auto; }
 .sdk-pad .drill-key { font-size: 22px; }
 .gw-text { font-size: 19px; line-height: 2.1; text-align: left; color: var(--text-hi); margin: 10px 2px; letter-spacing: .5px; }
+
+/* ---------- v21：待兑现横幅 / 阅读解析 / 护盾兑换 ---------- */
+.pending-banner {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  text-align: left; cursor: pointer; font-family: inherit; margin-bottom: 12px;
+  background: var(--gold-fill); border: 2px solid var(--gold-line);
+  box-shadow: 0 6px 18px var(--gold-glow);
+  animation: pb-pulse 1.8s ease-in-out infinite;
+}
+.pending-banner .pb-emoji { font-size: 32px; }
+.pending-banner .pb-text { display: flex; flex-direction: column; gap: 2px; }
+.pending-banner b { font-size: 15px; color: var(--gold-soft-text); }
+@keyframes pb-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.015); } }
+
+.read-analysis {
+  margin-top: 14px; text-align: left;
+  background: var(--fill-1); border: 1px solid var(--line-1);
+  border-radius: 14px; padding: 12px 14px;
+}
+.analysis-tag { font-weight: 800; color: var(--accent-text); font-size: 14px; letter-spacing: 1px; margin-bottom: 6px; }
+.analysis-zh { font-size: 15px; line-height: 2; color: var(--text-mid); text-align: left; }
+.note-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--line-1); }
+.note-row:last-child { border-bottom: none; }
+.note-row .speak-btn { flex: none; }
+.note-w { font-weight: 800; color: var(--text-hi); font-size: 15px; }
+.note-zh { color: var(--text-low); font-size: 13px; }
+
+/* ---------- v23：诗词学习页 ---------- */
+.poem-line { padding: 2px 0; border-radius: 8px; cursor: pointer; }
+.poem-line:active { background: var(--accent-fill); }
+
+/* ---------- v26：每日一星知识卡 ---------- */
+.junior-card { border: 1px solid var(--accent-line); }
+.junior-badge { display: inline-block; padding: 3px 12px; border-radius: 999px; background: var(--accent-fill); border: 1px solid var(--accent-line); color: var(--accent-text); font-size: 12px; font-weight: 800; letter-spacing: .5px; }
+.junior-title { font-size: 18px; font-weight: 900; margin: 10px 0 6px; color: var(--text-hi); }
+.junior-body { font-size: 15px; line-height: 1.9; color: var(--text-mid); }
+.junior-row { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; font-size: 13.5px; line-height: 1.8; color: var(--text-low); }
+.junior-row .jr-k { flex: none; }

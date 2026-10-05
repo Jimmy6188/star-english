@@ -207,7 +207,7 @@ const Quest = {
     }
   },
 
-  /* 复习题型按熟练度（Leitner 盒子）分级，越熟越难；词组走词块排序 */
+  /* 复习题型按熟练度（Leitner 盒子）分级，越熟越难；词组同样走全字母拼写 */
   pickReviewMode(item) {
     if (item.mode) return item.mode;
     const w = Store.findWord(item.id);
@@ -215,14 +215,13 @@ const Quest = {
     const box = rec ? rec.box : 1;
     const isPhrase = !!(w && w.phrase);
     if (this.bossMode) {
-      /* BOSS 只考主动输出：词组=听写词块排序；单词=听写拼写 或 句子填空拼写（无中文、无选项） */
-      if (isPhrase) return 'orderHard';
-      return Math.random() < 0.4 && this.canClozeSpell(w) ? 'clozeSpell' : 'spellHard';
+      /* BOSS 只考主动输出：单词=听写拼写 或 句子填空拼写（无中文、无选项）；词组=全字母拼写 */
+      return !isPhrase && Math.random() < 0.4 && this.canClozeSpell(w) ? 'clozeSpell' : 'spellHard';
     }
-    if (this.drillMode) return isPhrase ? 'order' : 'spell';
+    if (this.drillMode) return 'spell';
     if (isPhrase) {
-      if (box >= 4) return 'orderHard';
-      if (box >= 3) return 'order';
+      if (box >= 4) return 'spellHard';
+      if (box === 3) return 'spell';
       if (box === 2) return Math.random() < 0.6 ? 'wordPick' : 'listen';
       return 'listen';
     }
@@ -246,8 +245,6 @@ const Quest = {
     else if (mode === 'clozeSpell') this.renderSpelling(w, false, { hardMode: true, decoys: true, cloze: true });
     else if (mode === 'spellDecoy') this.renderSpelling(w, false, { decoys: true });
     else if (mode === 'spell') this.renderSpelling(w, false);
-    else if (mode === 'orderHard') this.renderWordOrder(w, { hardMode: true });
-    else if (mode === 'order') this.renderWordOrder(w, {});
     else if (mode === 'cloze') this.renderCloze(w);
     else if (mode === 'wordPick') this.renderWordPick(w);
     else this.renderListening(w);
@@ -312,8 +309,8 @@ const Quest = {
       buildSpeakPanel(w),
       h('button', {
         class: 'btn btn-main big',
-        onclick: () => { Sound.tap(); w.phrase ? this.renderWordOrder(w, { isNew: true }) : this.renderSpelling(w, true); }
-      }, w.phrase ? '进入组装舱 →' : '进入拼写舱 →')
+        onclick: () => { Sound.tap(); this.renderSpelling(w, true); }
+      }, '进入拼写舱 →')
     );
     root.appendChild(card);
     setTimeout(() => Sound.speak(w.word), 400);
@@ -326,12 +323,15 @@ const Quest = {
     const root = this.qroot();
     root.innerHTML = '';
     root.appendChild(this.progressHeader());
+    const isPhrase = !!w.phrase;
     const target = w.word.toLowerCase();
+    /* 词组也按字母拼：空格不进字母序列，槽位按单词分组、词间留空隙 */
+    const seq = isPhrase ? target.replace(/ /g, '') : target;
     let answer = [];
     let hints = 0, wrongs = 0;
 
-    /* 句子填空拼写：从例句挖出目标词，靠语境拼词 */
-    const useCloze = !!opts.cloze && this.canClozeSpell(w);
+    /* 句子填空拼写（仅单词）：从例句挖出目标词，靠语境拼词 */
+    const useCloze = !isPhrase && !!opts.cloze && this.canClozeSpell(w);
     let clozeBefore = '', clozeAfter = '', spokenText = w.word;
     if (useCloze) {
       const m = w.ex.match(this.clozeRe(w));
@@ -345,7 +345,7 @@ const Quest = {
     const ghostEl = h('div', { class: 'ghost-word', style: 'visibility:hidden' }, target);
 
     const slotEls = [];
-    for (let i = 0; i < target.length; i++) {
+    const mkSlot = () => {
       const s = h('span', {
         class: 'slot', onclick: () => {
           if (!answer.length) return;
@@ -357,6 +357,14 @@ const Quest = {
       });
       slotEls.push(s);
       slotsEl.appendChild(s);
+    };
+    if (isPhrase) {
+      target.split(' ').forEach((word, wi) => {
+        if (wi > 0) slotsEl.appendChild(h('span', { class: 'slot-gap' }));
+        for (let i = 0; i < word.length; i++) mkSlot();
+      });
+    } else {
+      for (let i = 0; i < target.length; i++) mkSlot();
     }
 
     function refresh() {
@@ -366,32 +374,32 @@ const Quest = {
       });
     }
 
-    let letters = target.split('');
-    if (opts.decoys && target.length >= 4) {
-      const pool = 'abcdefghilmnoprstuw'.split('').filter(c => !target.includes(c));
+    let letters = seq.split('');
+    if (opts.decoys && seq.length >= 4) {
+      const pool = 'abcdefghilmnoprstuw'.split('').filter(c => !seq.includes(c));
       letters = letters.concat(shuffle(pool).slice(0, 2));
     }
     shuffle(letters).forEach(ch => {
       const t = h('button', {
         class: 'tile', onclick: () => {
-          if (t.classList.contains('used') || answer.length >= target.length) return;
+          if (t.classList.contains('used') || answer.length >= seq.length) return;
           t.classList.add('used');
           answer.push({ ch, tile: t });
           Sound.tap();
           Sound.speak(ch, 1.1); // 字母点读：放一个字母听一个字母音
           refresh();
-          if (answer.length === target.length) setTimeout(check, 250);
+          if (answer.length === seq.length) setTimeout(check, 250);
         }
       }, ch);
       tilesEl.appendChild(t);
     });
 
     function doHint() {
-      if (answer.length >= target.length) return;
+      if (answer.length >= seq.length) return;
       /* 提示直接花金币（复习和新词统一），金币不够时不可用 */
       if (!Store.spend(HINT_COST)) { toast('金币不够啦，提示需要 2 🪙'); return; }
       updateTop();
-      const needCh = target[answer.length];
+      const needCh = seq[answer.length];
       let tile = Array.from(tilesEl.children).find(t => !t.classList.contains('used') && t.textContent === needCh);
       while (!tile && answer.length) { // 需要的字母被误放在前面时，先释放最前面的字母
         const first = answer.shift();
@@ -404,19 +412,21 @@ const Quest = {
       hints++;
       Sound.tap();
       refresh();
-      if (answer.length === target.length) setTimeout(check, 250);
+      if (answer.length === seq.length) setTimeout(check, 250);
     }
 
     const self = this;
     function check() {
       const guess = answer.map(a => a.ch).join('');
-      if (guess === target) {
+      if (guess === seq) {
         self.success(w, isNew, hints, wrongs);
       } else {
         wrongs++;
         if (self.bossMode) self.bossWrong++;
         Store.addMistake();
         Sound.wrong();
+        /* 拼错一次后才亮出"拼读一下"，避免字母点读提前泄露答案 */
+        if (spellBtn) spellBtn.style.display = '';
         if (self.bossMode && wrongs >= 2) {
           /* BOSS：本题失守，不亮答案硬扛；词记入错题本，看一眼正确拼写后继续 */
           Store.reviewWord(target, false);
@@ -432,21 +442,28 @@ const Quest = {
       }
     }
 
+    /* 新词刚在上一屏教过，拼读按钮直接可用；复习/听写挑战先藏起来，拼错后再出现 */
+    const spellBtn = h('button', {
+      class: 'btn', style: isNew ? '' : 'display:none',
+      onclick: () => Sound.speak(w.word.split('').join(', ') + '. ' + w.word, 0.7)
+    }, '🔤 拼读一下');
+
     root.appendChild(h('div', { class: 'card spell-card' },
       h('div', { class: 'spell-prompt' },
         useCloze ? '📖 读句子，把缺的词拼出来！'
-          : (isNew ? '把新单词拼出来！' : (opts.hardMode ? '⚡ 听写挑战：听发音拼写' : '复习：拼出这个单词'))),
+          : (isNew ? (isPhrase ? '把词组的字母拼出来！' : '把新单词拼出来！')
+            : (opts.hardMode ? '⚡ 听写挑战：听发音拼写' : (isPhrase ? '复习：拼出这个词组' : '复习：拼出这个单词')))),
       opts.hardMode ? '' : h('div', { class: 'spell-zh' }, w.zh),
       useCloze ? h('div', { class: 'cloze-line' }, clozeBefore, h('span', { class: 'cloze-blank' }, '＿＿＿＿'), clozeAfter) : '',
       h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(spokenText) }, '🔊'),
       h('div', { class: 'tiny' },
         useCloze ? '🔊 可重听整句（缺的词会读成 something）· 不给中文，靠句子猜词'
-          : (opts.decoys ? '小心！字母块里有捣蛋鬼' : '听发音，从下面选出字母')),
+          : (opts.decoys ? '小心！字母块里有捣蛋鬼' : (isPhrase ? '听发音，把词组的每个字母按顺序放好' : '听发音，从下面选出字母'))),
       slotsEl,
       ghostEl,
       tilesEl,
       this.bossMode ? '' : h('div', { class: 'row-gap center' },
-        h('button', { class: 'btn', onclick: () => Sound.speak(w.word.split('').join(', ') + '. ' + w.word, 0.7) }, '🔤 拼读一下'),
+        spellBtn,
         h('button', { class: 'btn', onclick: doHint }, '💡 提示一下 (-2🪙)')
       )
     ));
@@ -465,118 +482,6 @@ const Quest = {
       h('div', { class: 'tiny', style: 'margin-top:8px' }, '💥 这一题失守！正确拼写记住了吗？词已收进错题本')
     ));
     setTimeout(() => { this.idx++; this.next(); }, 2000);
-  },
-
-  /* ---------- 词组排序挑战（词块组装） ---------- */
-  /* opts: hardMode=听写挑战(隐藏中文) isNew=新词首次（计入图鉴与金币） */
-  renderWordOrder(w, opts = {}) {
-    const root = this.qroot();
-    root.innerHTML = '';
-    root.appendChild(this.progressHeader());
-    const target = w.word.toLowerCase();
-    const chunks = w.word.split(' ');
-    let answer = [];
-    let hints = 0, wrongs = 0;
-
-    const slotsEl = h('div', { class: 'slots chunk-slots' });
-    const tilesEl = h('div', { class: 'tiles' });
-    const ghostEl = h('div', { class: 'ghost-word', style: 'visibility:hidden' }, w.word);
-
-    const slotEls = chunks.map(() => {
-      const s = h('span', {
-        class: 'slot chunk',
-        onclick: () => {
-          if (!answer.length) return;
-          const last = answer.pop();
-          last.tile.classList.remove('used');
-          Sound.tap();
-          refresh();
-        }
-      });
-      slotsEl.appendChild(s);
-      return s;
-    });
-
-    function refresh() {
-      slotEls.forEach((s, i) => {
-        s.textContent = answer[i] ? answer[i].ch : '';
-        s.classList.toggle('filled', !!answer[i]);
-      });
-    }
-
-    shuffle(chunks.slice()).forEach(ch => {
-      const t = h('button', {
-        class: 'tile chunk', onclick: () => {
-          if (t.classList.contains('used') || answer.length >= chunks.length) return;
-          t.classList.add('used');
-          answer.push({ ch, tile: t });
-          Sound.tap();
-          refresh();
-          if (answer.length === chunks.length) setTimeout(check, 250);
-        }
-      }, ch);
-      tilesEl.appendChild(t);
-    });
-
-    function doHint() {
-      if (answer.length >= chunks.length) return;
-      /* 提示直接花金币（复习和新词统一），金币不够时不可用 */
-      if (!Store.spend(HINT_COST)) { toast('金币不够啦，提示需要 2 🪙'); return; }
-      updateTop();
-      const need = chunks[answer.length].toLowerCase();
-      let tile = Array.from(tilesEl.children).find(t => !t.classList.contains('used') && t.textContent.toLowerCase() === need);
-      while (!tile && answer.length) {
-        const first = answer.shift();
-        first.tile.classList.remove('used');
-        tile = Array.from(tilesEl.children).find(t => !t.classList.contains('used') && t.textContent.toLowerCase() === need);
-      }
-      if (!tile) return;
-      tile.classList.add('used');
-      answer.push({ ch: tile.textContent, tile });
-      hints++;
-      Sound.tap();
-      refresh();
-      if (answer.length === chunks.length) setTimeout(check, 250);
-    }
-
-    const self = this;
-    function check() {
-      const guess = answer.map(a => a.ch.toLowerCase()).join(' ');
-      if (guess === target) {
-        self.success(w, !!opts.isNew, hints, wrongs);
-      } else {
-        wrongs++;
-        if (self.bossMode) self.bossWrong++;
-        Store.addMistake();
-        Sound.wrong();
-        if (self.bossMode && wrongs >= 2) {
-          /* BOSS：本题失守，词记入错题本后继续 */
-          Store.reviewWord(target, false);
-          self.bossFail(w);
-          return;
-        }
-        slotsEl.classList.add('shake');
-        setTimeout(() => slotsEl.classList.remove('shake'), 450);
-        answer = [];
-        Array.from(tilesEl.children).forEach(t => t.classList.remove('used'));
-        refresh();
-        if (wrongs >= 2) ghostEl.style.visibility = 'visible';
-      }
-    }
-
-    root.appendChild(h('div', { class: 'card spell-card' },
-      h('div', { class: 'spell-prompt' }, opts.hardMode ? '⚡ 听写挑战：按顺序排出词组' : '把词组排出来！'),
-      opts.hardMode ? '' : h('div', { class: 'spell-zh' }, w.zh),
-      h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(w.word) }, '🔊'),
-      h('div', { class: 'tiny' }, '按顺序点击下面的单词块'),
-      slotsEl,
-      ghostEl,
-      tilesEl,
-      this.bossMode ? '' : h('div', { class: 'row-gap center' },
-        h('button', { class: 'btn', onclick: doHint }, '💡 提示一下 (-2🪙)')
-      )
-    ));
-    setTimeout(() => Sound.speak(w.word), 350);
   },
 
   /* ---------- 听音选图 ---------- */

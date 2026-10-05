@@ -574,13 +574,22 @@ const WORD_FAMILIES = [
 /* ============================================================
  * 英语每日小短文（拔高加餐，不占每日任务）
  * 一天推荐一篇；r01~r06 同步四上教材话题，r07 起为五/六年级水平
- * 每篇 2 道判断（T/F）+ 2 道选词填空，全英文作答；gloss 为难词中文注释
+ * 每篇 2 道判断（T/F）+ 2 道选词填空，全英文作答；gloss 为难词中文注释；
+ * zh 为全文中文翻译、notes 为重点词汇词组解析（答完题在结算页展示）
  * ============================================================ */
 const ENGLISH_READINGS = [
   {
     id: 'r01', title: 'A Happy Sunday', emoji: '🌅', level: '四上同步',
     text: 'Tom gets up at seven. He feeds his dog Lucky and waters the flowers. Then he helps Mum wash the dishes. Mum says, "Good job!" After that, he rides his bike to the park with his friend Amy.',
     gloss: 'waters 浇水 · rides 骑',
+    zh: '汤姆七点起床。他给小狗乐奇喂食，还浇了花。然后他帮妈妈洗碗。妈妈说："干得好！"之后，他和朋友艾米一起骑自行车去公园。',
+    notes: [
+      { w: 'feeds his dog', zh: '喂他的狗（feed 喂养）' },
+      { w: 'waters the flowers', zh: '浇花（water 也能作动词：浇水）' },
+      { w: 'helps Mum wash the dishes', zh: '帮妈妈洗碗（help sb. do sth. 帮某人做某事）' },
+      { w: 'Good job!', zh: '干得好！' },
+      { w: 'rides his bike', zh: '骑自行车' }
+    ],
     qs: [
       { kind: 'judge', q: 'Tom gets up at seven.', ans: true },
       { kind: 'judge', q: 'Tom goes to school today.', ans: false },
@@ -592,6 +601,14 @@ const ENGLISH_READINGS = [
     id: 'r02', title: 'Sports Day', emoji: '⚽', level: '四上同步',
     text: 'Today is Sports Day at school. Mike can jump very high. Lily runs fast, but she doesn\'t want to lose. "Try your best!" says the teacher. At last, Lily is the star player. Everyone is happy for her.',
     gloss: 'At last 最后',
+    zh: '今天是学校的运动会。迈克能跳得很高。莉莉跑得很快，但她不想输。"尽力去拼！"老师说。最后，莉莉成了明星选手。大家都为她高兴。',
+    notes: [
+      { w: 'jump very high', zh: '跳得很高' },
+      { w: 'lose', zh: '输；失败（赢是 win）' },
+      { w: 'Try your best!', zh: '尽你最大的努力！' },
+      { w: 'At last', zh: '最后；终于' },
+      { w: 'star player', zh: '明星选手' }
+    ],
     qs: [
       { kind: 'judge', q: 'Mike can jump very high.', ans: true },
       { kind: 'judge', q: 'Lily wants to lose the game.', ans: false },
@@ -603,6 +620,14 @@ const ENGLISH_READINGS = [
     id: 'r03', title: 'The Weather Diary', emoji: '⛅', level: '四上同步',
     text: 'Amy keeps a weather diary. On Monday it is sunny. On Tuesday it is rainy, so she stays at home. On Wednesday the wind blows hard. She flies a kite with Dad on Thursday, because it is cool and cloudy that day.',
     gloss: 'stays 待在 · blows 吹',
+    zh: '艾米记天气日记。星期一是晴天。星期二下雨，所以她待在家里。星期三风刮得很大。星期四她和爸爸去放风筝，因为那天凉爽又多云。',
+    notes: [
+      { w: 'keeps a diary', zh: '记日记' },
+      { w: 'rainy', zh: '下雨的（rain + y）' },
+      { w: 'stays at home', zh: '待在家里' },
+      { w: 'the wind blows hard', zh: '风刮得很大' },
+      { w: 'flies a kite', zh: '放风筝' }
+    ],
     qs: [
       { kind: 'judge', q: 'It is sunny on Monday.', ans: true },
       { kind: 'judge', q: 'Amy flies a kite on Wednesday.', ans: false },
@@ -614,6 +639,14 @@ const ENGLISH_READINGS = [
     id: 'r04', title: 'Four Seasons', emoji: '🍂', level: '四上同步',
     text: 'There are four seasons in a year. In spring, flowers come out and birds fly back. In summer, I can swim in the sea. Autumn is cool, and the leaves fall. In winter, it often snows. My favourite season is summer, because I can eat ice cream every day!',
     gloss: 'come out 开放 · leaves 叶子',
+    zh: '一年有四个季节。春天，花儿开放，鸟儿飞回来。夏天，我可以在海里游泳。秋天很凉爽，树叶飘落。冬天经常下雪。我最喜欢的季节是夏天，因为我每天都能吃冰淇淋！',
+    notes: [
+      { w: 'seasons', zh: '季节' },
+      { w: 'come out', zh: '（花儿）开放' },
+      { w: 'leaves', zh: '叶子（leaf 的复数）' },
+      { w: 'fall', zh: '落下（美式"秋天"也叫 fall）' },
+      { w: 'favourite', zh: '最喜欢的' }
+    ],
     qs: [
       { kind: 'judge', q: 'The writer can swim in summer.', ans: true },
       { kind: 'judge', q: 'Winter is the writer\'s favourite season.', ans: false },
@@ -625,6 +658,14 @@ const ENGLISH_READINGS = [
     id: 'r05', title: 'A Trip to the City', emoji: '🚌', level: '四上同步',
     text: 'Tomorrow my family will go to the city. We go there by train, because the train is fast. First, we visit the museum. Then we have a picnic in the park near the river. I can\'t wait. It will be a great trip!',
     gloss: 'will 将要 · can\'t wait 等不及',
+    zh: '明天我们全家要去城里。我们坐火车去，因为火车很快。首先，我们参观博物馆。然后我们在河边公园野餐。我等不及了。这将是一次很棒的旅行！',
+    notes: [
+      { w: 'by train', zh: '坐火车（by + 交通工具）' },
+      { w: 'First ... Then ...', zh: '首先……然后……' },
+      { w: 'visit the museum', zh: '参观博物馆' },
+      { w: 'have a picnic', zh: '野餐' },
+      { w: 'can\'t wait', zh: '等不及了' }
+    ],
     qs: [
       { kind: 'judge', q: 'They go to the city by bus.', ans: false },
       { kind: 'judge', q: 'They visit the museum first.', ans: true },
@@ -636,6 +677,14 @@ const ENGLISH_READINGS = [
     id: 'r06', title: 'Finding the Library', emoji: '🗺️', level: '四上同步',
     text: 'A woman asks Tom the way. "Go straight on, then turn left at the supermarket. The library is next to the cinema," says Tom. "Thank you very much!" The woman is happy. Tom likes to help people. He is a helpful boy.',
     gloss: 'asks the way 问路 · next to 紧挨着',
+    zh: '一位女士向汤姆问路。"直走，然后在超市左转。图书馆紧挨着电影院，"汤姆说。"非常感谢！"这位女士很开心。汤姆喜欢帮助别人。他是个乐于助人的男孩。',
+    notes: [
+      { w: 'asks the way', zh: '问路' },
+      { w: 'Go straight on', zh: '直走' },
+      { w: 'turn left', zh: '左转（右转是 turn right）' },
+      { w: 'next to', zh: '紧挨着' },
+      { w: 'helpful', zh: '乐于助人的（help + ful）' }
+    ],
     qs: [
       { kind: 'judge', q: 'The woman asks Tom the way.', ans: true },
       { kind: 'judge', q: 'Tom says to turn right at the supermarket.', ans: false },
@@ -647,6 +696,14 @@ const ENGLISH_READINGS = [
     id: 'r07', title: 'My Pet Hamster', emoji: '🐹', level: '五年级',
     text: 'I have a small pet hamster. His name is Coco. He is brown and white. Coco likes to run in his wheel at night. Every day I feed him nuts and vegetables. He carries food in his cheeks! Hamsters are clean and quiet, so they are good pets for children.',
     gloss: 'hamster 仓鼠 · cheeks 脸颊 · nuts 坚果',
+    zh: '我有一只小仓鼠宠物。它的名字叫可可。它是棕色和白色的。可可喜欢晚上在滚轮里跑步。我每天喂它坚果和蔬菜。它把食物藏在脸颊里！仓鼠干净又安静，所以它们是适合孩子的好宠物。',
+    notes: [
+      { w: 'hamster', zh: '仓鼠' },
+      { w: 'wheel', zh: '轮子；滚轮' },
+      { w: 'feed him nuts', zh: '喂它坚果' },
+      { w: 'cheeks', zh: '脸颊' },
+      { w: 'quiet', zh: '安静的' }
+    ],
     qs: [
       { kind: 'judge', q: 'Coco is brown and white.', ans: true },
       { kind: 'judge', q: 'Coco runs in his wheel in the morning.', ans: false },
@@ -658,6 +715,14 @@ const ENGLISH_READINGS = [
     id: 'r08', title: 'A Birthday Party', emoji: '🎂', level: '五年级',
     text: 'Last Saturday was Kate\'s birthday. She had a party in her garden. Mum made a big cake with ten candles. We sang songs and danced. Kate\'s uncle gave her a camera. There were balloons everywhere. It was a delicious cake and a wonderful party!',
     gloss: 'made 做（make 过去式） · gave 给（give 过去式）',
+    zh: '上周六是凯特的生日。她在花园里办了一场派对。妈妈做了一个插着十根蜡烛的大蛋糕。我们唱歌跳舞。凯特的叔叔送给她一台相机。到处都是气球。蛋糕很好吃，派对很棒！',
+    notes: [
+      { w: 'Last Saturday', zh: '上周六（last + 时间 = 刚过去的……）' },
+      { w: 'made', zh: '做；制作（make 的过去式）' },
+      { w: 'candles', zh: '蜡烛' },
+      { w: 'gave', zh: '给；送（give 的过去式）' },
+      { w: 'balloons', zh: '气球' }
+    ],
     qs: [
       { kind: 'judge', q: 'Kate\'s party was in the garden.', ans: true },
       { kind: 'judge', q: 'There were five candles on the cake.', ans: false },
@@ -669,6 +734,14 @@ const ENGLISH_READINGS = [
     id: 'r09', title: 'The Magic Magnet', emoji: '🧲', level: '五年级 · 科学',
     text: 'In science class, we did an experiment with a magnet. The magnet can pick up pins and paper clips. But it cannot pick up plastic or wood. Our teacher says magnets have two poles. The same poles push away, and different poles pull together. Science is so interesting!',
     gloss: 'magnet 磁铁 · poles 磁极 · push away 排斥 · pull 吸引',
+    zh: '在科学课上，我们用磁铁做了一个实验。磁铁能吸起大头针和回形针。但它吸不起塑料和木头。老师说磁铁有两个磁极。相同的磁极互相排斥，不同的磁极互相吸引。科学真有趣！',
+    notes: [
+      { w: 'experiment', zh: '实验' },
+      { w: 'magnet', zh: '磁铁' },
+      { w: 'pick up', zh: '捡起；（磁铁）吸起' },
+      { w: 'poles', zh: '磁极；极' },
+      { w: 'push away / pull together', zh: '排斥 / 吸到一起' }
+    ],
     qs: [
       { kind: 'judge', q: 'A magnet can pick up wood.', ans: false },
       { kind: 'judge', q: 'The same poles push away.', ans: true },
@@ -680,6 +753,14 @@ const ENGLISH_READINGS = [
     id: 'r10', title: 'Save Our Earth', emoji: '🌍', level: '六年级',
     text: 'The Earth is our home, but it is getting sick. Cars make the air dirty. Plastic is bad for the sea and the fish. We should walk or ride bikes more. We should recycle paper and bottles. Everyone can do something small. Together we can protect our beautiful Earth.',
     gloss: 'sick 生病的 · recycle 回收 · protect 保护',
+    zh: '地球是我们的家园，但它正在生病。汽车让空气变脏。塑料对海洋和鱼类有害。我们应该多走路、多骑自行车。我们应该回收纸张和瓶子。每个人都能做点小事。齐心协力，我们就能保护美丽的地球。',
+    notes: [
+      { w: 'getting sick', zh: '正在生病（get + 形容词 = 变得……）' },
+      { w: 'make the air dirty', zh: '让空气变脏' },
+      { w: 'be bad for', zh: '对……有害' },
+      { w: 'recycle', zh: '回收利用' },
+      { w: 'protect', zh: '保护' }
+    ],
     qs: [
       { kind: 'judge', q: 'Plastic is good for the fish in the sea.', ans: false },
       { kind: 'judge', q: 'We should walk or ride bikes more.', ans: true },
@@ -691,6 +772,14 @@ const ENGLISH_READINGS = [
     id: 'r11', title: 'A Trip to Space', emoji: '🚀', level: '六年级',
     text: 'Ming dreams of flying to space. In space, there is no gravity, so people float like birds! Astronauts eat special food and sleep in sleeping bags. They do experiments every day. Ming wants to be an astronaut and discover new planets. "Study hard," says Dad, "and your dream will come true."',
     gloss: 'gravity 重力 · float 漂浮 · astronaut 宇航员 · come true 实现',
+    zh: '小明梦想着飞上太空。太空里没有重力，人能像小鸟一样漂浮！宇航员吃特制食品，睡在睡袋里。他们每天做实验。小明想成为宇航员，去发现新的行星。"好好学习，"爸爸说，"你的梦想就会实现。"',
+    notes: [
+      { w: 'dreams of', zh: '梦想着（dream of doing）' },
+      { w: 'gravity', zh: '重力' },
+      { w: 'float', zh: '漂浮' },
+      { w: 'astronaut', zh: '宇航员' },
+      { w: 'come true', zh: '（梦想）实现' }
+    ],
     qs: [
       { kind: 'judge', q: 'People float in space because there is no gravity.', ans: true },
       { kind: 'judge', q: 'Astronauts sleep in soft beds.', ans: false },
@@ -702,6 +791,14 @@ const ENGLISH_READINGS = [
     id: 'r12', title: 'Grandma\'s Dumplings', emoji: '🥟', level: '五年级',
     text: 'On cold winter days, my grandma makes dumplings. She mixes meat and vegetables, then wraps them in thin skins. I help her, but my dumplings look funny! We cook them in hot water. The dumplings taste delicious. In China, people eat dumplings at the Spring Festival for good luck.',
     gloss: 'wraps 包 · skins 皮 · the Spring Festival 春节',
+    zh: '寒冷的冬天，奶奶会包饺子。她把肉和蔬菜拌好，再用薄皮包起来。我帮忙包，但我包的饺子看起来很滑稽！我们把饺子放进热水里煮。饺子尝起来很好吃。在中国，人们春节吃饺子图个好彩头。',
+    notes: [
+      { w: 'makes dumplings', zh: '包饺子' },
+      { w: 'mixes', zh: '搅拌；混合' },
+      { w: 'wraps', zh: '包；裹' },
+      { w: 'taste delicious', zh: '尝起来很美味（taste + 形容词）' },
+      { w: 'for good luck', zh: '图个好彩头' }
+    ],
     qs: [
       { kind: 'judge', q: 'Grandma makes dumplings with meat and vegetables.', ans: true },
       { kind: 'judge', q: 'The writer\'s dumplings look better than grandma\'s.', ans: false },
@@ -713,6 +810,14 @@ const ENGLISH_READINGS = [
     id: 'r13', title: 'The Rainy Weekend', emoji: '🌧️', level: '五年级',
     text: 'It is raining hard, so we stay at home. Dad reads a book about famous people. Mum cleans the kitchen. I draw a picture of my family and listen to music. Later, the rain stops. A rainbow comes out! We put on our coats and go outside to play.',
     gloss: 'raining hard 雨下得很大 · famous 著名的',
+    zh: '雨下得很大，所以我们待在家里。爸爸读一本关于名人的书。妈妈打扫厨房。我画了一张全家福，还听着音乐。后来，雨停了。一道彩虹出来了！我们穿上外套，到外面去玩。',
+    notes: [
+      { w: 'raining hard', zh: '雨下得很大（hard 在这里是"猛烈地"）' },
+      { w: 'famous', zh: '著名的' },
+      { w: 'Later', zh: '后来' },
+      { w: 'comes out', zh: '出来；出现' },
+      { w: 'put on', zh: '穿上（衣服）' }
+    ],
     qs: [
       { kind: 'judge', q: 'The family stays at home because it rains.', ans: true },
       { kind: 'judge', q: 'Dad cleans the kitchen.', ans: false },
@@ -724,6 +829,14 @@ const ENGLISH_READINGS = [
     id: 'r14', title: 'The School Concert', emoji: '🎻', level: '六年级',
     text: 'Our school had a concert last Friday. Lisa played the violin. Her music was beautiful. Tom sang an English song, but he was nervous. "Don\'t be afraid to fail," said Miss Wang. Tom sang loudly at last, and everyone clapped. It was a wonderful evening.',
     gloss: 'violin 小提琴 · nervous 紧张的 · clapped 鼓掌',
+    zh: '上周五，我们学校办了一场音乐会。丽莎拉小提琴。她的音乐很动听。汤姆唱了一首英文歌，但他很紧张。"别怕失败，"王老师说。汤姆最后放声唱了出来，大家都鼓掌。那是一个很棒的夜晚。',
+    notes: [
+      { w: 'played the violin', zh: '拉小提琴（play + the + 乐器）' },
+      { w: 'nervous', zh: '紧张的' },
+      { w: 'Don\'t be afraid to fail', zh: '别怕失败' },
+      { w: 'at last', zh: '最后；终于' },
+      { w: 'clapped', zh: '鼓掌（clap 的过去式）' }
+    ],
     qs: [
       { kind: 'judge', q: 'Lisa played the violin.', ans: true },
       { kind: 'judge', q: 'Tom sang a Chinese song.', ans: false },
@@ -735,13 +848,15 @@ const ENGLISH_READINGS = [
 
 const GOLD_RATE = 0.10;          // 稀有"超新星"贴纸概率
 const COIN_NEW = 10;             // 新词拼对奖励
-const COIN_REVIEW = 5;           // 复习正确奖励
+const COIN_REVIEW = 3;           // 复习正确奖励（v21 收紧：5 → 3）
 const COIN_QUEST_BONUS = 20;     // 完成每日任务奖励
 const COIN_BOSS = 50;            // 周日 BOSS 挑战通关奖励
 const HINT_COST = 2;             // 提示费用（直接花金币）
 const COIN_CHALLENGE_NEW = 5;    // 高年级挑战词新词加成（难度越高越值钱）
 const COIN_CHALLENGE_REVIEW = 2; // 挑战词复习加成
 const STAR_BOX_COST = 80;        // 神秘星盒单价（每天限 2 个）
+const SHIELD_COST = 500;         // 金币兑换连击护盾（v21 新增出口）
+const SHIELD_MAX = 5;            // 护盾持有上限（每周自动补 2 张也在上限内）
 
 /* Leitner 盒子间隔（天） */
 const BOX_INTERVALS = [1, 2, 4, 7, 15];

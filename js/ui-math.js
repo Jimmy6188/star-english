@@ -353,7 +353,7 @@ const MathDrill = {
       h('div', { class: 'quest-prog' }, `${this.idx + 1} / ${this.items.length}`)
     ));
     root.appendChild(h('div', { class: 'card spell-card center' },
-      h('div', { class: 'intro-emoji', style: ok ? '' : 'filter:grayscale(1) opacity(.55)' }, item.kind === 'app' ? '📖' : '✖️'),
+      h('div', { class: 'intro-emoji', style: ok ? '' : 'filter:grayscale(1) opacity(.55)' }, ok ? '🎉' : (item.kind === 'app' ? '📖' : '🧮')),
       h('div', { class: 'mz-word' }, ok ? '答对了！' : '再看一遍'),
       h('div', { class: 'drill-text', style: 'margin-top:8px' }, item.text),
       h('div', { class: 'intro-zh', style: 'margin-top:8px' }, ok ? (item.tip || '') : `正确答案：${item.tip || item.ans}`),

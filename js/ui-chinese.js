@@ -68,6 +68,8 @@ const Chinese = {
   },
 
   /* ---------- 诗词星图 ---------- */
+  /* 没学过的诗先走学习页（读全诗 + 白话译文 + 重点字词），学过才直接挑战；
+   * 已点亮的星随时可以重刷巩固（重刷奖励递减）。 */
   poemList() {
     showScreen('quest');
     const root = $('#quest-root');
@@ -77,21 +79,70 @@ const Chinese = {
       h('div', { class: 'quest-prog' }, '📜 诗词星图')
     ));
     const stars = Store.state.chinese.stars;
+    const learned = Store.state.chinese.learned || {};
     root.appendChild(h('div', { class: 'card drill-card' },
       h('div', { class: 'drill-tag' }, '每首诗挑战 3 关：接下句 · 认作者 · 懂诗意'),
-      h('div', { class: 'tiny', style: 'margin:6px 0 2px' }, '全部答对点亮一颗 ⭐，集齐 7 颗完成"星河诗卷"'),
+      h('div', { class: 'tiny', style: 'margin:6px 0 2px' }, '没学过的诗要先读一读：全诗 · 译文 · 重点字词，学完再挑战。全部答对点亮一颗 ⭐'),
       h('div', { class: 'cn-poem-list' },
         CN_POEMS.map(p => {
           const got = stars[p.id];
+          const isLearned = !!learned[p.id];
+          const stateIcon = got ? '⭐' : (isLearned ? '📖' : '🌑');
+          const stateText = got ? '已点亮 · 再挑战' : (isLearned ? '学过 · 挑战' : '未学 · 先学习');
           return h('button', {
-            class: 'pack-row cn-poem-row', onclick: () => { Sound.tap(); this.poemChallenge(p); }
+            class: 'pack-row cn-poem-row', onclick: () => { Sound.tap(); isLearned ? this.poemChallenge(p) : this.poemLearn(p); }
           },
-            h('span', { class: 'pack-info' }, got ? '⭐' : '🌑', ` 《${p.title}》`, h('span', { class: 'tiny' }, `　${p.dynasty}·${p.author}`)),
-            h('span', { class: 'tiny' }, got ? '已点亮' : '挑战')
+            h('span', { class: 'pack-info' }, stateIcon, ` 《${p.title}》`, h('span', { class: 'tiny' }, `　${p.dynasty}·${p.author}`)),
+            h('span', { class: 'tiny' }, stateText)
           );
         })
       )
     ));
+  },
+
+  /* ---------- 诗词学习页（未学诗先学后考） ---------- */
+  poemLearn(p) {
+    Sound.stopSpeak();
+    const root = $('#quest-root');
+    root.innerHTML = '';
+    root.appendChild(h('div', { class: 'quest-top' },
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('div', { class: 'quest-prog' }, `📜 学古诗 · 《${p.title}》`)
+    ));
+    const poemText = h('div', { class: 'gw-text poem-learn-text' },
+      p.lines.map(l => h('div', { class: 'poem-line', onclick: () => Sound.speak(l, 0.85) }, l))
+    );
+    root.appendChild(h('div', { class: 'card drill-card' },
+      h('div', { class: 'drill-tag' }, `${p.title}`, h('span', { class: 'level-badge' }, `${p.dynasty} · ${p.author}`)),
+      poemText,
+      h('button', { class: 'btn big', style: 'margin:10px 0 2px', onclick: () => Sound.speak(p.lines.join('，') + '。', 0.8) }, '🔊 听一遍全诗'),
+      h('div', { class: 'read-analysis', style: 'margin-top:6px' },
+        h('div', { class: 'analysis-tag' }, '📖 白话译文'),
+        h('div', { class: 'analysis-zh' }, p.trans),
+        h('div', { class: 'analysis-tag', style: 'margin-top:12px' }, '🔑 重点字词'),
+        p.notes.map(n => h('div', { class: 'note-row' },
+          h('span', { class: 'note-w' }, n.split('：')[0]),
+          h('span', { class: 'note-zh' }, n.split('：').slice(1).join('：'))
+        )),
+        h('div', { class: 'analysis-tag', style: 'margin-top:12px;display:flex;align-items:center;gap:8px' },
+          h('span', {}, '🌟 背后的小故事'),
+          h('button', { class: 'speak-btn', style: 'width:30px;height:30px;font-size:14px;flex:none', onclick: () => Sound.speak(p.story, 0.9) }, '🔊')
+        ),
+        h('div', { class: 'analysis-zh' }, p.story || '')
+      ),
+      h('div', { class: 'tiny', style: 'margin-top:10px' }, '点诗里的每一句可以单独听 · 学完了就挑战点亮 ⭐'),
+      h('button', {
+        class: 'btn btn-main big', style: 'margin-top:10px',
+        onclick: () => {
+          Sound.tap();
+          if (!Store.state.chinese.learned) Store.state.chinese.learned = {};
+          Store.state.chinese.learned[p.id] = Store.todayStr();
+          Store.save();
+          this.poemChallenge(p);
+        }
+      }, '我学会了，去挑战 →')
+    ));
+    setTimeout(() => Sound.speak(p.lines.join('，') + '。', 0.8), 400);
   },
 
   poemChallenge(p) {

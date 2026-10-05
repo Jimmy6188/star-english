@@ -26,7 +26,7 @@ const Store = (() => {
   function freshState() {
     return {
       v: 1,
-      settings: { dailyNew: 4, dailyReview: 10, sessionLimitMin: 20, soundOff: false, pin: '1234', activePacks: null, grade: 4, range: 'below', warmupPerDay: 1, theme: 'auto', dailyCoinCap: 200, challengePerDay: 1 },
+      settings: { dailyNew: 4, dailyReview: 10, sessionLimitMin: 20, soundOff: false, pin: '1234', activePacks: null, grade: 4, range: 'below', warmupPerDay: 1, theme: 'auto', dailyCoinCap: 150, challengePerDay: 1 },
       coins: 0,
       pet: { name: '小星', fed: 0, outfits: { owned: [], worn: {} } },
       streak: { count: 0, best: 0, lastDone: null, shields: 2, shieldWeek: null },
@@ -48,6 +48,7 @@ const Store = (() => {
       chinese: { stars: {}, reads: [], wrong: [], guwen: [] },
       phonics: { rounds: 0 }, // 词族拼读累计轮数
       enRead: { reads: [] }, // 已读完的英语短文 id
+      junior: { seen: {} },  // 每日一星：已收下的初中知识卡 id -> 日期
       stats: { drillsDone: 0, thinkDone: 0, boxesOpened: 0 }
     };
   }
@@ -70,6 +71,7 @@ const Store = (() => {
     if (!state.chinese.reads) state.chinese.reads = [];
     if (!state.chinese.wrong) state.chinese.wrong = [];
     if (!state.chinese.guwen) state.chinese.guwen = [];
+    if (!state.chinese.learned) state.chinese.learned = {}; /* v23：诗词"已学习"记录 */
     if (!state.phonics) state.phonics = { rounds: 0 };
     if (!state.shop) state.shop = { rewards: [], pending: [], history: [] };
     if (state.today && state.today.coinsEarned === undefined) state.today.coinsEarned = 0;
@@ -80,11 +82,17 @@ const Store = (() => {
     if (state.today && state.today.boxOpened === undefined) state.today.boxOpened = 0;
     if (state.today && state.today.enReadDone === undefined) state.today.enReadDone = false;
     if (!state.enRead) state.enRead = { reads: [] };
+    if (!state.junior) state.junior = { seen: {} }; /* v26：每日一星知识卡 */
     if (!state.pet.outfits) state.pet.outfits = { owned: [], worn: {} };
     if (state.stats && !state.stats.thinkDone) state.stats.thinkDone = 0;
     if (state.stats && !state.stats.boxesOpened) state.stats.boxesOpened = 0;
-    if (state.settings.dailyCoinCap === undefined) state.settings.dailyCoinCap = 200;
+    if (state.settings.dailyCoinCap === undefined) state.settings.dailyCoinCap = 150;
     if (state.settings.challengePerDay === undefined) state.settings.challengePerDay = 1;
+    /* eco3（v21 金币收紧）：旧默认上限 200 一并降到 150；家长手调过的值不动 */
+    if (!state.settings.eco3) {
+      state.settings.eco3 = true;
+      if (state.settings.dailyCoinCap === 200) state.settings.dailyCoinCap = 150;
+    }
     /* 新增挑战星系后，老存档的 activePacks 里可能没有它，补上 */
     if (Array.isArray(state.settings.activePacks) && !state.settings.activePacks.includes('challenge')) state.settings.activePacks.push('challenge');
     if (!state.stats) state.stats = { drillsDone: 0 };
@@ -325,8 +333,8 @@ const Store = (() => {
 
   /* ---------- 金币经济 ----------
    * earn(n, opts): 唯一入账口。受每日上限约束（opts.ignoreCap 可豁免，用于段位/BOSS 等里程碑），
-   * 返回实际入账数（触顶时可能小于 n）。
-   * earnScaled(type, base): 可重复活动专用——当天第 1 次全额、第 2 次半价、第 3 次起 1~2 枚，
+   * 返回实际入账数（触顶时可能小于 n）。入账后立刻刷新顶栏金币。
+   * earnScaled(type, base): 可重复活动专用——当天第 1 次全额、第 2 次四折、第 3 次起 1 枚，
    * 引导"首刷"而不是刷重复内容。 */
   function earn(n, opts) {
     let added = Math.max(0, Math.round(n));
@@ -340,21 +348,26 @@ const Store = (() => {
         try { toast(`🪙 今日金币已达上限 ${cap}，明天继续加油！`); } catch (e) { /* UI 未就绪时忽略 */ }
       }
     }
-    if (added > 0) { state.coins += added; state.today.coinsEarned = already + added; }
+    if (added > 0) {
+      state.coins += added;
+      state.today.coinsEarned = already + added;
+      try { if (typeof updateTop === 'function') updateTop(); } catch (e) { /* UI 未就绪时忽略 */ }
+    }
     return added;
   }
   function earnScaled(type, base) {
     if (!state.today.mint) state.today.mint = {};
     const n = state.today.mint[type] || 0;
     state.today.mint[type] = n + 1;
-    const mult = n === 0 ? 1 : (n === 1 ? 0.5 : 0.08);
-    const amt = n >= 2 ? Math.min(2, Math.max(1, Math.round(base * mult))) : Math.round(base * mult);
+    const mult = n === 0 ? 1 : (n === 1 ? 0.4 : 0);
+    const amt = n >= 2 ? 1 : Math.round(base * mult);
     return earn(amt);
   }
   /* 花金币（提示、星盒、装扮）：钱不够返回 false */
   function spend(n) {
     if (state.coins < n) return false;
     state.coins -= n;
+    try { if (typeof updateTop === 'function') updateTop(); } catch (e) { /* UI 未就绪时忽略 */ }
     save();
     return true;
   }
@@ -424,6 +437,19 @@ const Store = (() => {
     return true;
   }
 
+  /* ---------- 金币兑换连击护盾（大额出口） ----------
+   * 500 🪙 换一张护盾；持有上限 SHIELD_MAX，每周自动补的 2 张也计入上限。 */
+  function buyShield() {
+    const st = state.streak;
+    if (st.shieldWeek !== weekKey()) { st.shieldWeek = weekKey(); st.shields = 2; }
+    if (st.shields >= SHIELD_MAX) return { ok: false, msg: `护盾已满 ${SHIELD_MAX} 张，先留着用吧` };
+    if (!spend(SHIELD_COST)) return { ok: false, msg: '金币还不够' };
+    st.shields++;
+    checkBadges();
+    save();
+    return { ok: true, shields: st.shields };
+  }
+
   /* ---------- 成就徽章 ---------- */
   function addMistake() {
     state.today.mistakes = (state.today.mistakes || 0) + 1;
@@ -433,7 +459,7 @@ const Store = (() => {
   /* ---------- 语文星系 ---------- */
   function markCnStar(poemId, allOk) {
     if (allOk) state.chinese.stars[poemId] = todayStr();
-    const got = earnScaled('poem', allOk ? 15 : 5);
+    const got = earnScaled('poem', allOk ? 12 : 4);
     checkBadges();
     save();
     return got;
@@ -444,14 +470,14 @@ const Store = (() => {
   }
   /* 阅读训练营一轮结束统一入账（原来每题发一次，改为整轮一次） */
   function finishCnRead(passageId, correct, total) {
-    const got = earnScaled('cnread', correct * 4 + (correct === total ? 5 : 0));
+    const got = earnScaled('cnread', correct * 3 + (correct === total ? 5 : 0));
     markCnRead(passageId);
     checkBadges();
     save();
     return got;
   }
   function finishCnWords(correct) {
-    const got = earnScaled('cnwords', correct * 4);
+    const got = earnScaled('cnwords', correct * 3);
     checkBadges();
     save();
     return got;
@@ -459,7 +485,7 @@ const Store = (() => {
   /* 小古文一篇读完（原文+3 题），难度高于普通阅读，单价 5/题 */
   function finishCnGuwen(passageId, correct, total) {
     if (!state.chinese.guwen.includes(passageId)) state.chinese.guwen.push(passageId);
-    const got = earnScaled('guwen', correct * 5 + (correct === total ? 5 : 0));
+    const got = earnScaled('guwen', correct * 4 + (correct === total ? 5 : 0));
     checkBadges();
     save();
     return got;
@@ -468,7 +494,7 @@ const Store = (() => {
   function markPhonicsRound(correct, total) {
     if (!state.phonics) state.phonics = { rounds: 0 };
     state.phonics.rounds = (state.phonics.rounds || 0) + 1;
-    const got = earnScaled('phonics', correct * 5 + (correct === total ? 5 : 0));
+    const got = earnScaled('phonics', correct * 4 + (correct === total ? 5 : 0));
     checkBadges();
     save();
     return got;
@@ -517,7 +543,7 @@ const Store = (() => {
     ensureToday();
     /* 难度加成：挑战档（两步混合）金币 ×1.5；首刷全额、重刷递减 */
     const lv = state.math.level || 2;
-    const base = correct * 1 + (correct >= 15 ? 10 : correct >= 8 ? 5 : 0);
+    const base = correct * 1 + (correct >= 15 ? 8 : correct >= 8 ? 4 : 0);
     const coinsGain = earnScaled('sprint', Math.round(base * (lv === 3 ? 1.5 : 1)));
     state.today.mathDone = true;
     const m = state.math;
@@ -551,21 +577,21 @@ const Store = (() => {
   }
   /* 练习场一组结束统一入账（原来每题发一次） */
   function finishPracticeRun(correct) {
-    const got = earnScaled('practice', correct * 5);
+    const got = earnScaled('practice', correct * 4);
     save();
     return got;
   }
   /* 次科（科学/道法）一轮结束统一入账 */
   function finishSubjectRound(id, correct, total) {
     subjectAddRound(id);
-    const got = earnScaled(id, correct * 4 + (correct === total ? 5 : 0));
+    const got = earnScaled(id, correct * 3 + (correct === total ? 5 : 0));
     save();
     return got;
   }
   /* 数学思维挑战一组结束 */
   function finishThinkRun(correct, total) {
     ensureToday();
-    const got = earnScaled('think', correct * 8 + (correct === total ? 10 : 0));
+    const got = earnScaled('think', correct * 5 + (correct === total ? 8 : 0));
     state.stats.thinkDone = (state.stats.thinkDone || 0) + 1;
     checkBadges();
     save();
@@ -639,6 +665,34 @@ const Store = (() => {
     save();
   }
 
+  /* ---------- 每日一星（初中知识浸润卡） ----------
+   * 每天只发一张：点"看懂了"记入 seen 并 +1 金币（受每日上限约束）。
+   * 当天领过后首页只显示"已收下"，防止一天连刷；全部看完后随机重温。 */
+  function juniorClaimedToday() {
+    const t = todayStr();
+    const seen = (state.junior && state.junior.seen) || {};
+    return Object.keys(seen).some(id => seen[id] === t);
+  }
+  function nextJuniorCard() {
+    if (typeof JUNIOR_CARDS === 'undefined' || !JUNIOR_CARDS.length) return null;
+    const seen = (state.junior && state.junior.seen) || {};
+    if (juniorClaimedToday()) {
+      const id = Object.keys(seen).find(k => seen[k] === todayStr());
+      return JUNIOR_CARDS.find(c => c.id === id) || JUNIOR_CARDS[0];
+    }
+    return JUNIOR_CARDS.find(c => !seen[c.id]) || JUNIOR_CARDS[Math.floor(Math.random() * JUNIOR_CARDS.length)];
+  }
+  function markJuniorSeen(id) {
+    if (!state.junior) state.junior = { seen: {} };
+    if (!state.junior.seen) state.junior.seen = {};
+    if (state.junior.seen[id] || juniorClaimedToday()) return { ok: false, already: true };
+    state.junior.seen[id] = todayStr();
+    earn(1);
+    checkBadges();
+    save();
+    return { ok: true };
+  }
+
   /* ---------- 兑换商店 ---------- */
   function addShopReward(emoji, name, cost) {
     state.shop.rewards.push({ id: 'rw' + Date.now(), emoji: emoji || '🎁', name, cost: Math.max(1, cost) });
@@ -655,6 +709,7 @@ const Store = (() => {
     if (state.coins < r.cost) return { ok: false, msg: '金币还不够' };
     state.coins -= r.cost;
     state.shop.pending.push({ id: 'pd' + Date.now(), rewardId: id, name: r.name, emoji: r.emoji, cost: r.cost, at: todayStr() });
+    try { if (typeof updateTop === 'function') updateTop(); } catch (e) { /* UI 未就绪时忽略 */ }
     save();
     return { ok: true };
   }
@@ -806,7 +861,7 @@ const Store = (() => {
     allPacks, activePacks, isActive, findWord, newPool, dueList,
     masterWord, reviewWord, addMinutes, completeQuest,
     isWeak, weakList, addCoins,
-    earnScaled, spend,
+    earnScaled, spend, buyShield,
     rankInfo, checkRank, learnedCount, bossInfo, bossComplete, bossHurtReward,
     addMistake, markEnglishDone, checkBadges, popPendingBadge, noteDictation, markDrillDone, markSpoken,
     addMathWrong, clearMathWrong, finishMathRun, setMath, addPracticeWrong, clearPracticeWrong,
@@ -816,6 +871,7 @@ const Store = (() => {
     addShopReward, removeShopReward, redeemReward, approveRedeem, rejectRedeem, tomorrowDueCount,
     petStage, feedPet, setSetting,
     buyOutfit, wearOutfit, openStarBox, markEnRead,
+    nextJuniorCard, markJuniorSeen,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,
     isFirstRun, markGreeted, FEED_COST

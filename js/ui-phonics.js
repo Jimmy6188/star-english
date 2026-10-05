@@ -4,7 +4,7 @@
  *   1) 听音选词：同族形近词辨音（听 → 选对拼写）
  *   2) 找出不同类：一族三词里混入外来客（练词尾规律）
  *   3) 押韵选择：谁和目标词押韵（词尾发音相同）
- * 5 题一组；答对每题 +5 🪙 全对再 +5；首刷全额、重刷减半
+ * 5 题一组；答对每题 +4 🪙 全对再 +5；首刷全额、重刷递减
  * ============================================================ */
 
 const Phonics = {
@@ -80,7 +80,7 @@ const Phonics = {
     root.appendChild(h('div', { class: 'card quest-splash' },
       h('div', { class: 'splash-rocket' }, '🔤'),
       h('div', { class: 'splash-title' }, '词族拼读挑战！'),
-      h('div', { class: 'splash-sub' }, '听音辨词 · 找词尾规律 · 押韵游戏 · 5 题一组，答对每题 +5 🪙'),
+      h('div', { class: 'splash-sub' }, '听音辨词 · 找词尾规律 · 押韵游戏 · 5 题一组，答对每题 +4 🪙'),
       h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.next(); } }, '出发 →')
     ));
   },

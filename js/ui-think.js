@@ -1,7 +1,7 @@
 /* ============================================================
  * 星际求知号 - 数学思维挑战场（拔高加餐）
  * 找规律 / 巧算 / 周期问题 / 鸡兔同笼，程序自动出题
- * 5 题一组不计时，答对每题 +8 🪙 全对再 +10；首刷全额、重刷减半
+ * 5 题一组不计时，答对每题 +5 🪙 全对再 +8；首刷全额、重刷递减
  * ============================================================ */
 
 const MathThink = {
@@ -146,7 +146,7 @@ const MathThink = {
     root.appendChild(h('div', { class: 'card quest-splash' },
       h('div', { class: 'splash-rocket' }, '🧠'),
       h('div', { class: 'splash-title' }, '思维挑战场！'),
-      h('div', { class: 'splash-sub' }, '5 道烧脑题 · 找规律 / 巧算 / 周期 / 鸡兔同笼 · 答对每题 +8 🪙，全对再 +10'),
+      h('div', { class: 'splash-sub' }, '5 道烧脑题 · 找规律 / 巧算 / 周期 / 鸡兔同笼 · 答对每题 +5 🪙，全对再 +8'),
       h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.next(); } }, '出发 →')
     ));
   },
@@ -266,12 +266,18 @@ const MathThink = {
 
 
 /* ============================================================
- * 数独挑战（四宫 2×2 / 六宫 2×3）：程序生成唯一解数独
- * 点击格子选中 → 点数字填入；全部填对得金币（四宫 +20 / 六宫 +30）
- * 填错满盘时错误格标红可改；首刷全额、当天重刷减半
+ * 数独挑战（四宫 2×2 / 六宫 2×3 / 九宫 3×3）：程序生成唯一解数独
+ * 宫用粗框明确圈出；点击格子选中 → 点数字填入
+ * 九宫格分简单/中等/困难三档（挖洞数不同）：40 / 60 / 100 🪙
+ * 四宫 +20、六宫 +30；填错满盘时错误格标红可改
+ * 首刷全额、当天重刷递减；记住上次玩的宫格和难度
  * ============================================================ */
 const Sudoku = {
-  n: 4, boxR: 2, boxC: 2, sol: [], kid: [], given: [], sel: null,
+  n: 4, boxR: 2, boxC: 2, sol: [], kid: [], given: [], sel: null, diff: 2,
+
+  /* 九宫格三档难度对应的挖洞数：简单留 43 个提示数，困难只留 29 个 */
+  DIFF_HOLES: { 1: 38, 2: 45, 3: 52 },
+  DIFF_NAME: { 1: '简单', 2: '中等', 3: '困难' },
 
   ok(grid, r, c, v) {
     for (let i = 0; i < this.n; i++) {
@@ -301,14 +307,26 @@ const Sudoku = {
     return true;
   },
 
+  /* 候选最少的空格优先（MRV），九宫唯一解判定也够快 */
+  pickCell(grid) {
+    let cell = null, best = this.n + 1;
+    for (let r = 0; r < this.n; r++) for (let c = 0; c < this.n; c++) {
+      if (grid[r][c]) continue;
+      let cand = 0;
+      for (let v = 1; v <= this.n; v++) if (this.ok(grid, r, c, v)) cand++;
+      if (cand === 0) return { cell: [r, c], cand: 0 };
+      if (cand < best) { best = cand; cell = [r, c]; if (cand === 1) return { cell, cand: 1 }; }
+    }
+    return { cell, cand: best };
+  },
+
   /* 解数统计（到 limit 即停），用来保证挖洞后答案唯一 */
   countSolutions(grid, limit) {
     let count = 0;
     const bt = () => {
-      let cell = null;
-      outer: for (let r = 0; r < this.n; r++) for (let c = 0; c < this.n; c++)
-        if (!grid[r][c]) { cell = [r, c]; break outer; }
+      const { cell, cand } = this.pickCell(grid);
       if (!cell) { count++; return count < limit; }
+      if (cand === 0) return true; /* 死路：回溯 */
       for (let v = 1; v <= this.n; v++) {
         if (this.ok(grid, cell[0], cell[1], v)) {
           grid[cell[0]][cell[1]] = v;
@@ -323,13 +341,14 @@ const Sudoku = {
     return count;
   },
 
-  gen(n) {
+  gen(n, diff) {
     this.n = n;
-    this.boxR = 2;
+    this.boxR = n === 9 ? 3 : 2;
     this.boxC = n === 4 ? 2 : 3;
+    if (n === 9) this.diff = diff || this.lastDiff();
     const full = Array.from({ length: n }, () => Array(n).fill(0));
     this.fill(full);
-    const holes = n === 4 ? 8 : 16;
+    const holes = n === 4 ? 8 : (n === 6 ? 16 : this.DIFF_HOLES[this.diff]);
     const kid = full.map(row => row.slice());
     const order = shuffle(Array.from({ length: n }, (_, r) => r).flatMap(r =>
       Array.from({ length: n }, (_, c) => [r, c])));
@@ -347,9 +366,22 @@ const Sudoku = {
     this.sel = null;
   },
 
-  start(n) {
+  lastLevel() {
+    try { const v = parseInt(localStorage.getItem('sdk-level'), 10); if (v === 4 || v === 6 || v === 9) return v; } catch (e) { /* 隐私模式忽略 */ }
+    return 4;
+  },
+
+  lastDiff() {
+    try { const v = parseInt(localStorage.getItem('sdk-diff'), 10); if (v === 1 || v === 2 || v === 3) return v; } catch (e) { /* 隐私模式忽略 */ }
+    return 2;
+  },
+
+  start(n, diff) {
     Sound.stopSpeak();
-    this.gen(n || 4);
+    const lvl = n || this.lastLevel();
+    try { localStorage.setItem('sdk-level', String(lvl)); } catch (e) { /* 忽略 */ }
+    this.gen(lvl, diff);
+    if (lvl === 9) { try { localStorage.setItem('sdk-diff', String(this.diff)); } catch (e) { /* 忽略 */ } }
     showScreen('quest');
     this.render();
   },
@@ -360,25 +392,44 @@ const Sudoku = {
     const solved = this.kid.every((row, r) => row.every((v, c) => v === this.sol[r][c]));
     root.appendChild(h('div', { class: 'quest-top' },
       h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
-      h('div', { class: 'quest-prog' }, `🔢 数独 ${this.n} 宫`)
+      h('div', { class: 'quest-prog' }, this.n === 9 ? `🔢 数独九宫 · ${this.DIFF_NAME[this.diff]}` : `🔢 数独 ${this.n} 宫`)
     ));
-    const grid = h('div', { class: 'sdk-grid', style: `grid-template-columns:repeat(${this.n},52px)` });
-    for (let r = 0; r < this.n; r++) for (let c = 0; c < this.n; c++) {
-      const boxIdx = Math.floor(r / this.boxR) * (this.n / this.boxC) + Math.floor(c / this.boxC);
-      const given = this.given[r][c];
-      const bad = !given && this.kid[r][c] !== 0 && this.kid[r][c] !== this.sol[r][c];
-      grid.appendChild(h('button', {
-        class: 'sdk-cell' + (given ? ' given' : '') + (boxIdx % 2 ? ' alt' : '') +
-          (this.sel && this.sel[0] === r && this.sel[1] === c ? ' sel' : '') + (bad ? ' bad' : ''),
-        onclick: () => {
-          if (given) { toast('这是题目给出的数字，不能改哦'); return; }
-          Sound.tap();
-          this.sel = [r, c];
-          this.render();
+    /* 四宫/六宫用固定格子；九宫格用弹性布局自适应屏宽，整盘不溢出 */
+    const is9 = this.n === 9;
+    const cell = this.n === 4 ? 52 : 44;
+    const font = is9 ? 16 : 23;
+    /* 按宫分块：每宫一个粗框盒子，宫的区域一眼可见 */
+    const grid = h('div', {
+      class: 'sdk-grid' + (is9 ? ' flex' : ''),
+      style: is9 ? 'grid-template-columns:repeat(3,minmax(0,1fr))'
+        : `grid-template-columns:repeat(${this.n / this.boxC},auto);--sdk-cell:${cell}px;--sdk-font:${font}px`
+    });
+    for (let br = 0; br < this.n / this.boxR; br++) for (let bc = 0; bc < this.n / this.boxC; bc++) {
+      const box = h('div', {
+        class: 'sdk-box' + ((br * (this.n / this.boxC) + bc) % 2 ? ' alt' : ''),
+        style: is9 ? '' : `grid-template-columns:repeat(${this.boxC},var(--sdk-cell))`
+      });
+      for (let r = br * this.boxR; r < br * this.boxR + this.boxR; r++)
+        for (let c = bc * this.boxC; c < bc * this.boxC + this.boxC; c++) {
+          const given = this.given[r][c];
+          const bad = !given && this.kid[r][c] !== 0 && this.kid[r][c] !== this.sol[r][c];
+          box.appendChild(h('button', {
+            class: 'sdk-cell' + (given ? ' given' : '') +
+              (this.sel && this.sel[0] === r && this.sel[1] === c ? ' sel' : '') + (bad ? ' bad' : ''),
+            onclick: () => {
+              if (given) { toast('这是题目给出的数字，不能改哦'); return; }
+              Sound.tap();
+              this.sel = [r, c];
+              this.render();
+            }
+          }, this.kid[r][c] || ''));
         }
-      }, this.kid[r][c] || ''));
+      grid.appendChild(box);
     }
-    const pad = h('div', { class: 'sdk-pad' },
+    const pad = h('div', {
+      class: 'sdk-pad',
+      style: this.n === 9 ? 'grid-template-columns:repeat(5,1fr);max-width:330px' : ''
+    },
       Array.from({ length: this.n }, (_, i) => i + 1).map(v => h('button', {
         class: 'drill-key', onclick: e => {
           if (!this.sel) { toast('先点一个空格子'); return; }
@@ -389,16 +440,26 @@ const Sudoku = {
           this.render();
         }
       }, v)),
-      h('button', { class: 'drill-key wide', onclick: () => { if (this.sel) { this.kid[this.sel[0]][this.sel[1]] = 0; this.render(); } } }, '⌫')
+      h('button', { class: 'drill-key' + (this.n === 9 ? '' : ' wide'), onclick: () => { if (this.sel) { this.kid[this.sel[0]][this.sel[1]] = 0; this.render(); } } }, '⌫')
     );
-    root.appendChild(h('div', { class: 'card drill-card center' },
+    root.appendChild(h('div', { class: 'card drill-card center' + (is9 ? ' sdk-wide' : '') },
       h('div', { class: 'drill-tag' }, '每行、每列、每个粗框里数字都不重复'),
       grid,
       h('div', { class: 'tiny', style: 'margin-top:8px' }, solved ? '✅ 全部正确！' : (this.sel ? `已选中第 ${this.sel[0] + 1} 行第 ${this.sel[1] + 1} 列` : '点一个空格子，再点数字')),
       pad,
-      h('div', { class: 'row-gap', style: 'justify-content:center;margin-top:10px' },
-        h('button', { class: 'btn small', onclick: () => { Sound.tap(); this.start(this.n); } }, '🔄 换一题'),
-        h('button', { class: 'btn small', onclick: () => { Sound.tap(); this.start(this.n === 4 ? 6 : 4); } }, this.n === 4 ? '⬆️ 挑战六宫' : '⬇️ 回到四宫')
+      /* 九宫格专属：三档难度，挖洞数不同，奖励也不同 */
+      this.n === 9 ? h('div', { class: 'row-gap wrap', style: 'justify-content:center;margin-top:10px' },
+        [1, 2, 3].map(d => h('button', {
+          class: 'btn small' + (this.diff === d ? ' btn-main' : ''),
+          onclick: () => { Sound.tap(); this.start(9, d); }
+        }, `${this.DIFF_NAME[d]} ${[40, 60, 100][d - 1]}🪙`))
+      ) : '',
+      h('div', { class: 'row-gap wrap', style: 'justify-content:center;margin-top:10px' },
+        [4, 6, 9].map(k => h('button', {
+          class: 'btn small' + (this.n === k ? ' btn-main' : ''),
+          onclick: () => { Sound.tap(); this.start(k); }
+        }, `${k} 宫`)),
+        h('button', { class: 'btn small', onclick: () => { Sound.tap(); this.start(this.n); } }, '🔄 换一题')
       )
     ));
   },
@@ -407,8 +468,8 @@ const Sudoku = {
     if (!this.kid.every(row => row.every(v => v > 0))) return;
     const wrongN = this.kid.reduce((s, row, r) => s + row.filter((v, c) => v !== this.sol[r][c]).length, 0);
     if (wrongN > 0) { toast(`有 ${wrongN} 个格子不对，红色的可以点开改`); Sound.wrong(); return; }
-    /* 全对结算 */
-    const gain = Store.earnScaled('sudoku', this.n === 4 ? 20 : 30);
+    /* 全对结算：九宫按难度给币，难度越高越值钱 */
+    const gain = Store.earnScaled('sudoku', this.n === 4 ? 20 : (this.n === 6 ? 30 : [40, 60, 100][this.diff]));
     Sound.gold();
     const root = $('#quest-root');
     root.innerHTML = '';

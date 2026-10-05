@@ -106,10 +106,22 @@ function renderHome() {
   else line = rnd(PET_LINES.idle);
   $('#pet-bubble').textContent = line;
 
-  /* 连击 */
+  /* 连击 + 护盾（护盾可用金币兑换，给金币一个大额出口） */
   $('#streak-num').textContent = s.streak.count;
+  const shieldFull = s.streak.shields >= SHIELD_MAX;
   $('#streak-shields').innerHTML =
-    '🛡️'.repeat(s.streak.shields) + (s.streak.shields === 0 ? '<span class="tiny">护盾已用完，周一补充</span>' : `<span class="tiny">护盾 ×${s.streak.shields}</span>`);
+    '🛡️'.repeat(s.streak.shields) + (s.streak.shields === 0 ? '<span class="tiny">护盾已用完，周一补充</span>' : `<span class="tiny">护盾 ×${s.streak.shields}</span>`) +
+    `<button id="btn-buy-shield" class="btn small${shieldFull || s.coins < SHIELD_COST ? '' : ' btn-gold'}" style="margin-top:6px" ${shieldFull ? 'disabled' : ''}>🛡️ 兑换护盾 ${SHIELD_COST}🪙</button>`;
+  const buyShieldBtn = $('#btn-buy-shield');
+  if (buyShieldBtn) buyShieldBtn.onclick = () => {
+    Sound.tap();
+    const res = Store.buyShield();
+    if (res.ok) {
+      Sound.gold();
+      toast(`🛡️ 兑换成功！现在有 ${res.shields} 张护盾护航`);
+      renderHome();
+    } else toast(res.msg);
+  };
 
   /* 今日任务（主科：英语 / 数学 / 语文） */
   const set = s.settings;
@@ -190,9 +202,67 @@ function renderHome() {
     ));
   }
 
+  /* 每日一星：初中知识浸润卡（纯阅读不考试，看完 +1 🪙，重在潜移默化） */
+  const jrSlot = $('#junior-slot');
+  if (jrSlot && typeof JUNIOR_CARDS !== 'undefined') {
+    jrSlot.innerHTML = '';
+    const card = Store.nextJuniorCard();
+    if (card) {
+      const isSeen = !!(s.junior.seen && s.junior.seen[card.id]);
+      const seenN = Object.keys(s.junior.seen || {}).length;
+      if (isSeen) {
+        jrSlot.appendChild(h('div', { class: 'card junior-card' },
+          h('div', { class: 'math-head' },
+            h('span', { class: 'math-emoji' }, '🌟'),
+            h('div', { class: 'math-info' },
+              h('div', { style: 'font-weight:800' }, `今日一星已收下 ${card.emoji}`),
+              h('div', { class: 'tiny' }, `${card.subject} · ${card.title}`)
+            ),
+            h('button', { class: 'btn small', onclick: () => { Sound.tap(); Sound.speak(card.title + '。' + card.body + card.example + card.fun, 0.95); } }, '🔊')
+          )
+        ));
+      } else {
+        jrSlot.appendChild(h('div', { class: 'card junior-card' },
+          h('div', { style: 'text-align:left' },
+            h('span', { class: 'junior-badge' }, `${card.emoji} ${card.subject} · 初中星知识`),
+            h('div', { class: 'junior-title' }, card.title),
+            h('div', { class: 'junior-body' }, card.body),
+            h('div', { class: 'junior-row' }, h('b', { class: 'jr-k' }, '🧭'), h('span', {}, card.example)),
+            h('div', { class: 'junior-row' }, h('b', { class: 'jr-k' }, '🎩'), h('span', {}, card.fun))
+          ),
+          h('button', {
+            class: 'btn btn-main big', style: 'margin-top:12px',
+            onclick: () => {
+              Sound.tap();
+              const res = Store.markJuniorSeen(card.id);
+              if (res.ok) { Sound.coin(); toast('🌟 知识星已收进口袋 +1 🪙'); }
+              renderHome();
+            }
+          }, '看懂了！(领 1 🪙)'),
+          h('div', { class: 'tiny center', style: 'margin-top:6px' }, `已收 ${seenN}/${JUNIOR_CARDS.length} 张 · 每天一张，悄悄领先`)
+        ));
+      }
+    }
+  }
+
   /* 成长足迹卡 */
   const growSlot = $('#growth-slot');
   if (growSlot) renderGrowthCard(growSlot);
+
+  /* 待兑现提醒横幅：插在学科星系上方，孩子回首页一眼就能看到 */
+  const oldBanner = $('#pending-redeem-banner');
+  if (oldBanner) oldBanner.remove();
+  if (s.shop.pending.length) {
+    const subjSlot = $('#subjects-slot');
+    const banner = h('button', { class: 'card pending-banner', id: 'pending-redeem-banner', onclick: () => { Sound.tap(); openShop(); } },
+      h('span', { class: 'pb-emoji' }, '🎁'),
+      h('span', { class: 'pb-text' },
+        h('b', {}, `有 ${s.shop.pending.length} 份礼物待领取！`),
+        h('span', { class: 'tiny' }, `${s.shop.pending.map(p => `${p.emoji}${p.name}`).join('、')} · 快去找爸爸妈妈兑现吧`)
+      )
+    );
+    subjSlot.parentNode.insertBefore(banner, subjSlot);
+  }
 
   /* 兑换商店卡（家长定义了奖励才显示） */
   const shopSlot = $('#shop-slot');
@@ -335,10 +405,10 @@ function openMathHub() {
       }, '📐 练习场（笔算 + 应用题）'));
       el.appendChild(h('button', {
         class: 'btn big', style: 'margin-top:10px',
-        onclick: () => { close(); Sudoku.start(4); }
-      }, '🔢 数独挑战（四宫 +20 / 六宫 +30 🪙）'));
+        onclick: () => { close(); Sudoku.start(); }
+      }, '🔢 数独挑战（四宫 +20 / 六宫 +30 / 九宫 40~100 🪙）'));
       el.appendChild(h('div', { class: 'tiny center', style: 'margin-top:10px' },
-        `思维场答对每题 +8 🪙 · 数独唯一解程序生成 · 首刷全额，当天重刷减半${Store.state.settings.dailyCoinCap ? ` · 每日上限 ${Store.state.settings.dailyCoinCap} 🪙` : ''}`));
+        `思维场答对每题 +5 🪙 · 数独唯一解程序生成 · 首刷全额，当天重刷递减${Store.state.settings.dailyCoinCap ? ` · 每日上限 ${Store.state.settings.dailyCoinCap} 🪙` : ''}`));
     }
   });
 }
@@ -638,8 +708,8 @@ function renderParent() {
     numInput('每天新词数', 'dailyNew', set.dailyNew, 1, 10),
     numInput('每天复习量', 'dailyReview', set.dailyReview, 3, 30),
     numInput('单次时长提醒（分钟）', 'sessionLimitMin', set.sessionLimitMin, 5, 60),
-    numInput('每日金币上限', 'dailyCoinCap', set.dailyCoinCap === undefined ? 200 : set.dailyCoinCap, 60, 500),
-    h('div', { class: 'tiny', style: 'margin:2px 0 10px' }, '每天最多能赚的金币数（段位晋升和周日 BOSS 不受限）；可重复的活动当天首刷全额、第二次半价、之后只给 1~2 枚'),
+    numInput('每日金币上限', 'dailyCoinCap', set.dailyCoinCap === undefined ? 150 : set.dailyCoinCap, 60, 500),
+    h('div', { class: 'tiny', style: 'margin:2px 0 10px' }, '每天最多能赚的金币数（段位晋升和周日 BOSS 不受限）；可重复的活动当天首刷全额、第二次四折、之后只给 1 枚'),
     h('label', { class: 'check-row' },
       h('input', { type: 'checkbox', checked: !set.soundOff ? '' : null, onchange: e => Store.setSetting('soundOff', !e.target.checked) }),
       ' 音效与发音'
@@ -956,7 +1026,7 @@ function openShop() {
   const shop = Store.state.shop;
   showModal({
     title: '🎁 兑换商店',
-    build(el) {
+    build(el, close) {
       el.appendChild(h('div', { class: 'tiny', style: 'margin-bottom:8px' }, `当前金币：${Store.state.coins} 🪙 · 兑换后找爸妈领取`));
       shop.rewards.forEach(r => {
         const pending = shop.pending.some(p => p.rewardId === r.id);
@@ -966,16 +1036,28 @@ function openShop() {
           h('button', {
             class: 'btn small ' + (afford && !pending ? 'btn-main' : ''),
             disabled: pending || !afford ? '' : null,
-            onclick: e => {
-              const res = Store.redeemReward(r.id);
-              if (res.ok) {
-                Sound.gold();
-                const c = centerOf(e.currentTarget);
-                burst(c.x, c.y, { count: 14, emojis: ['🎁', '⭐'], power: 90 });
-                updateTop();
-                openShop();
-              } else toast(res.msg);
-            }
+          onclick: e => {
+            const res = Store.redeemReward(r.id);
+            if (res.ok) {
+              Sound.gold();
+              const c = centerOf(e.currentTarget);
+              burst(c.x, c.y, { count: 14, emojis: ['🎁', '⭐'], power: 90 });
+              /* 兑换成功用大弹窗明示，回首页时同步待兑现提醒 */
+              showModal({
+                title: '🎉 兑换成功！',
+                dismissable: true,
+                build(el) {
+                  el.appendChild(h('div', { class: 'center' },
+                    h('div', { style: 'font-size:64px;margin:8px 0' }, r.emoji),
+                    h('div', { style: 'font-size:22px;font-weight:900;color:var(--gold)' }, r.name),
+                    h('div', { class: 'tiny', style: 'margin-top:8px' }, `花了 ${r.cost} 🪙 · 礼券已收进"待爸妈兑现"`),
+                    h('div', { class: 'tiny', style: 'margin-top:4px' }, '快去找爸爸妈妈领取吧！')
+                  ));
+                },
+                actions: [{ label: '好嘞！', cls: 'btn-main', onClick: () => { close(); renderHome(); } }]
+              });
+            } else toast(res.msg);
+          }
           }, pending ? '待兑现' : '兑换')
         ));
       });

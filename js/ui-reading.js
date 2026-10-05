@@ -1,7 +1,8 @@
 /* ============================================================
  * 星际求知号 - 英语每日小短文（拔高加餐，全英文问答）
  * 一天推荐一篇：2 道判断（T/F）+ 2 道选词填空
- * 短文可 TTS 朗读；答对每题 +5 🪙 全对再 +5；首刷全额、重刷减半
+ * 短文可 TTS 朗读；答完题在结算页给"全文中文翻译 + 重点词汇词组解析"，
+ * 先考理解、再讲明白；每题 +4 🪙 全对再 +4；首刷全额、重刷递减
  * ============================================================ */
 
 const EnRead = {
@@ -143,20 +144,44 @@ const EnRead = {
     const p = this.passage;
     const total = p.qs.length;
     const allOk = this.correct === total;
-    const gain = Store.earnScaled('enread', this.correct * 5 + (allOk ? 5 : 0));
+    const gain = Store.earnScaled('enread', this.correct * 4 + (allOk ? 4 : 0));
     Store.markEnRead(p.id);
     Sound.gold();
+    /* 解析区：全文中文翻译 + 重点词汇词组（点了读发音） */
+    const analysis = h('div', { class: 'read-analysis' },
+      h('div', { class: 'analysis-tag' }, '📖 全文中文翻译'),
+      h('div', { class: 'analysis-zh' }, p.zh || '（这篇还没有翻译）'),
+      h('div', { class: 'analysis-tag', style: 'margin-top:12px' }, '🔑 重点词汇与词组'),
+      (p.notes || []).map(n => h('div', { class: 'note-row' },
+        h('button', { class: 'speak-btn', onclick: () => Sound.speak(n.w) }, '🔊'),
+        h('span', { class: 'note-w' }, n.w),
+        h('span', { class: 'note-zh' }, n.zh)
+      ))
+    );
+    const wrap = h('div', { class: 'analysis-wrap', style: 'display:none' }, analysis);
+    const toggle = h('button', {
+      class: 'btn big', style: 'margin-top:2px',
+      onclick: () => {
+        Sound.tap();
+        const show = wrap.style.display === 'none';
+        wrap.style.display = show ? '' : 'none';
+        toggle.textContent = show ? '🔼 收起翻译与解析' : '🔽 查看全文翻译与解析';
+        if (show) Sound.speak(p.text, 0.78);
+      }
+    }, '🔽 查看全文翻译与解析');
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'card finish-card' },
       h('div', { class: 'finish-stamp' }, allOk ? '💯' : '📚'),
       h('div', { class: 'finish-title' }, `Reading ${this.correct} / ${total}`),
-      h('div', { class: 'finish-sub' }, `获得 +${gain} 🪙${(Store.state.today.mint.enread || 0) > 1 ? ' · 今日重刷，奖励减半' : ''} · 已读完 ${(Store.state.enRead.reads || []).length} 篇`),
+      h('div', { class: 'finish-sub' }, `获得 +${gain} 🪙${(Store.state.today.mint.enread || 0) > 1 ? ' · 今日重刷，奖励递减' : ''} · 已读完 ${(Store.state.enRead.reads || []).length} 篇`),
       h('div', { class: 'finish-pet' }, `“${rnd(PET_LINES.praise)}” —— ${Store.state.pet.name}`),
       h('div', { class: 'row-gap' },
         h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.start(); } }, '📖 再读一篇'),
         h('button', { class: 'btn btn-main', style: 'flex:1', onclick: () => { showScreen('home'); renderHome(); } }, '返回空间站')
-      )
+      ),
+      toggle,
+      wrap
     ));
     const c = centerOf($('.finish-stamp'));
     burst(c.x, c.y, { count: 22, emojis: ['📚', '⭐', '✨'], power: 120 });

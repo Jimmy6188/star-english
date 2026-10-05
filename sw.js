@@ -1,5 +1,5 @@
 /* 星际求知号 - 离线缓存（仅在 http(s) 环境生效） */
-const CACHE = 'star-english-v18';
+const CACHE = 'star-english-v27';
 const ASSETS = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const ASSETS = [
   './js/ui-subject.js',
   './js/data-science.js',
   './js/data-daofa.js',
+  './js/data-junior.js',
   './js/ui-chinese.js',
   './js/ui-reading.js',
   './js/ui-extras.js',
@@ -27,7 +28,12 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  /* cache:'reload' 强制绕过 HTTP 缓存，保证预缓存的一定是服务器上的最新文件 */
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
