@@ -166,6 +166,7 @@ const Quest = {
       root.appendChild(h('div', { class: 'card spell-card center' },
         h('div', { class: 'intro-emoji', style: ok ? '' : 'filter:grayscale(1) opacity(.55)' }, w.emoji),
         h('div', { class: 'mz-word' }, w.word),
+        ipaEl(w),
         h('div', { class: 'intro-zh' }, w.zh),
         h('div', { class: 'tiny', style: 'margin-top:8px' }, ok ? '✅ 拼对了！ +3 🪙' : '这是正确拼写，已收进错题本')
       ));
@@ -299,6 +300,7 @@ const Quest = {
         h('span', { class: 'intro-word' + (w.phrase ? ' phrase' : '') }, w.word),
         h('button', { class: 'speak-btn big', onclick: () => Sound.speak(w.word) }, '🔊')
       ),
+      ipaEl(w),
       h('div', { class: 'intro-zh' }, w.zh),
       h('div', { class: 'intro-ex' },
         h('button', { class: 'speak-btn', onclick: () => Sound.speak(w.ex) }, '🔊 '),
@@ -478,6 +480,7 @@ const Quest = {
     root.appendChild(h('div', { class: 'card spell-card center' },
       h('div', { class: 'intro-emoji', style: 'filter:grayscale(1) opacity(.6)' }, w.emoji),
       h('div', { class: 'mz-word' }, w.word),
+      ipaEl(w),
       h('div', { class: 'intro-zh' }, w.zh),
       h('div', { class: 'tiny', style: 'margin-top:8px' }, '💥 这一题失守！正确拼写记住了吗？词已收进错题本')
     ));

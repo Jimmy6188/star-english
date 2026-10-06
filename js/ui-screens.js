@@ -218,6 +218,7 @@ function renderHome() {
               h('div', { style: 'font-weight:800' }, `今日一星已收下 ${card.emoji}`),
               h('div', { class: 'tiny' }, `${card.subject} · ${card.title}`)
             ),
+            h('button', { class: 'btn small', onclick: () => { Sound.tap(); juniorQuiz(card, false); } }, '🔁'),
             h('button', { class: 'btn small', onclick: () => { Sound.tap(); Sound.speak(card.title + '。' + card.body + card.example + card.fun, 0.95); } }, '🔊')
           )
         ));
@@ -232,14 +233,9 @@ function renderHome() {
           ),
           h('button', {
             class: 'btn btn-main big', style: 'margin-top:12px',
-            onclick: () => {
-              Sound.tap();
-              const res = Store.markJuniorSeen(card.id);
-              if (res.ok) { Sound.coin(); toast('🌟 知识星已收进口袋 +1 🪙'); }
-              renderHome();
-            }
-          }, '看懂了！(领 1 🪙)'),
-          h('div', { class: 'tiny center', style: 'margin-top:6px' }, `已收 ${seenN}/${JUNIOR_CARDS.length} 张 · 每天一张，悄悄领先`)
+            onclick: () => { Sound.tap(); juniorQuiz(card, true); }
+          }, '看懂了，考考我 →'),
+          h('div', { class: 'tiny center', style: 'margin-top:6px' }, `答 2 道小题加深理解 · 全对 +2 🪙 · 已收 ${seenN}/${JUNIOR_CARDS.length} 张`)
         ));
       }
     }
@@ -541,6 +537,7 @@ function showWordModal(id, unlocked) {
     build(el) {
       el.appendChild(h('div', { class: 'center modal-emoji ' + (rec.gold ? 'gold-glow' : '') }, w.emoji));
       el.appendChild(h('div', { class: 'modal-word' }, w.word));
+      el.appendChild(ipaEl(w));
       el.appendChild(h('div', { class: 'modal-zh' }, w.zh));
       el.appendChild(h('div', { class: 'modal-ex' },
         h('button', { class: 'speak-btn', onclick: () => Sound.speak(w.ex) }, '🔊 '), w.ex
@@ -551,6 +548,92 @@ function showWordModal(id, unlocked) {
     actions: [{ label: '再听一遍 🔊', cls: '', onClick: (close) => Sound.speak(w.word) }, { label: '好', cls: 'btn-main' }]
   });
   Sound.speak(w.word);
+}
+
+/* 每日一星 · 知识星小测验：读完卡片答 2 道选择题加深理解（答案都在卡片里）。
+ * claim=true 时答完收下当天的知识星（全对多奖 1 🪙）；false 为温习模式不奖励。 */
+function juniorQuiz(card, claim = true) {
+  const quiz = (typeof JUNIOR_QUIZ !== 'undefined' && JUNIOR_QUIZ[card.id]) || [];
+  if (!quiz.length) { /* 兜底：没有配题的卡保持旧行为，直接领 */
+    if (claim) {
+      const res = Store.markJuniorSeen(card.id);
+      if (res.ok) { Sound.coin(); toast('🌟 知识星已收进口袋 +1 🪙'); }
+      renderHome();
+    }
+    return;
+  }
+  let qi = 0, okN = 0;
+  const finish = close => {
+    close();
+    if (!claim) { Sound.correct(); toast('温习完成，理解更牢啦！'); renderHome(); return; }
+    const res = Store.markJuniorSeen(card.id);
+    if (res.ok) {
+      Sound.coin();
+      const allOk = okN === quiz.length;
+      if (allOk) Store.addCoins(1);
+      toast(allOk ? `🌟 知识星收进口袋 +2 🪙 · 小测验全对！` : '🌟 知识星收进口袋 +1 🪙');
+    } else {
+      toast('今天已经领过知识星啦');
+    }
+    renderHome();
+  };
+  const askQ = (box, close) => {
+    if (qi >= quiz.length) {
+      box.innerHTML = '';
+      box.appendChild(h('div', { class: 'center' },
+        h('div', { style: 'font-size:44px' }, okN === quiz.length ? '💯' : '🌟'),
+        h('div', { style: 'font-weight:900;font-size:18px;margin:8px 0' }, `小测验 ${okN}/${quiz.length}`),
+        h('div', { class: 'tiny', style: 'margin-bottom:12px;line-height:1.8' },
+          okN === quiz.length ? '全对！这个知识点真的装进脑袋啦' : '答错的再看一眼卡片，理解会更牢'),
+        h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); finish(close); } }, claim ? '收下知识星 →' : '完成')
+      ));
+      return;
+    }
+    const q = quiz[qi];
+    const opts = shuffle(q.opts.map((t, i) => ({ t, ok: i === 0 })));
+    let answered = false;
+    box.innerHTML = '';
+    const tipEl = h('div', { class: 'tiny', style: 'margin-top:10px;min-height:18px;line-height:1.8;text-align:left' }, '');
+    const nextBtn = h('button', {
+      class: 'btn btn-main big', style: 'display:none;margin-top:12px',
+      onclick: () => { Sound.tap(); qi++; askQ(box, close); }
+    }, qi + 1 >= quiz.length ? '看结果 →' : '下一题 →');
+    const optsEl = h('div', { class: 'cn-opts', style: 'margin-top:12px' });
+    opts.forEach(m => optsEl.appendChild(h('button', {
+      class: 'cn-opt', 'data-ok': m.ok ? '1' : '0',
+      onclick: e => {
+        if (answered) return;
+        answered = true;
+        if (m.ok) {
+          okN++;
+          Sound.correct();
+          e.currentTarget.classList.add('right');
+          const c = centerOf(e.currentTarget);
+          burst(c.x, c.y, { count: 6, colors: ['#58e08a'], power: 40 });
+        } else {
+          Sound.wrong();
+          e.currentTarget.classList.add('wrong');
+          const right = Array.from(optsEl.children).find(x => x.dataset.ok === '1');
+          if (right) right.classList.add('right');
+        }
+        Array.from(optsEl.children).forEach(b => { b.disabled = true; });
+        tipEl.textContent = m.ok ? '✅ ' + q.tip : '❌ ' + q.tip;
+        nextBtn.style.display = '';
+      }
+    }, m.t)));
+    box.appendChild(h('div', { style: 'text-align:left' },
+      h('div', { class: 'tiny' }, `${card.emoji} ${card.subject}小测验 · 第 ${qi + 1} / ${quiz.length} 题 · 答案就藏在刚才的卡片里`),
+      h('div', { style: 'font-weight:800;font-size:15.5px;line-height:1.8;margin-top:8px' }, q.q),
+      optsEl,
+      tipEl,
+      nextBtn
+    ));
+  };
+  showModal({
+    title: `🌟 知识星小测验 · ${card.title}`,
+    dismissable: true,
+    build: (el, close) => askQ(el, close)
+  });
 }
 
 /* 徽章墙 */

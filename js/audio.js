@@ -7,10 +7,13 @@
 const Sound = (() => {
   let ctx = null;
   let voices = [];
-  let preferred = null;
+  let preferred = null;   // 英文声音
+  let zhPreferred = null; // 中文声音（诗词/知识卡朗读用）
+  let speakSeq = 0;       // 朗读序号：取消或新朗读后，排队中的旧朗读作废
 
   function pickVoice() {
-    voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+    if (!window.speechSynthesis) return;
+    voices = speechSynthesis.getVoices();
     if (!voices.length) return;
     const en = voices.filter(v => /^en(-|_)/i.test(v.lang) || /english/i.test(v.name));
     preferred =
@@ -19,6 +22,13 @@ const Sound = (() => {
       en.find(v => /Zira|Aria/i.test(v.name)) ||
       en.find(v => /United States/i.test(v.lang)) ||
       en[0] || null;
+    const zh = voices.filter(v => /^zh([-_]|$)/i.test(v.lang) || /普通话|中文|chinese/i.test(v.name));
+    zhPreferred =
+      zh.find(v => /zh[-_]CN/i.test(v.lang) && /Xiaoxiao|Xiaoyi|Yunxi|Yunyang/i.test(v.name)) ||
+      zh.find(v => /zh[-_]CN/i.test(v.lang) && /Yaoyao|Huihui|Kangkang|Tingting|Ting-Ting/i.test(v.name)) ||
+      zh.find(v => /zh[-_]CN/i.test(v.lang) && /Google/i.test(v.name)) ||
+      zh.find(v => /zh[-_]CN/i.test(v.lang)) ||
+      zh[0] || null;
   }
 
   function init() {
@@ -27,22 +37,30 @@ const Sound = (() => {
     speechSynthesis.onvoiceschanged = pickVoice;
   }
 
-  /* 朗读英文（可传单词或句子） */
+  /* 朗读：英文用英文声音，含汉字的文本自动换中文声音（英文声音读中文会静音）。
+   * Chrome 的 cancel() 后立刻 speak() 会被吞掉，所以等一小拍再开口。 */
   function speak(text, rate = 0.85, onEnd) {
     if (!window.speechSynthesis) { if (onEnd) setTimeout(onEnd, 200); return; }
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      u.rate = rate;
-      u.pitch = 1.05;
-      if (preferred) u.voice = preferred;
-      if (onEnd) u.onend = onEnd;
-      speechSynthesis.speak(u);
-    } catch (e) { if (onEnd) onEnd(); }
+    const seq = ++speakSeq;
+    try { speechSynthesis.cancel(); } catch (e) { /* 忽略 */ }
+    const zh = /[\u3400-\u9fff]/.test(text);
+    setTimeout(() => {
+      if (seq !== speakSeq) return; /* 期间又被取消或被新朗读取代 */
+      try {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = zh ? 'zh-CN' : 'en-US';
+        u.rate = rate;
+        u.pitch = zh ? 1 : 1.05;
+        const v = zh ? zhPreferred : preferred;
+        if (v) u.voice = v;
+        if (onEnd) u.onend = onEnd;
+        speechSynthesis.speak(u);
+      } catch (e) { if (onEnd) onEnd(); }
+    }, 60);
   }
 
   function stopSpeak() {
+    speakSeq++;
     if (window.speechSynthesis) speechSynthesis.cancel();
   }
 

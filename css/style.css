@@ -328,6 +328,13 @@ body {
 .intro-emoji { font-size: 96px; line-height: 1.3; margin: 6px 0; filter: drop-shadow(0 10px 22px var(--accent-glow-soft)); }
 .intro-word-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .intro-word { font-size: 44px; font-weight: 900; letter-spacing: 2px; }
+/* 音标（点一下重听单词） */
+.word-ipa {
+  display: block; margin: 2px auto 0; background: none; border: none; padding: 0;
+  font: inherit; font-size: 17px; font-weight: 700; letter-spacing: 1px;
+  color: var(--text-low); cursor: pointer; text-align: center;
+}
+.word-ipa:active { opacity: .6; }
 .intro-zh { font-size: 18px; color: var(--gold); margin-top: 4px; font-weight: 700; }
 .intro-ex { margin-top: 12px; font-size: 16px; color: var(--text-mid); display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
 .intro-exzh { margin-top: 4px; }
@@ -871,10 +878,10 @@ select.input.num { width: auto; min-width: 130px; }
   background: var(--fill-3); font-size: var(--sdk-font, 23px); font-weight: 900;
   color: var(--text-hi); font-family: inherit; cursor: pointer; padding: 0;
 }
-/* 九宫格：整盘撑满卡片宽度，格子自动缩放不溢出 */
+/* 九宫格：整盘撑满卡片宽度，格子自动缩放不溢出；数字随屏宽放大 */
 .sdk-grid.flex { width: 100%; }
 .sdk-grid.flex .sdk-box { grid-template-columns: repeat(3, minmax(0, 1fr)); min-width: 0; }
-.sdk-grid.flex .sdk-cell { width: 100%; height: auto; min-width: 0; aspect-ratio: 1; font-size: 16px; }
+.sdk-grid.flex .sdk-cell { width: 100%; height: auto; min-width: 0; aspect-ratio: 1; padding: 0; line-height: 1; font-size: clamp(18px, 6vmin, 23px); }
 .drill-card.sdk-wide { padding-left: 8px; padding-right: 8px; }
 .sdk-cell.given { color: var(--text-low); cursor: default; opacity: .75; }
 .sdk-cell.sel { outline: 3px solid var(--accent); outline-offset: -1px; }

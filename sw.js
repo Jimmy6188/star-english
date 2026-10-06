@@ -1,10 +1,11 @@
 /* 星际求知号 - 离线缓存（仅在 http(s) 环境生效） */
-const CACHE = 'star-english-v27';
+const CACHE = 'star-english-v28';
 const ASSETS = [
   './',
   './index.html',
   './css/style.css',
   './js/data.js',
+  './js/data-ipa.js',
   './js/audio.js',
   './js/store.js',
   './js/ui-kit.js',
