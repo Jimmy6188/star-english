@@ -148,7 +148,7 @@ function renderHome() {
     mathDone, () => MathSprint.start()));
   taskRows.appendChild(mkRow('📖', '语文',
     cnDone ? '今日已练一轮' : '诗词 / 阅读 / 词语任选一轮',
-    cnDone, () => openSubjectHub('cn')));
+    cnDone, () => openCnHub()));
 
   /* 大按钮：按 英语 → 数学 → 语文 顺序指向下一个任务 */
   const btn = $('#btn-quest');

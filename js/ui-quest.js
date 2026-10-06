@@ -178,6 +178,7 @@ const Quest = {
       h('div', { class: 'spell-prompt' }, `📝 听写第 ${this.idx + 1} 题（共 ${this.items.length} 题）`),
       h('div', { class: 'spell-zh' }, w.zh),
       h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(w.word) }, '🔊'),
+      ipaEl(w),
       h('div', { class: 'tiny' }, '听发音看中文拼单词 · 只有一次机会！'),
       slotsEl,
       tilesEl
@@ -458,6 +459,7 @@ const Quest = {
       opts.hardMode ? '' : h('div', { class: 'spell-zh' }, w.zh),
       useCloze ? h('div', { class: 'cloze-line' }, clozeBefore, h('span', { class: 'cloze-blank' }, '＿＿＿＿'), clozeAfter) : '',
       h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(spokenText) }, '🔊'),
+      this.bossMode ? '' : ipaEl(w),
       h('div', { class: 'tiny' },
         useCloze ? '🔊 可重听整句（缺的词会读成 something）· 不给中文，靠句子猜词'
           : (opts.decoys ? '小心！字母块里有捣蛋鬼' : (isPhrase ? '听发音，把词组的每个字母按顺序放好' : '听发音，从下面选出字母'))),
