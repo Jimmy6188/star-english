@@ -202,6 +202,23 @@ function renderHome() {
     ));
   }
 
+  /* 英语句子默写（看中文，逐词拼英文句子） */
+  const swSlot = $('#sentence-slot');
+  if (swSlot && typeof SENTENCE_BANK !== 'undefined') {
+    const swDone = ((s.sentence && s.sentence.done) || []).length;
+    swSlot.innerHTML = '';
+    swSlot.appendChild(h('div', { class: 'card math-card' },
+      h('div', { class: 'math-head' },
+        h('span', { class: 'math-emoji' }, '⌨️'),
+        h('div', { class: 'math-info' },
+          h('div', { style: 'font-weight:800' }, '英语句子默写'),
+          h('div', { class: 'tiny' }, `看中文拼英文 · 已默写 ${swDone}/${SENTENCE_BANK.length} 句 · 拼错不能跳过`)
+        ),
+        h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); SentWrite.start(); } }, '去默写')
+      )
+    ));
+  }
+
   /* 每日一星：初中知识浸润卡（纯阅读不考试，看完 +1 🪙，重在潜移默化） */
   const jrSlot = $('#junior-slot');
   if (jrSlot && typeof JUNIOR_CARDS !== 'undefined') {

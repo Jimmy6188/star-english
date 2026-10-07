@@ -927,3 +927,34 @@ select.input.num { width: auto; min-width: 130px; }
 .junior-body { font-size: 15px; line-height: 1.9; color: var(--text-mid); }
 .junior-row { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; font-size: 13.5px; line-height: 1.8; color: var(--text-low); }
 .junior-row .jr-k { flex: none; }
+
+/* ---------- v30：英语句子默写（看中文拼英文） ---------- */
+.sw-zh { font-size: 25px; font-weight: 900; margin: 8px 0 2px; text-align: center; line-height: 1.5; }
+.sw-words { display: flex; justify-content: center; align-items: flex-end; flex-wrap: wrap; gap: 4px 10px; margin: 14px 0 4px; }
+.sw-word { display: flex; gap: 4px; padding: 5px 8px; border-radius: 12px; border: 2px dashed transparent; }
+.sw-word.active { border-color: var(--line-4); background: var(--fill-1); }
+.sw-word.done { border-style: solid; border-color: var(--green); background: var(--green-fill); }
+.sw-word.bad { border-color: var(--red); background: var(--red-fill); animation: shake .45s; }
+.sw-cell {
+  width: 26px; height: 34px; line-height: 32px; text-align: center;
+  border-bottom: 3px solid var(--line-4); font-size: 22px; font-weight: 900; color: var(--text-hi);
+}
+.sw-word.active .sw-cell { border-bottom-color: var(--accent); }
+.sw-word.done .sw-cell { border-bottom-color: var(--green); color: var(--green); }
+.sw-word.bad .sw-cell { border-bottom-color: var(--red); }
+.sw-punct { font-size: 24px; font-weight: 900; color: var(--text-faint); padding-bottom: 4px; }
+.sw-tools { display: flex; justify-content: center; gap: 8px; margin: 8px 0 2px; flex-wrap: wrap; }
+.sw-result { text-align: center; margin-top: 14px; }
+.sw-result .sw-en { font-size: 22px; font-weight: 900; color: var(--green); line-height: 1.5; }
+.kb { max-width: 480px; margin: 10px auto 0; }
+.kb-row { display: flex; justify-content: center; gap: 5px; margin-bottom: 6px; }
+.kb-key {
+  flex: 1 1 0; min-width: 0; max-width: 42px; padding: 12px 0; font-size: 19px; font-weight: 900;
+  border-radius: 10px; background: var(--tile-bg); border: 1px solid var(--line-3);
+  box-shadow: 0 3px 0 var(--tile-edge); color: var(--tile-text); cursor: pointer; font-family: inherit;
+}
+.kb-key:active { transform: translateY(3px); box-shadow: none; }
+.kb-key.fn { background: var(--fill-2); font-size: 16px; color: var(--text-low); }
+.kb-key.on { background: var(--accent-grad); border: none; color: #fff; }
+.kb-key.wide { max-width: none; flex: 2.6; }
+.kb-key.ok { background: var(--accent-grad); border: none; }

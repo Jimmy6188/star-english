@@ -48,6 +48,7 @@ const Store = (() => {
       chinese: { stars: {}, reads: [], wrong: [], guwen: [] },
       phonics: { rounds: 0 }, // 词族拼读累计轮数
       enRead: { reads: [] }, // 已读完的英语短文 id
+      sentence: { runs: 0, done: [], best: 0, layout: 'abc', hard: {} }, // 句子默写：轮数/已默写句子 id/最好成绩/键盘排列(abc|qwerty)/难词复现计数
       junior: { seen: {} },  // 每日一星：已收下的初中知识卡 id -> 日期
       stats: { drillsDone: 0, thinkDone: 0, boxesOpened: 0 }
     };
@@ -83,6 +84,9 @@ const Store = (() => {
     if (state.today && state.today.enReadDone === undefined) state.today.enReadDone = false;
     if (!state.enRead) state.enRead = { reads: [] };
     if (!state.junior) state.junior = { seen: {} }; /* v26：每日一星知识卡 */
+    if (!state.sentence) state.sentence = { runs: 0, done: [], best: 0 }; /* v30：句子默写 */
+    if (state.sentence.layout === undefined) state.sentence.layout = 'abc'; /* v31：键盘排列，默认字母序 */
+    if (!state.sentence.hard) state.sentence.hard = {}; /* v31：句中难词复现计数 */
     if (!state.pet.outfits) state.pet.outfits = { owned: [], worn: {} };
     if (state.stats && !state.stats.thinkDone) state.stats.thinkDone = 0;
     if (state.stats && !state.stats.boxesOpened) state.stats.boxesOpened = 0;
@@ -665,6 +669,41 @@ const Store = (() => {
     save();
   }
 
+  /* ---------- 英语句子默写 ----------
+   * 每默写完一句记一个 id（供抽题时优先出新句）；一轮结束后记轮数与最好成绩。 */
+  function markSentence(sid) {
+    if (!state.sentence) state.sentence = { runs: 0, done: [], best: 0 };
+    if (!state.sentence.done.includes(sid)) {
+      state.sentence.done.push(sid);
+      save();
+    }
+  }
+  function bumpSentenceRun(perfect) {
+    if (!state.sentence) state.sentence = { runs: 0, done: [], best: 0 };
+    state.sentence.runs = (state.sentence.runs || 0) + 1;
+    state.sentence.best = Math.max(state.sentence.best || 0, perfect || 0);
+    save();
+  }
+  /* 句子默写键盘排列：abc=字母顺序（低年级找字母快）/ qwerty=和电脑一致 */
+  function setSentenceLayout(layout) {
+    if (!state.sentence) state.sentence = {};
+    state.sentence.layout = layout === 'qwerty' ? 'qwerty' : 'abc';
+    save();
+  }
+  /* 句中拼错的词计入难词表：之后抽句优先出含这些词的句子，及时复现 */
+  function bumpSentenceHard(words) {
+    if (!state.sentence) state.sentence = {};
+    if (!state.sentence.hard) state.sentence.hard = {};
+    words.forEach(w => { state.sentence.hard[w] = (state.sentence.hard[w] || 0) + 1; });
+    /* 只留最有价值的 60 个，防止无限增长 */
+    const keys = Object.keys(state.sentence.hard);
+    if (keys.length > 60) {
+      keys.sort((a, b) => state.sentence.hard[b] - state.sentence.hard[a]);
+      state.sentence.hard = Object.fromEntries(keys.slice(0, 60).map(k => [k, state.sentence.hard[k]]));
+    }
+    save();
+  }
+
   /* ---------- 每日一星（初中知识浸润卡） ----------
    * 每天只发一张：点"看懂了"记入 seen 并 +1 金币（受每日上限约束）。
    * 当天领过后首页只显示"已收下"，防止一天连刷；全部看完后随机重温。 */
@@ -871,6 +910,7 @@ const Store = (() => {
     addShopReward, removeShopReward, redeemReward, approveRedeem, rejectRedeem, tomorrowDueCount,
     petStage, feedPet, setSetting,
     buyOutfit, wearOutfit, openStarBox, markEnRead,
+    markSentence, bumpSentenceRun, setSentenceLayout, bumpSentenceHard,
     nextJuniorCard, markJuniorSeen,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,
