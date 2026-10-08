@@ -3,6 +3,10 @@
  * 初始化 / 屏幕路由 / 星空背景 / 首次欢迎
  * ============================================================ */
 
+/* 应用版本号：顶栏标题旁显示，供家长一眼确认设备跑的是否最新版。
+ * 发版时三处一起改：这里 / sw.js 的 CACHE / index.html 里脚本与 css 的 ?v= 参数 */
+const APP_VERSION = 'v33';
+
 function showScreen(name) {
   $$('#main .screen').forEach(el => el.classList.remove('active'));
   $('#screen-' + name).classList.add('active');
@@ -135,6 +139,8 @@ function init() {
   initTheme();
   bindNav();
   bindHome();
+  const verEl = $('#app-ver');
+  if (verEl) verEl.textContent = APP_VERSION;
   $('#top-coins').style.cursor = 'pointer';
   $('#top-coins').title = '查看今日结算单';
   $('#top-coins').addEventListener('click', () => { Sound.tap(); openSettlement(); });
