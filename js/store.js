@@ -87,6 +87,7 @@ const Store = (() => {
     if (!state.sentence) state.sentence = { runs: 0, done: [], best: 0 }; /* v30：句子默写 */
     if (state.sentence.layout === undefined) state.sentence.layout = 'abc'; /* v31：键盘排列，默认字母序 */
     if (!state.sentence.hard) state.sentence.hard = {}; /* v31：句中难词复现计数 */
+    if (!state.sentence.newWords) state.sentence.newWords = {}; /* v32：句子默写生词本 */
     if (!state.pet.outfits) state.pet.outfits = { owned: [], worn: {} };
     if (state.stats && !state.stats.thinkDone) state.stats.thinkDone = 0;
     if (state.stats && !state.stats.boxesOpened) state.stats.boxesOpened = 0;
@@ -506,7 +507,8 @@ const Store = (() => {
   function addCnWrong(q) {
     const w = state.chinese.wrong;
     if (w.some(x => x.q === q.q)) return;
-    w.push({ q: q.q, opts: q.opts, ans: q.ans, tip: q.tip || '' });
+    /* kind/line 一并存档：诗词填空（kind:'tiles'）复习时仍是字块界面 */
+    w.push({ q: q.q, opts: q.opts, ans: q.ans, tip: q.tip || '', kind: q.kind || '', line: q.line || '' });
     if (w.length > 20) state.chinese.wrong = w.slice(-20);
     save();
   }
@@ -702,6 +704,62 @@ const Store = (() => {
       state.sentence.hard = Object.fromEntries(keys.slice(0, 60).map(k => [k, state.sentence.hard[k]]));
     }
     save();
+  }
+
+  /* ---------- 句子默写生词本（v32） ----------
+   * 孩子求助过或手动收进的词：{ n: 求助次数, at: 收录日期, from: 来源句子 id,
+   * zh: 词库中文释义（库外词为空，界面用原句中文兜底）, ok: 练习拼对次数 }。
+   * 练习拼对 2 次算掌握，自动移出本子。 */
+  function sentenceNewAdd(word, from) {
+    if (!state.sentence) state.sentence = {};
+    if (!state.sentence.newWords) state.sentence.newWords = {};
+    const k = String(word || '').toLowerCase();
+    if (!k) return;
+    const nw = state.sentence.newWords;
+    if (!nw[k]) {
+      const w = findWord(k);
+      nw[k] = { n: 1, at: todayStr(), from: from || '', zh: w ? w.zh : '', ok: 0 };
+      /* 封顶 60 个：先请出快掌握的（ok 多）里最旧的 */
+      const keys = Object.keys(nw);
+      if (keys.length > 60) {
+        keys.sort((a, b) => ((nw[a].ok || 0) - (nw[b].ok || 0)) || nw[a].at.localeCompare(nw[b].at));
+        delete nw[keys[0]];
+      }
+    } else {
+      nw[k].n++;
+      const w = findWord(k);
+      if (w && !nw[k].zh) nw[k].zh = w.zh;
+    }
+    save();
+  }
+  function sentenceNewList() {
+    const nw = (state.sentence && state.sentence.newWords) || {};
+    return Object.keys(nw).map(k => Object.assign({ word: k }, nw[k]))
+      .sort((a, b) => b.n - a.n || a.word.localeCompare(b.word));
+  }
+  /* 练习拼对一次；2 次算掌握并移出本子 */
+  function sentenceNewOk(word) {
+    const nw = state.sentence.newWords || {};
+    const k = String(word || '').toLowerCase();
+    const rec = nw[k];
+    if (!rec) return { ok: 0, mastered: false };
+    rec.ok = (rec.ok || 0) + 1;
+    const mastered = rec.ok >= 2;
+    if (mastered) delete nw[k];
+    save();
+    return { ok: rec.ok, mastered };
+  }
+  function sentenceNewRemove(word) {
+    if (!state.sentence || !state.sentence.newWords) return;
+    delete state.sentence.newWords[String(word || '').toLowerCase()];
+    save();
+  }
+  /* 生词本练习结算：每掌握一词 +2 币（走 earnScaled 递减体系） */
+  function finishSentenceBook(mastered) {
+    const got = earnScaled('sbook', Math.max(0, mastered || 0) * 2);
+    checkBadges();
+    save();
+    return got;
   }
 
   /* ---------- 每日一星（初中知识浸润卡） ----------
@@ -911,6 +969,7 @@ const Store = (() => {
     petStage, feedPet, setSetting,
     buyOutfit, wearOutfit, openStarBox, markEnRead,
     markSentence, bumpSentenceRun, setSentenceLayout, bumpSentenceHard,
+    sentenceNewAdd, sentenceNewList, sentenceNewOk, sentenceNewRemove, finishSentenceBook,
     nextJuniorCard, markJuniorSeen,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,

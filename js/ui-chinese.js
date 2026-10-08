@@ -1,13 +1,14 @@
 /* ============================================================
  * 星际求知号 - 语文星系（人教版四上）
- * 诗词星图（古诗挑战点亮星星）/ 阅读训练营 / 词语实战
- * 统一选择式作答；错题进语文错题池；完成一轮即参与打卡
+ * 诗词星图（每首 4 关：接下句 · 填名句 · 认作者 · 懂诗意）/ 阅读训练营 / 词语实战
+ * 选择题统一走 ask()；名句填空是字块点选（kind:'tiles'，点字块按顺序填字）
+ * 错题进语文错题池（填空题复习时也是字块界面）；完成一轮即参与打卡
  * ============================================================ */
 
 const Chinese = {
   pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
 
-  /* ---------- 通用：选择式题目（onDone(ok)） ---------- */
+  /* ---------- 通用：选择式题目 / 字块填空（onDone(ok)） ---------- */
   ask(q, idx, total, onDone) {
     const root = $('#quest-root');
     root.innerHTML = '';
@@ -15,35 +16,109 @@ const Chinese = {
       h('button', { class: 'quest-exit', onclick: () => confirmModal('退出练习？', '进度将不保存，确定退出吗？', () => { showScreen('home'); renderHome(); }) }, '✕'),
       h('div', { class: 'quest-prog' }, `${idx + 1} / ${total}`)
     ));
-    const map = shuffle(q.opts.map((t, i) => ({ t, ok: i === q.ans })));
     const optsEl = h('div', { class: 'cn-opts' });
     let wasOk = null;
-    map.forEach(m => {
-      optsEl.appendChild(h('button', {
-        class: 'cn-opt', 'data-ok': m.ok ? '1' : '0',
-        onclick: e => {
-          if (wasOk !== null) return;
-          wasOk = m.ok;
-          if (m.ok) {
-            Sound.correct();
-            e.currentTarget.classList.add('right');
-            const c = centerOf(e.currentTarget);
-            burst(c.x, c.y, { count: 6, colors: ['#58e08a'], power: 40 });
-          } else {
-            Store.addCnWrong(q);
-            Sound.wrong();
-            e.currentTarget.classList.add('wrong');
-            const right = Array.from(optsEl.children).find(x => x.dataset.ok === '1');
-            if (right) right.classList.add('right');
-          }
-          Array.from(optsEl.children).forEach(b => { b.disabled = true; });
-          root.querySelector('.cn-tip').innerHTML = m.ok ? '✅ ' + (q.tip || '回答正确！') : '❌ ' + (q.tip || `正确答案：${q.opts[q.ans]}`);
-          root.querySelector('.cn-next').style.display = '';
+    if (q.kind === 'tiles') {
+      /* ---- 名句填空：点字块按顺序把字填进空格，点已填的字可退回 ---- */
+      const slots = q.ans.length;
+      const filled = [];
+      const sentEl = h('span', { class: 'cloze-sentence tile-sentence' });
+      const parts = q.q.split('＿'.repeat(slots));
+      sentEl.appendChild(document.createTextNode(parts[0] || ''));
+      const slotEls = [];
+      for (let s = 0; s < slots; s++) {
+        const sl = h('span', { class: 'tile-slot' }, '');
+        slotEls.push(sl);
+        sentEl.appendChild(sl);
+      }
+      (parts[1] || '').split('\n').forEach((seg, i) => {
+        if (i > 0) sentEl.appendChild(h('br'));
+        sentEl.appendChild(document.createTextNode(seg));
+      });
+      optsEl.appendChild(sentEl);
+      const tilesEl = h('div', { class: 'tile-row' });
+      const tileEls = [];
+      const repaint = () => {
+        slotEls.forEach((sl, i) => {
+          sl.textContent = filled[i] ? filled[i].c : '';
+          sl.classList.toggle('filled', !!filled[i]);
+        });
+        tileEls.forEach(t => t.classList.toggle('used', filled.some(f => f.id === t.dataset.id)));
+      };
+      const judge = () => {
+        const guess = filled.map(f => f.c).join('');
+        wasOk = guess === q.ans;
+        slotEls.forEach((sl, i) => {
+          sl.classList.add(guess[i] === q.ans[i] ? 'right' : 'wrong');
+          sl.onclick = null;
+        });
+        tileEls.forEach(t => { t.disabled = true; });
+        if (wasOk) {
+          Sound.correct();
+          const c = centerOf(sentEl);
+          burst(c.x, c.y, { count: 8, colors: ['#58e08a'], power: 45 });
+          setTimeout(() => Sound.speak(q.line || q.q, 0.82), 250);
+        } else {
+          Store.addCnWrong(q);
+          Sound.wrong();
         }
-      }, m.t));
-    });
+        root.querySelector('.cn-tip').innerHTML = wasOk ? '✅ 填对了！' : '❌ ' + (q.tip || `正确答案：${q.line || q.q}`);
+        root.querySelector('.cn-next').style.display = '';
+      };
+      shuffle(q.opts.map((c, i) => ({ c, id: 't' + i }))).forEach(t => {
+        const b = h('button', {
+          class: 'tile-btn', 'data-id': t.id,
+          onclick: () => {
+            if (wasOk !== null || filled.length >= slots) return;
+            Sound.tap();
+            filled.push(t);
+            repaint();
+            if (filled.length === slots) judge();
+          }
+        }, t.c);
+        tileEls.push(b);
+        tilesEl.appendChild(b);
+      });
+      slotEls.forEach((sl, i) => {
+        sl.onclick = () => {
+          if (wasOk !== null || !filled[i]) return;
+          Sound.tap();
+          filled.splice(i, 1);
+          repaint();
+        };
+      });
+      optsEl.appendChild(tilesEl);
+    } else {
+      const map = shuffle(q.opts.map((t, i) => ({ t, ok: i === q.ans })));
+      map.forEach(m => {
+        optsEl.appendChild(h('button', {
+          class: 'cn-opt', 'data-ok': m.ok ? '1' : '0',
+          onclick: e => {
+            if (wasOk !== null) return;
+            wasOk = m.ok;
+            if (m.ok) {
+              Sound.correct();
+              e.currentTarget.classList.add('right');
+              const c = centerOf(e.currentTarget);
+              burst(c.x, c.y, { count: 6, colors: ['#58e08a'], power: 40 });
+            } else {
+              Store.addCnWrong(q);
+              Sound.wrong();
+              e.currentTarget.classList.add('wrong');
+              const right = Array.from(optsEl.children).find(x => x.dataset.ok === '1');
+              if (right) right.classList.add('right');
+            }
+            Array.from(optsEl.children).forEach(b => { b.disabled = true; });
+            root.querySelector('.cn-tip').innerHTML = m.ok ? '✅ ' + (q.tip || '回答正确！') : '❌ ' + (q.tip || `正确答案：${q.opts[q.ans]}`);
+            root.querySelector('.cn-next').style.display = '';
+          }
+        }, m.t));
+      });
+    }
+    const qText = h('div', { class: 'drill-text' }, q.q);
+    if (q.kind === 'tiles') qText.style.display = 'none'; /* 填空题自带句子展示 */
     root.appendChild(h('div', { class: 'card drill-card' },
-      h('div', { class: 'drill-text' }, q.q),
+      qText,
       optsEl,
       h('div', { class: 'cn-tip tiny', style: 'margin-top:10px;min-height:20px' }, ''),
       h('button', {
@@ -81,7 +156,7 @@ const Chinese = {
     const stars = Store.state.chinese.stars;
     const learned = Store.state.chinese.learned || {};
     root.appendChild(h('div', { class: 'card drill-card' },
-      h('div', { class: 'drill-tag' }, '每首诗挑战 3 关：接下句 · 认作者 · 懂诗意'),
+      h('div', { class: 'drill-tag' }, '每首诗挑战 4 关：接下句 · 填名句 · 认作者 · 懂诗意'),
       h('div', { class: 'tiny', style: 'margin:6px 0 2px' }, '没学过的诗要先读一读：全诗 · 译文 · 重点字词，学完再挑战。全部答对点亮一颗 ⭐'),
       h('div', { class: 'cn-poem-list' },
         CN_POEMS.map(p => {
@@ -145,6 +220,27 @@ const Chinese = {
     setTimeout(() => Sound.speak(p.lines.join('，') + '。', 0.8), 400);
   },
 
+  /* ---------- 名句填空出题（v32） ----------
+   * 随机选一句，抠掉 1~2 个连续的字（避开句首字）；
+   * 字块 = 抠掉的正确字数 + 3 个从本诗其他句抽的干扰字，打乱后点选。
+   * skipLines：避开刚出过上下句的那两行，不让刚看完的答案原样再考一次。 */
+  poemFillQ(p, skipLines) {
+    /* 候选行：排除刚出过上下句的那两行，从剩下的行里等概率抽 */
+    const cands = p.lines.map((_, k) => k).filter(k => !(skipLines || []).includes(k));
+    const li = cands.length ? cands[Math.floor(Math.random() * cands.length)]
+      : Math.floor(Math.random() * p.lines.length);
+    const line = p.lines[li];
+    const len = line.length;
+    const blankLen = (len >= 7 && Math.random() < 0.6) ? 2 : 1;
+    const start = 1 + Math.floor(Math.random() * (len - blankLen));
+    const ans = line.slice(start, start + blankLen);
+    const pool = [...new Set(p.lines.join('').split(''))].filter(c => !ans.includes(c));
+    const distract = shuffle(pool).slice(0, 3);
+    const opts = shuffle(ans.split('').concat(distract));
+    const q = line.slice(0, start) + '＿'.repeat(blankLen) + line.slice(start + blankLen);
+    return { kind: 'tiles', q, opts, ans, line, tip: `《${p.title}》：${line}` };
+  },
+
   poemChallenge(p) {
     const qs = [];
     const i = Math.floor(Math.random() * (p.lines.length - 1));
@@ -159,6 +255,8 @@ const Chinese = {
     lineQ.opts = shuffle(lineQ.opts);
     lineQ.ans = lineQ.opts.indexOf(correctLine);
     qs.push(lineQ);
+
+    qs.push(this.poemFillQ(p, [i, i + 1]));
 
     const wrongAuthors = shuffle(CN_AUTHORS.filter(a => a !== p.author)).slice(0, 3);
     const authorQ = { q: `《${p.title}》的作者是？`, opts: [p.author, ...wrongAuthors], tip: `《${p.title}》是${p.dynasty}代诗人${p.author}的作品。`, correctText: p.author };

@@ -206,13 +206,14 @@ function renderHome() {
   const swSlot = $('#sentence-slot');
   if (swSlot && typeof SENTENCE_BANK !== 'undefined') {
     const swDone = ((s.sentence && s.sentence.done) || []).length;
+    const swNew = Object.keys((s.sentence && s.sentence.newWords) || {}).length;
     swSlot.innerHTML = '';
     swSlot.appendChild(h('div', { class: 'card math-card' },
       h('div', { class: 'math-head' },
         h('span', { class: 'math-emoji' }, '⌨️'),
         h('div', { class: 'math-info' },
           h('div', { style: 'font-weight:800' }, '英语句子默写'),
-          h('div', { class: 'tiny' }, `看中文拼英文 · 已默写 ${swDone}/${SENTENCE_BANK.length} 句 · 拼错不能跳过`)
+          h('div', { class: 'tiny' }, `看中文拼英文 · 已默写 ${swDone}/${SENTENCE_BANK.length} 句 · 拼错不能跳过${swNew ? ` · 生词 ${swNew}` : ''}`)
         ),
         h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); SentWrite.start(); } }, '去默写')
       )
@@ -789,6 +790,21 @@ function renderParent() {
       ));
     });
     root.appendChild(wCard);
+  }
+
+  /* 英语生词本（句子默写里求助过/手动收进的词） */
+  const newWords = Store.sentenceNewList();
+  if (newWords.length) {
+    const nbCard = h('div', { class: 'card' },
+      h('div', { class: 'sec-title' }, '📒 英语生词本'),
+      h('div', { class: 'tiny', style: 'margin-bottom:6px' }, '句子默写中卡住求助过、或孩子手动收进的词。在「英语句子默写 → 生词本」里练习，拼对 2 次自动移出本子'));
+    newWords.slice(0, 10).forEach(rec => {
+      nbCard.appendChild(h('div', { class: 'pack-row' },
+        h('span', { class: 'pack-info' }, rec.word, h('span', { class: 'tiny' }, `　${rec.zh || ''}${rec.ok ? ` · 已拼对 ${rec.ok} 次` : ''}`)),
+        h('span', { class: 'tiny' }, `求助 ${rec.n} 次`)
+      ));
+    });
+    root.appendChild(nbCard);
   }
 
   /* 学习设置 */

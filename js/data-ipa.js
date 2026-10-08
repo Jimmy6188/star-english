@@ -3,6 +3,8 @@
  * 美式 IPA（与内置 TTS 美音一致，听着啥音标就写啥音）；
  * 词组（含空格）不注音；学习卡/贴纸弹窗/拼写结算页展示，
  * 点音标可重听单词。查不到的词不显示音标，不影响学习。
+ * 句库常用实词的音标集中在文末"句子默写补充"一节（含句中变形），
+ * 供句子默写的"看音标"求助使用；虚词（the/is/a 等）不注。
  * ============================================================ */
 
 const IPA_DICT = {
@@ -104,7 +106,40 @@ const IPA_DICT = {
   weekend: 'ˈwiːkend', whale: 'weɪl', wheel: 'wiːl', white: 'waɪt', whoosh: 'wʊʃ',
   wind: 'wɪnd', window: 'ˈwɪndoʊ', windy: 'ˈwɪndi', winter: 'ˈwɪntər', wish: 'wɪʃ',
   wolf: 'wʊlf', woman: 'ˈwʊmən', woof: 'wʊf', yard: 'jɑːrd', year: 'jɪr',
-  yellow: 'ˈjeloʊ'
+  yellow: 'ˈjeloʊ',
+
+  /* ---------- 句子默写补充（v32）：句库常用实词，含句中变形 ---------- */
+  animals: 'ˈænəməlz', apples: 'ˈæplz',
+  bag: 'bæɡ', bananas: 'bəˈnænəz', begin: 'bɪˈɡɪn', begins: 'bɪˈɡɪnz',
+  best: 'best', big: 'bɪɡ', birds: 'bɜːrdz', blow: 'bloʊ', blowing: 'ˈbloʊɪŋ',
+  books: 'bʊks', breakfast: 'ˈbrekfəst', bright: 'braɪt', brush: 'brʌʃ',
+  beautifully: 'ˈbjuːtɪfli',
+  class: 'klæs', climb: 'klaɪm', come: 'kʌm',
+  day: 'deɪ', dinner: 'ˈdɪnər', do: 'duː', "don't": 'doʊnt', drink: 'drɪŋk',
+  ducks: 'dʌks',
+  eat: 'iːt', ears: 'ɪrz', eyes: 'aɪz',
+  fast: 'fæst', fingers: 'ˈfɪŋɡərz', first: 'fɜːrst', flowers: 'ˈflaʊərz',
+  friends: 'frendz', fruit: 'fruːt', fun: 'fʌn',
+  get: 'ɡet', go: 'ɡoʊ', good: 'ɡʊd',
+  hands: 'hændz', happy: 'ˈhæpi', has: 'hæz', have: 'hæv', head: 'hed',
+  heavy: 'ˈhevi', help: 'help', homework: 'ˈhoʊmwɜːrk', hurt: 'hɜːrt',
+  hurts: 'hɜːrts',
+  late: 'leɪt', lessons: 'ˈlesnz', let: 'let', like: 'laɪk', listen: 'ˈlisn',
+  little: 'ˈlɪtl', long: 'lɔːŋ', look: 'lʊk',
+  make: 'meɪk', monkeys: 'ˈmʌŋkiz',
+  need: 'niːd', new: 'nuː', now: 'naʊ',
+  old: 'oʊld', onions: 'ˈʌnjənz', open: 'ˈoʊpən',
+  pandas: 'ˈpændəz', park: 'pɑːrk',
+  rabbits: 'ˈræbɪts', raise: 'reɪz', read: 'riːd', ready: 'redi',
+  road: 'roʊd', run: 'rʌn', runs: 'rʌnz',
+  school: 'skuːl', see: 'siː', sing: 'sɪŋ', sleep: 'sliːp', sleeping: 'ˈsliːpɪŋ',
+  snowman: 'ˈsnoʊmæn', soup: 'suːp', sour: 'saʊr', speak: 'spiːk',
+  stars: 'stɑːrz', stop: 'stɑːp', swim: 'swɪm', swims: 'swɪmz',
+  swimming: 'ˈswɪmɪŋ',
+  teeth: 'tiːθ', tall: 'tɔːl', time: 'taɪm', today: 'təˈdeɪ',
+  tonight: 'təˈnaɪt', trees: 'triːz',
+  want: 'wɑːnt', well: 'wel', where: 'wer',
+  zoo: 'zuː'
 };
 
 /* 取一个词条的音标：词组不注、词典没有不注，返回空串 */

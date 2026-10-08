@@ -958,3 +958,81 @@ select.input.num { width: auto; min-width: 130px; }
 .kb-key.on { background: var(--accent-grad); border: none; color: #fff; }
 .kb-key.wide { max-width: none; flex: 2.6; }
 .kb-key.ok { background: var(--accent-grad); border: none; }
+
+/* ============================================================
+ * v32：句子默写求助 / 生词本 / 句子结构卡 · 诗词名句填空（字块）
+ * ============================================================ */
+
+/* ---- 求助面板与音标行 ---- */
+.sw-ipa-cap {
+  min-height: 22px; text-align: center; font-size: 17px; font-weight: 900;
+  color: var(--accent-text); letter-spacing: .5px; margin: 2px 0 4px;
+}
+.sw-help {
+  display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin: 8px auto 2px; padding: 10px 10px 6px; max-width: 480px;
+  background: var(--fill-1); border: 1px dashed var(--line-3); border-radius: 14px;
+}
+.sw-help .btn[disabled] { opacity: .55; cursor: default; }
+.sw-help .btn[disabled]:active { transform: none; }
+
+/* ---- 句子结构卡 ---- */
+.gram-wrap {
+  margin: 10px auto 2px; max-width: 520px; text-align: left;
+  background: var(--fill-1); border: 1px solid var(--line-2); border-radius: 14px; padding: 10px 12px;
+}
+.gram-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.gram-chip {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 5px 9px 4px; border-radius: 10px; border: 1.5px solid var(--line-2);
+  background: var(--fill-2); line-height: 1.25;
+}
+.gram-chip .gram-t { font-size: 15px; font-weight: 900; color: var(--text-hi); }
+.gram-chip .gram-r { font-size: 11px; font-weight: 700; color: var(--text-low); }
+.gram-chip.omit { border-style: dashed; opacity: .75; }
+.gram-chip.omit .gram-t { color: var(--text-low); }
+.gram-legend { margin-top: 8px; line-height: 1.7; color: var(--text-low); }
+/* 成分配色：0主语 1谓语 2宾语 3表语 4状语 5补语 6疑问词 7感叹 8语气 */
+.role-0 { border-color: rgba(79, 209, 255, .55); background: rgba(79, 209, 255, .12); }
+.role-0 .gram-r { color: var(--accent-text); }
+.role-1 { border-color: rgba(88, 224, 138, .55); background: rgba(88, 224, 138, .12); }
+.role-1 .gram-r { color: var(--green-text); }
+.role-2 { border-color: rgba(255, 207, 92, .55); background: rgba(255, 207, 92, .12); }
+.role-2 .gram-r { color: var(--gold-soft-text); }
+.role-3 { border-color: rgba(255, 107, 214, .5); background: rgba(255, 107, 214, .12); }
+.role-3 .gram-r { color: var(--pink-text); }
+.role-4 { border-color: rgba(125, 107, 255, .55); background: rgba(125, 107, 255, .14); }
+.role-4 .gram-r { color: #c0b6ff; }
+.role-5 { border-color: rgba(255, 157, 60, .55); background: rgba(255, 157, 60, .12); }
+.role-5 .gram-r { color: #ffc48f; }
+.role-6 { border-color: rgba(125, 184, 255, .55); background: rgba(125, 184, 255, .12); }
+.role-6 .gram-r { color: #b9d6ff; }
+.role-7 { border-color: rgba(92, 225, 176, .55); background: rgba(92, 225, 176, .12); }
+.role-7 .gram-r { color: #a5f0d6; }
+.role-8 { border-color: rgba(255, 143, 171, .55); background: rgba(255, 143, 171, .12); }
+.role-8 .gram-r { color: var(--pink-strong-text); }
+
+/* ---- 生词本 ---- */
+.nb-word { font-size: 17px; font-weight: 900; color: var(--text-hi); }
+.nb-row { align-items: center; }
+
+/* ---- 诗词名句填空（字块） ---- */
+.tile-sentence { font-size: 22px; line-height: 2.1; text-align: center; letter-spacing: 1px; }
+.tile-slot {
+  display: inline-block; width: 40px; height: 44px; line-height: 42px; text-align: center;
+  margin: 0 3px; border-bottom: 3px solid var(--accent); border-radius: 8px 8px 4px 4px;
+  background: var(--fill-2); font-size: 24px; font-weight: 900; color: var(--text-hi);
+  vertical-align: middle; cursor: pointer;
+}
+.tile-slot.filled { color: var(--accent-text); }
+.tile-slot.right { border-bottom-color: var(--green); background: var(--green-fill); color: var(--green-text); }
+.tile-slot.wrong { border-bottom-color: var(--red); background: var(--red-fill); color: var(--red-text); animation: shake .45s; }
+.tile-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.tile-btn {
+  width: 52px; height: 52px; font-size: 26px; font-weight: 900;
+  border-radius: 12px; background: var(--tile-bg); border: 1px solid var(--line-3);
+  box-shadow: 0 3px 0 var(--tile-edge); color: var(--tile-text); cursor: pointer; font-family: inherit;
+}
+.tile-btn:active { transform: translateY(3px); box-shadow: none; }
+.tile-btn.used { opacity: .3; pointer-events: none; }
+.tile-btn:disabled { cursor: default; }
