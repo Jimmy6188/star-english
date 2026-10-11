@@ -396,7 +396,7 @@ const Store = (() => {
     else st.count = 1;
     st.best = Math.max(st.best || 0, st.count);
     st.lastDone = t;
-    state.history[t] = { done: true, minutes: state.today.minutes, news: state.today.newDone, revs: state.today.revDone };
+    state.history[t] = { done: true, minutes: state.today.minutes, news: state.today.newDone, revs: state.today.revDone, coins: state.today.coinsEarned || 0 };
     checkBadges();
     save();
   }

@@ -7,7 +7,7 @@
  * ============================================================ */
 
 const Quest = {
-  items: [], idx: 0, startedTs: 0, freeMode: false, drillMode: false, bossMode: false, bossWrong: 0, warnedLimit: false,
+  items: [], idx: 0, startedTs: 0, freeMode: false, drillMode: false, bossMode: false, bossWrong: 0, warnedLimit: false, bossHook: null,
 
   qroot() { return $('#quest-root'); },
 
@@ -57,26 +57,6 @@ const Quest = {
     this.dictMode = false;
     this.bossWrong = 0;
     this.items = weak.map(id => ({ id, kind: 'review' }));
-    this.idx = 0;
-    this.startedTs = Date.now();
-    this.warnedLimit = false;
-    showScreen('quest');
-    this.splash();
-  },
-
-  /* 每周日 BOSS 挑战：10 道纯拼写高阶题，失误 ≤1 击败 / ≤3 击伤 / 更多则战败
-   * 战败词自动进错题本，当天可无限次再战（奖励每周只发一次） */
-  startBoss() {
-    Sound.stopSpeak();
-    const pool = Object.keys(Store.state.srs).filter(id => Store.state.srs[id].box >= 3 && Store.findWord(id));
-    if (pool.length < 5) { toast('BOSS 挑战需要先掌握 5 个以上较熟的词，先去冒险吧！'); return; }
-    this.freeMode = false;
-    this.drillMode = false;
-    this.bossMode = true;
-    this.dictMode = false;
-    this.bossWrong = 0;
-    this.bossWasDone = Store.bossInfo().done; // 本周已通关 → 本次是友谊赛
-    this.items = shuffle(pool).slice(0, 10).map(id => ({ id, kind: 'review' }));
     this.idx = 0;
     this.startedTs = Date.now();
     this.warnedLimit = false;
@@ -227,7 +207,7 @@ const Quest = {
       if (box === 2) return Math.random() < 0.6 ? 'wordPick' : 'listen';
       return 'listen';
     }
-    if (box >= 4) return 'spellHard';
+    if (box >= 4) return Math.random() < 0.35 ? 'spellWrite' : 'spellHard';
     if (box === 3) return Math.random() < 0.5 ? 'cloze' : 'spellDecoy';
     if (box === 2) return Math.random() < 0.6 ? 'wordPick' : 'listen';
     return 'listen';
@@ -244,6 +224,7 @@ const Quest = {
     const mode = this.pickReviewMode(item);
     item.mode = mode;
     if (mode === 'spellHard') this.renderSpelling(w, false, { hardMode: true, decoys: true });
+    else if (mode === 'spellWrite') this.renderSpelling(w, false, { write: true });
     else if (mode === 'clozeSpell') this.renderSpelling(w, false, { hardMode: true, decoys: true, cloze: true });
     else if (mode === 'spellDecoy') this.renderSpelling(w, false, { decoys: true });
     else if (mode === 'spell') this.renderSpelling(w, false);
@@ -321,11 +302,13 @@ const Quest = {
 
   /* ---------- 拼写挑战 ----------
    * opts: hardMode=听写挑战(隐藏中文) decoys=混入干扰字母 cloze=句子填空拼写（BOSS 专用：给英文句子语境，不给中文）
+   * write=纯手写拼写（高阶：不出字母块，看中文把整个词写在四线三格里，写完对照自评，奖励 ×1.5）
+   * hdr=自定义头部（综合大考 BossAll 传入，接管进度显示）
    * BOSS 规则：不显示幽灵答案、不提供提示；同一题错 2 次即失守，词自动进错题本 */
-  renderSpelling(w, isNew, opts = {}) {
+  renderSpelling(w, isNew, opts = {}, hdr = null) {
     const root = this.qroot();
     root.innerHTML = '';
-    root.appendChild(this.progressHeader());
+    root.appendChild(hdr || this.progressHeader());
     const isPhrase = !!w.phrase;
     const target = w.word.toLowerCase();
     /* 词组也按字母拼：空格不进字母序列，槽位按单词分组、词间留空隙 */
@@ -348,12 +331,15 @@ const Quest = {
     const ghostEl = h('div', { class: 'ghost-word', style: 'visibility:hidden' }, target);
 
     const slotEls = [];
+    let slotNo = 0;
     const mkSlot = () => {
+      const idx = slotNo++;
       const s = h('span', {
         class: 'slot', onclick: () => {
-          if (!answer.length) return;
-          const last = answer.pop();
-          last.tile.classList.remove('used');
+          /* 点哪个字母撤哪个：后面的字母顺次前移，把空出来的槽位让给末尾 */
+          if (idx >= answer.length) return;
+          const removed = answer.splice(idx, 1)[0];
+          removed.tile.classList.remove('used');
           Sound.tap();
           refresh();
         }
@@ -378,9 +364,11 @@ const Quest = {
     }
 
     let letters = seq.split('');
-    if (opts.decoys && seq.length >= 4) {
+    if (opts.decoys && seq.length >= 2) {
+      /* 短词也混捣蛋鬼：2~3 字母的词混 1 个，4 字母以上混 2 个 */
+      const nDecoy = seq.length >= 4 ? 2 : 1;
       const pool = 'abcdefghilmnoprstuw'.split('').filter(c => !seq.includes(c));
-      letters = letters.concat(shuffle(pool).slice(0, 2));
+      letters = letters.concat(shuffle(pool).slice(0, nDecoy));
     }
     shuffle(letters).forEach(ch => {
       const t = h('button', {
@@ -451,26 +439,73 @@ const Quest = {
       onclick: () => Sound.speak(w.word.split('').join(', ') + '. ' + w.word, 0.7)
     }, '🔤 拼读一下');
 
-    root.appendChild(h('div', { class: 'card spell-card' },
+    const cardKids = [
       h('div', { class: 'spell-prompt' },
         useCloze ? '📖 读句子，把缺的词拼出来！'
           : (isNew ? (isPhrase ? '把词组的字母拼出来！' : '把新单词拼出来！')
-            : (opts.hardMode ? '⚡ 听写挑战：听发音拼写' : (isPhrase ? '复习：拼出这个词组' : '复习：拼出这个单词')))),
+            : (opts.write ? '🖊 手写挑战：看中文，把整个词写出来'
+              : (opts.hardMode ? '⚡ 听写挑战：听发音拼写' : (isPhrase ? '复习：拼出这个词组' : '复习：拼出这个单词'))))),
       opts.hardMode ? '' : h('div', { class: 'spell-zh' }, w.zh),
       useCloze ? h('div', { class: 'cloze-line' }, clozeBefore, h('span', { class: 'cloze-blank' }, '＿＿＿＿'), clozeAfter) : '',
       h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(spokenText) }, '🔊'),
       this.bossMode ? '' : ipaEl(w),
       h('div', { class: 'tiny' },
         useCloze ? '🔊 可重听整句（缺的词会读成 something）· 不给中文，靠句子猜词'
-          : (opts.decoys ? '小心！字母块里有捣蛋鬼' : (isPhrase ? '听发音，把词组的每个字母按顺序放好' : '听发音，从下面选出字母'))),
-      slotsEl,
-      ghostEl,
-      tilesEl,
-      this.bossMode ? '' : h('div', { class: 'row-gap center' },
-        spellBtn,
-        h('button', { class: 'btn', onclick: doHint }, '💡 提示一下 (-2🪙)')
-      )
-    ));
+          : (opts.write ? '不出字母块 · 写完整词自评 · 手写奖励 ×1.5'
+            : (opts.decoys ? '小心！字母块里有捣蛋鬼' : (isPhrase ? '听发音，把词组的每个字母按顺序放好' : '听发音，从下面选出字母'))))
+    ];
+    if (opts.write) {
+      /* 纯手写拼写：四线三格里一个格一个字母，写完对照自评 */
+      const hwBox = h('div', {});
+      const hwTools = h('div', { class: 'hw-tools' });
+      hwBox.appendChild(hwTools);
+      cardKids.push(hwBox);
+      const hwAns = h('div', { class: 'hw-guide-text', style: 'display:none' });
+      const hwBtns = h('div', { class: 'row-gap center', style: 'display:none;margin-top:8px' });
+      const nextWrap = h('div', { class: 'row-gap center', style: 'display:none;margin-top:8px' });
+      let hwDone = false;
+      const hw = Handwrite.mount(hwBox, { mode: 'en', cells: seq.length });
+      hwBox.appendChild(hwAns);
+      hwBox.appendChild(hwBtns);
+      hwBox.appendChild(nextWrap);
+      hwTools.appendChild(h('button', { class: 'btn small', onclick: () => { Sound.tap(); hw.undo(); } }, '↩️ 撤销'));
+      hwTools.appendChild(h('button', { class: 'btn small', onclick: () => { Sound.tap(); hw.clear(); } }, '🧽 清空'));
+      hwTools.appendChild(h('button', { class: 'btn small', onclick: () => {
+        Sound.tap();
+        if (hw.isEmpty()) { toast('还没写呢，先在四线三格里写字母'); return; }
+        hw.showGuide(target);
+        hwAns.style.display = '';
+        hwAns.textContent = `正确拼写：${target}`;
+        hwBtns.style.display = '';
+      } }, '🔍 对照'));
+      hwBtns.appendChild(h('button', { class: 'btn', onclick: () => {
+        if (hwDone) return;
+        hwDone = true;
+        Sound.tap();
+        self.success(w, isNew, 0, 0, 1.5); // 自评写对：手写奖励 ×1.5
+      } }, '✅ 写对了'));
+      hwBtns.appendChild(h('button', { class: 'btn', onclick: () => {
+        if (hwDone) return;
+        hwDone = true;
+        Store.reviewWord(target, false);
+        Sound.wrong();
+        hwAns.textContent = `正确拼写：${target}（记牢它，下次还会遇到）`;
+        hwBtns.style.display = 'none';
+        hwTools.style.display = 'none';
+        if (self.bossHook) { self.bossHook(false, 0, 'write'); return; }
+        nextWrap.style.display = '';
+      } }, '❌ 还没写对'));
+      nextWrap.appendChild(h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); self.idx++; self.next(); } }, '下一题 →'));
+    } else {
+      cardKids.push(slotsEl, ghostEl, tilesEl);
+      if (!this.bossMode) {
+        cardKids.push(h('div', { class: 'row-gap center' },
+          spellBtn,
+          h('button', { class: 'btn', onclick: doHint }, '💡 提示一下 (-2🪙)')
+        ));
+      }
+    }
+    root.appendChild(h('div', { class: 'card spell-card' }, cardKids.filter(Boolean)));
     setTimeout(() => Sound.speak(spokenText), 350);
   },
 
@@ -486,6 +521,9 @@ const Quest = {
       h('div', { class: 'intro-zh' }, w.zh),
       h('div', { class: 'tiny', style: 'margin-top:8px' }, '💥 这一题失守！正确拼写记住了吗？词已收进错题本')
     ));
+    /* 综合大考接管：立即交还流程（结果面板由 BossAll 渲染，孩子看完解释点确定再走）；
+     * 非大考场景保持原来的 2 秒后自动翻页 */
+    if (this.bossHook) { this.bossHook(false, 0, 'spell'); return; }
     setTimeout(() => { this.idx++; this.next(); }, 2000);
   },
 
@@ -626,10 +664,10 @@ const Quest = {
   },
 
   /* ---------- 拼写成功 ---------- */
-  success(w, isNew, hints, wrongs) {
+  success(w, isNew, hints, wrongs, mult = 1) {
     const root = this.qroot();
     root.innerHTML = '';
-    let gold = false, reward = 0;
+    let gold = false, reward = 0, hwBonus = 0;
 
     if (isNew) {
       const r = Store.masterWord(w.word.toLowerCase(), hints, wrongs > 0);
@@ -637,8 +675,16 @@ const Quest = {
       if (gold) Sound.gold(); else { Sound.teleport(); Sound.correct(); }
     } else {
       reward = Store.reviewWord(w.word.toLowerCase(), true);
+      if (mult && mult !== 1) {
+        /* 手写拼写加成：在基础奖励上按倍数补（仍受每日上限约束，按实际到账数展示） */
+        const got = Store.addCoins(Math.max(1, Math.round(reward * (mult - 1))));
+        hwBonus = got;
+        reward += got;
+      }
       Sound.correct();
     }
+    /* 综合大考接管：奖励已入账，浮层和翻页交给 BossAll */
+    if (this.bossHook) { this.bossHook(true, reward); return; }
 
     const overlay = h('div', { class: 'mz-overlay' });
     const ring = h('div', { class: 'mz-ring' });
@@ -650,6 +696,7 @@ const Quest = {
       : (this.drillMode ? '击败！连错清零，世界和平了' : '复习通过！');
     overlay.appendChild(h('div', { class: 'mz-msg' }, msg));
     if (gold) overlay.appendChild(h('div', { class: 'mz-gold-banner' }, '🌟 稀有 · 超新星贴纸！'));
+    if (hwBonus) overlay.appendChild(h('div', { class: 'mz-gold-banner' }, `\u{1F58A}️ 手写加成 +${hwBonus} 🪙`));
     overlay.appendChild(h('div', { class: 'mz-coin' }, `+${reward} 🪙`));
     root.appendChild(overlay);
 
@@ -735,7 +782,7 @@ const Quest = {
         ))) : '',
       h('div', { class: 'finish-pet' }, `“${rnd(PET_LINES.praise)}” —— ${Store.state.pet.name}`),
       this.bossMode ? h('div', { class: 'row-gap' },
-        h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.startBoss(); } }, '⚔️ 再战一次'),
+        h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); BossAll.start(); } }, '⚔️ 再战一次'),
         h('button', { class: 'btn btn-main', style: 'flex:1', onclick: () => { showScreen('home'); renderHome(); } }, '返回空间站')
       ) : h('button', { class: 'btn btn-main big', onclick: () => { showScreen('home'); renderHome(); } }, '返回空间站')
     );

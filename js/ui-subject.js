@@ -101,11 +101,12 @@ const SubjectUI = {
     step();
   },
 
-  /* ---------- 通用答题界面 ---------- */
-  ask(def, q, idx, total, onDone) {
+  /* ---------- 通用答题界面 ----------
+   * hdr：自定义头部元素（综合大考 BossAll 复用时传入） */
+  ask(def, q, idx, total, onDone, hdr) {
     const root = $('#quest-root');
     root.innerHTML = '';
-    root.appendChild(h('div', { class: 'quest-top' },
+    root.appendChild(hdr || h('div', { class: 'quest-top' },
       h('button', { class: 'quest-exit', onclick: () => confirmModal('退出练习？', '进度将不保存，确定退出吗？', () => { showScreen('home'); renderHome(); }) }, '✕'),
       h('div', { class: 'quest-prog' }, `${idx + 1} / ${total}`)
     ));

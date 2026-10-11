@@ -36,15 +36,36 @@ const EnRead = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(this.exitBtn());
+    /* 朗读按钮：播放中再点一次就停（自动朗读也同步成“停止”态） */
+    const hearBtn = h('button', { class: 'speak-btn xl', style: 'margin:10px 0', onclick: () => {
+      Sound.tap();
+      if (hearBtn.dataset.speaking === '1') {
+        Sound.stopSpeak();
+        hearBtn.dataset.speaking = '0';
+        hearBtn.textContent = '🔊 听一遍';
+        return;
+      }
+      hearBtn.dataset.speaking = '1';
+      hearBtn.textContent = '⏹️ 停止';
+      Sound.speak(p.text, 0.78, () => {
+        hearBtn.dataset.speaking = '0';
+        hearBtn.textContent = '🔊 听一遍';
+      });
+    } }, '🔊 听一遍');
     root.appendChild(h('div', { class: 'card drill-card' },
       h('div', { class: 'drill-tag' }, `${p.emoji} ${p.title}`, h('span', { class: 'level-badge' }, p.level)),
       h('div', { class: 'en-pass' }, p.text),
       h('div', { class: 'tiny en-gloss', style: 'text-align:left' }, `📖 生词卡：${p.gloss}`),
-      h('button', { class: 'speak-btn xl', style: 'margin:10px 0', onclick: () => Sound.speak(p.text, 0.78) }, '🔊 听一遍'),
+      hearBtn,
       h('div', { class: 'tiny' }, '2 道判断 + 2 道选词填空 · 全英文作答'),
       h('button', { class: 'btn btn-main big', style: 'margin-top:10px', onclick: () => { Sound.tap(); this.next(); } }, '开始答题 →')
     ));
-    setTimeout(() => Sound.speak(p.text, 0.78), 400);
+    hearBtn.dataset.speaking = '1';
+    hearBtn.textContent = '⏹️ 停止';
+    setTimeout(() => Sound.speak(p.text, 0.78, () => {
+      hearBtn.dataset.speaking = '0';
+      hearBtn.textContent = '🔊 听一遍';
+    }), 400);
   },
 
   next() {

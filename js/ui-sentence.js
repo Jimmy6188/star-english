@@ -3,11 +3,11 @@
  * - 全键盘打字（默认字母顺序排列，可切电脑 QWERTY；也支持实体键盘）
  * - 单词逐个判定：拼对这个词才能进入下一个；拼错的词清空重试，不能跳过
  * - 第一个词确认后首字母自动变大写；句末标点自动补，不用手动输入
- * - 发音按需播放：出题和切词都不自动读，点「🔊 听这个词」才读；整句拼对后朗读整句
+ * - 发音按需播放：出题和切词都不自动读，点「🔊 听这个词」才读（每词首次免费，重复听 -1🪙）；整句拼对后朗读整句
  * - 求助三件套（v32）：🔤 看音标 -1🪙 / ✨ 直接帮我拼 -5🪙（补全并锁定）/ ⭐ 收进生词本
  * - 每个词错 2 次后出现提示按钮（-2🪙 补一个正确字母，锁定的字母删不掉）
  * - 句中连错 2 次的词进"难词表"和"生词本"：之后抽句优先出含它的句子，及时复现
- * - 生词本：求助过/手动收进的词在这里复习，拼对 2 次算掌握自动移出
+ * - 生词本：求助过/手动收进的词在这里复习，拼对 2 次算掌握自动移出（每词首次提示免费，再提示 -2🪙）
  * - 整句拼对后展示"句子结构卡"（主谓宾等成分，默认折叠）
  * - 收益走 earnScaled 递减体系；默写进度记 Store.state.sentence.done
  * ============================================================ */
@@ -31,6 +31,7 @@ const SentWrite = {
   SHIFT: '\u21E7', DEL: '\u232B', OK: '\u2423 \u786E\u8BA4',
   IPA_COST: 1,      // 看音标费用
   RESCUE_COST: 5,   // "直接帮我拼"费用（补全剩余字母并锁定）
+  HEAR_COST: 1,     // 句中重复听同一个词的发音费用（每个词首次免费）
   /* 虚词表：自动收录生词本时跳过（孩子不会卡在 the/is 上）；手动收录仍可加 */
   FUNC_WORDS: new Set(['a', 'an', 'the', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
     'my', 'your', 'his', 'her', 'its', 'me', 'us', 'him', 'them', 'this', 'that',
@@ -128,7 +129,7 @@ const SentWrite = {
       h('div', { class: 'splash-sub' }, `${this.list.length} 句 · 看中文拼英文 · 由易到难 · 拼错不能跳过`),
       h('div', { class: 'intro-zh', style: 'margin-top:6px;line-height:1.7' },
         '\u{1F4A1} 一个词一个词地拼：拼对这个词才能到下一个词，拼错会清空重试。\n' +
-        '先自己想怎么造句——发音不会自动放出来，卡住了再点「\u{1F50A} 听这个词」。\n' +
+        '先自己想怎么造句——发音不会自动放出来，卡住了再点「\u{1F50A} 听这个词」（每个词第一次听免费，再听 -1\u{1FA99}）。\n' +
         '点「❓ 求助」可以看音标（-1\u{1FA99}）、直接拼好这个词（-5\u{1FA99}），求助过的词会收进生词本。\n' +
         '拼对整句后还能点开「句子结构」，认识主谓宾。'),
       h('div', { class: 'row-gap', style: 'margin:10px 0 2px' },
@@ -164,6 +165,7 @@ const SentWrite = {
     this.shift = false;
     this.resultShown = false;
     this.ipaOn = false;                 // 当前词已解锁音标
+    this.hearN = 0;                     // 当前词已听发音次数（首次免费，重复收币）
     this.savedW = false;                // 当前词已收进生词本
     this.helpOpen = false;              // 求助面板展开中
 
@@ -187,8 +189,9 @@ const SentWrite = {
     /* ---- 工具栏：听发音 / 提示 / 求助 ---- */
     const hearBtn = h('button', {
       class: 'btn small',
-      onclick: () => { Sound.tap(); Sound.speak(this.words[this.wi], 0.8); }
+      onclick: () => this.hearWord()
     }, '\u{1F50A} 听这个词');
+    this.hearBtn = hearBtn;
     const hintBtn = h('button', {
       class: 'btn small', style: 'display:none',
       onclick: () => this.hint()
@@ -227,9 +230,8 @@ const SentWrite = {
     /* 句子结构卡（默认折叠） */
     const gramWrap = h('div', { class: 'gram-wrap', style: 'display:none' });
     gramWrap.appendChild(this.gramChips(sent));
-    gramWrap.appendChild(h('div', { class: 'gram-legend tiny' },
-      '主语＝谁 / 什么 · 谓语＝做什么 / 怎么样 · 宾语＝动作的对象 · 表语＝是什么 / 在哪里\n' +
-      '状语＝什么时候 / 在哪里 / 怎么样 · 补语＝补充说明宾语 · 疑问词＝问什么 · 感叹＝祝福 / 感叹 · 语气＝客气提问'));
+    gramWrap.appendChild(h('div', { class: 'gram-legend-title tiny' }, '\u{1F4DA} 成分小词典（颜色和上面的词对应）'));
+    gramWrap.appendChild(this.gramLegend(sent));
     const gramBtn = h('button', {
       class: 'btn', style: 'margin-top:8px',
       onclick: () => {
@@ -346,6 +348,7 @@ const SentWrite = {
       this.locked = [];
       this.shift = false;
       this.ipaOn = false;   // 音标按词解锁：下一个词重新付费
+      this.hearN = 0;       // 发音按词重置：下一个词第一次听又免费
       this.savedW = false;  // 生词本收录状态也按词重置
       this.paintKeys();
       if (this.wi >= this.words.length) { this.sentenceDone(); return; }
@@ -386,6 +389,19 @@ const SentWrite = {
     this.locked.push(ch);
     Sound.tap();
     this.paintCurrent();
+  },
+
+  /* 听发音：每个词第一次免费，重复听收 HEAR_COST（按钮文案随状态变） */
+  hearWord() {
+    if (this.resultShown) return;
+    const w = this.words[this.wi];
+    if (!w) return;
+    if (this.hearN > 0 && !Store.spend(this.HEAR_COST)) { toast('金币不够啦，再听需要 1 \u{1FA99}'); return; }
+    this.hearN++;
+    if (this.hearN > 1) updateTop();
+    Sound.tap();
+    Sound.speak(w, 0.8);
+    this.paint(); /* 刷新按钮文案：免费 → 收费 */
   },
 
   /* ---------- 求助三件套（v32） ---------- */
@@ -454,6 +470,12 @@ const SentWrite = {
       cells.forEach((c, j) => { c.textContent = text[j] || ''; });
     });
     if (this.hintBtn) this.hintBtn.style.display = this.wrongs[this.wi] >= 2 ? '' : 'none';
+    /* 听发音按钮：本词还没听过就是免费，听过就变收费 */
+    if (this.hearBtn) {
+      this.hearBtn.textContent = this.hearN > 0
+        ? `\u{1F50A} 再听一次（-${this.HEAR_COST}\u{1FA99}）`
+        : '\u{1F50A} 听这个词';
+    }
     /* 音标行：花钱解锁后才显示当前词的音标 */
     if (this.ipaCapEl) {
       const w = this.words[this.wi];
@@ -518,6 +540,27 @@ const SentWrite = {
       ));
     });
     return chips;
+  },
+
+  /* 成分图例：只讲本句用到的成分，彩色小卡和 chips 同色，孩子一眼对应得上 */
+  gramLegend(sent) {
+    const DESC = {
+      '主语': '谁 / 什么', '谓语': '做什么 / 怎么样', '宾语': '动作的对象',
+      '表语': '是什么 / 在哪里', '状语': '什么时候 / 在哪里 / 怎么样',
+      '补语': '补充说明', '疑问词': '问什么', '感叹': '祝福 / 感叹', '语气': '客气提问'
+    };
+    const wrap = h('div', { class: 'gram-legend' });
+    const seen = [];
+    (sent.gram || []).forEach(seg => {
+      const role = (seg.split('|')[1] || '').split('\u00B7')[0];
+      if (role && DESC[role] && !seen.includes(role)) seen.push(role);
+    });
+    seen.forEach(role => {
+      wrap.appendChild(h('span', { class: 'gram-lg role-' + (this.ROLE_IDX[role] != null ? this.ROLE_IDX[role] : 0) },
+        h('b', { class: 'gram-r', style: 'font-size:13px' }, role),
+        h('span', {}, DESC[role])));
+    });
+    return wrap;
   },
 
   /* ---------- 整句完成 ---------- */
@@ -628,6 +671,7 @@ const SentWrite = {
     this.bTyped = [];
     this.bLocked = [];
     this.bWrongs = 0;
+    this.bHints = 0;   // 本词已用提示次数（首次免费，之后收费）
     this.bDone = false;
     const fromSent = rec.from ? SENTENCE_BANK.find(s => s.id === rec.from) : null;
     const gloss = rec.zh ? `意思：${rec.zh}` : (fromSent ? `原句：${fromSent.zh}` : '看提示拼一拼');
@@ -656,17 +700,21 @@ const SentWrite = {
       shift: () => {}
     }, true);
 
+    const hintBtn = h('button', { class: 'btn small', onclick: () => this.bookHint() }, '');
+    this.bHintBtn = hintBtn;
+
     root.appendChild(h('div', { class: 'card spell-card' },
       h('div', { class: 'sw-zh' }, gloss),
       h('div', { class: 'sw-words' }, wordEl),
       h('div', { class: 'sw-tools' },
         h('button', { class: 'btn small', onclick: () => { Sound.tap(); Sound.speak(rec.word, 0.8); } }, '\u{1F50A} 听发音'),
-        h('button', { class: 'btn small', onclick: () => this.bookHint() }, '\u{1F4A1} 提示一个字母（免费）')),
+        hintBtn),
       kbWrap,
       tipEl,
       nextBtn
     ));
     this.bTipEl = tipEl;
+    this.paintBook(); /* 初始化提示按钮文案（首次免费） */
   },
 
   bookPress(k) {
@@ -686,6 +734,10 @@ const SentWrite = {
   bookHint() {
     if (this.bDone) return;
     if (this.bTyped.length >= this.bWord.length) return;
+    /* 每个词第一次提示免费；之后再提示按 HINT_COST 收币，和默写/拼写闯关同价 */
+    if (this.bHints > 0 && !Store.spend(HINT_COST)) { toast('金币不够啦，提示需要 2 \u{1FA99}'); return; }
+    this.bHints++;
+    if (this.bHints > 1) updateTop();
     this.bTyped.push(this.bWord[this.bTyped.length]);
     this.bLocked.push(this.bWord[this.bLocked.length]);
     Sound.tap();
@@ -701,7 +753,7 @@ const SentWrite = {
       setTimeout(() => this.bWordEl.classList.remove('bad'), 450);
       this.bTyped = this.bLocked.slice();
       this.paintBook();
-      if (this.bWrongs >= 2 && this.bTipEl) this.bTipEl.textContent = '连错 2 次啦，点「提示一个字母」看看';
+      if (this.bWrongs >= 2 && this.bTipEl) this.bTipEl.textContent = '连错 2 次啦，点上面的「提示」补个字母吧';
       return;
     }
     this.bDone = true;
@@ -721,6 +773,12 @@ const SentWrite = {
   },
   paintBook() {
     this.bCells.forEach((c, j) => { c.textContent = this.bTyped[j] || ''; });
+    /* 提示按钮文案：本词还没提示过就是免费，提示过就变收费 */
+    if (this.bHintBtn) {
+      this.bHintBtn.textContent = this.bHints > 0
+        ? `\u{1F4A1} 再提示一个字母（-${HINT_COST}\u{1FA99}）`
+        : '\u{1F4A1} 提示一个字母（免费）';
+    }
   },
 
   finishBook() {

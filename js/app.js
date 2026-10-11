@@ -5,7 +5,7 @@
 
 /* 应用版本号：顶栏标题旁显示，供家长一眼确认设备跑的是否最新版。
  * 发版时三处一起改：这里 / sw.js 的 CACHE / index.html 里脚本与 css 的 ?v= 参数 */
-const APP_VERSION = 'v33';
+const APP_VERSION = 'v34';
 
 function showScreen(name) {
   $$('#main .screen').forEach(el => el.classList.remove('active'));

@@ -237,7 +237,23 @@ function renderHome() {
               h('div', { class: 'tiny' }, `${card.subject} · ${card.title}`)
             ),
             h('button', { class: 'btn small', onclick: () => { Sound.tap(); juniorQuiz(card, false); } }, '🔁'),
-            h('button', { class: 'btn small', onclick: () => { Sound.tap(); Sound.speak(card.title + '。' + card.body + card.example + card.fun, 0.95); } }, '🔊')
+            h('button', { class: 'btn small', onclick: e => {
+              /* 朗读整卡：播放中再点一次即停，不用干等全文念完 */
+              Sound.tap();
+              const btn = e.currentTarget;
+              if (btn.dataset.speaking === '1') {
+                Sound.stopSpeak();
+                btn.dataset.speaking = '0';
+                btn.textContent = '🔊';
+                return;
+              }
+              btn.dataset.speaking = '1';
+              btn.textContent = '⏹️';
+              Sound.speak(card.title + '。' + card.body + card.example + card.fun, 0.95, () => {
+                btn.dataset.speaking = '0';
+                btn.textContent = '🔊';
+              });
+            } }, '🔊')
           )
         ));
       } else {
@@ -344,12 +360,12 @@ function renderHome() {
     const boss = Store.bossInfo();
     weakSlot.appendChild(h('button', {
       class: 'card weak-card boss-card' + (boss.done ? ' done' : ''),
-      onclick: () => { Sound.tap(); Quest.startBoss(); }
+      onclick: () => { Sound.tap(); BossAll.start(); }
     },
       h('span', { class: 'weak-icon' }, '👑'),
       h('span', { class: 'weak-text' },
         h('b', {}, boss.done ? '本周 BOSS 已被击败！' : 'BOSS 周挑战！'),
-        h('span', { class: 'tiny' }, boss.done ? `最佳成绩 ${boss.best}/${boss.total || 10} · 友谊赛再战（+3 🪙）` : `10 道纯拼写高阶题 · 失误 ≤1 击败 +${COIN_BOSS} 🪙 / ≤3 击伤 +10（仅周日）`)
+        h('span', { class: 'tiny' }, boss.done ? `最佳成绩 ${boss.best}/${boss.total || 15} · 友谊赛再战（+3 🪙）` : `15 题全科综合大考 · 失误 ≤1 击败 +${COIN_BOSS} 🪙 / ≤3 击伤 +10（仅周日）`)
       ),
       h('span', { class: 'weak-go boss-go' }, boss.done ? '再战' : '开战')
     ));
@@ -676,7 +692,7 @@ function showBadgeWall() {
 }
 
 /* ---------------- 航行日志（日历） ---------------- */
-let calView = null;
+let calView = null, calSel = null;
 function renderCalendar() {
   updateTop();
   const root = $('#calendar-root');
@@ -714,7 +730,10 @@ function renderCalendar() {
   for (let d = 1; d <= days; d++) {
     const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const rec = s.history[ds] || {};
-    const cell = h('div', { class: 'cal-cell' + (ds === today ? ' today' : '') },
+    const cell = h('div', {
+      class: 'cal-cell' + (ds === today ? ' today' : '') + (calSel === ds ? ' sel' : ''),
+      onclick: () => { Sound.tap(); calSel = calSel === ds ? null : ds; renderCalendar(); }
+    },
       h('span', { class: 'cal-day' }, d),
       rec.done ? h('span', { class: 'cal-stamp' }, '🚀') :
         rec.shieldUsed ? h('span', { class: 'cal-stamp shield' }, '🛡️') : ''
@@ -722,6 +741,35 @@ function renderCalendar() {
     grid.appendChild(cell);
   }
   root.appendChild(h('div', { class: 'card cal-card' }, grid));
+  root.appendChild(calDetail(calSel, today));
+}
+
+/* 点日期后的当日学习情况卡：今天显示实时数据，过去的日子读 history 存档 */
+function calDetail(ds, today) {
+  if (!ds) {
+    return h('div', { class: 'tiny center', style: 'margin:8px 0 4px' }, '💡 点上面的日期，看看那天学了什么');
+  }
+  const s = Store.state;
+  const isToday = ds === today;
+  const rec = isToday
+    ? { done: s.today.questDone, shieldUsed: false, minutes: s.today.minutes, news: s.today.newDone, revs: s.today.revDone, coins: s.today.coinsEarned }
+    : (s.history[ds] || {});
+  const hasRec = !!(rec.done || rec.shieldUsed || rec.minutes || rec.news || rec.revs);
+  const wd = '日一二三四五六'[new Date(ds + 'T00:00:00').getDay()];
+  const rows = [];
+  if (isToday) rows.push('⏳ 今天还在进行中，数据实时更新');
+  if (!hasRec) rows.push('这天没有学习记录，可能是启程前的日子');
+  else {
+    rows.push(rec.done ? '✅ 完成当日任务，打卡盖章' : (rec.shieldUsed ? '🛡️ 漏学一天，护盾自动保护了连续记录' : '🚧 学了一会，但没完成打卡'));
+    if (rec.minutes) rows.push(`⏱️ 学习了 ${rec.minutes} 分钟`);
+    if (rec.news) rows.push(`🆕 新学单词 ${rec.news} 个`);
+    if (rec.revs) rows.push(`🔁 复习单词 ${rec.revs} 个`);
+    if (rec.coins) rows.push(`🪙 获得金币 ${rec.coins} 枚`);
+  }
+  return h('div', { class: 'card cal-detail' },
+    h('div', { class: 'cal-detail-title' }, `📅 ${ds} 周${wd}`),
+    rows.map(t => h('div', { class: 'cal-detail-row' }, t))
+  );
 }
 
 /* ---------------- 家长面板 ---------------- */
@@ -769,7 +817,7 @@ function renderParent() {
       statBox('当前段位', rk.name),
       statBox('今日用时', s.today.minutes + ' 分钟'),
       statBox('金币余额', s.coins + ' 🪙'),
-      statBox('本周BOSS', boss.done ? `${boss.best}/${boss.total || 10} ✓` : '周日开启')
+      statBox('本周BOSS', boss.done ? `${boss.best}/${boss.total || 15} ✓` : '周日开启')
     ),
     h('div', { class: 'stat-bars' }, bars7),
     h('div', { class: 'tiny' }, '近 7 天学习时长（柱高=分钟数，亮色=当天完成打卡）· 段位按已学词数晋升：' + RANKS.map(r => r.name).join('→'))

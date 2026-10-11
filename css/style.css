@@ -991,7 +991,14 @@ select.input.num { width: auto; min-width: 130px; }
 .gram-chip .gram-r { font-size: 11px; font-weight: 700; color: var(--text-low); }
 .gram-chip.omit { border-style: dashed; opacity: .75; }
 .gram-chip.omit .gram-t { color: var(--text-low); }
-.gram-legend { margin-top: 8px; line-height: 1.7; color: var(--text-low); }
+.gram-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.gram-legend-title { margin-top: 10px; font-weight: 900; }
+.gram-lg {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border: 1px solid; border-radius: 999px;
+  font-size: 12px; font-weight: 700; line-height: 1.6;
+}
+.gram-lg span { color: var(--text-low); }
 /* 成分配色：0主语 1谓语 2宾语 3表语 4状语 5补语 6疑问词 7感叹 8语气 */
 .role-0 { border-color: rgba(79, 209, 255, .55); background: rgba(79, 209, 255, .12); }
 .role-0 .gram-r { color: var(--accent-text); }
@@ -1044,3 +1051,22 @@ select.input.num { width: auto; min-width: 130px; }
   font-size: 11px; font-weight: 700; color: var(--text-low);
   letter-spacing: .5px; vertical-align: 2px; user-select: none;
 }
+
+/* ---- 航行日志：点日期看当天学了什么（v35） ---- */
+.cal-cell { cursor: pointer; }
+.cal-cell.sel { outline: 2px solid var(--gold); }
+.cal-detail { margin-top: 10px; text-align: left; }
+.cal-detail-title { font-weight: 900; font-size: 15px; margin-bottom: 4px; }
+.cal-detail-row { font-size: 13.5px; line-height: 1.9; color: var(--text-mid); }
+
+/* ---- 手写板（v35） ---- */
+.hw-box { margin-top: 4px; }
+.hw-canvas {
+  width: 100%; height: 150px; display: block; touch-action: none;
+  background: var(--fill-1); border: 1.5px solid var(--line-4); border-radius: 12px;
+}
+.hw-tools { display: flex; justify-content: center; gap: 8px; margin: 8px 0 2px; flex-wrap: wrap; }
+.hw-guide-text { text-align: center; font-size: 15px; font-weight: 700; color: var(--text-low); margin: 6px 0 2px; }
+
+/* ---- BOSS 综合大考（v34） ---- */
+.boss-tag { text-align: center; font-weight: 900; font-size: 13px; color: var(--text-low); margin: 2px 0 4px; }

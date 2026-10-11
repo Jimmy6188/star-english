@@ -843,6 +843,196 @@ const ENGLISH_READINGS = [
       { kind: 'cloze', q: 'Lisa played the ____. ', opts: ['violin', 'piano', 'drum'], ans: 0 },
       { kind: 'cloze', q: 'Everyone ____ at last. ', opts: ['clapped', 'slept', 'left'], ans: 0 }
     ]
+  },
+{
+    id: 'r15', title: 'My School Day', emoji: '🏫', level: '四上同步',
+    text: 'I get up at six thirty every day. I have Chinese, English and maths in the morning. After lunch, I have music and PE. I like PE best, because I can play basketball. School is over at four and I walk home with my friends.',
+    gloss: 'PE 体育课 · is over 放学',
+    zh: '我每天六点半起床。上午我有语文、英语和数学课。午饭后，我有音乐课和体育课。我最喜欢体育课，因为我可以打篮球。四点放学，我和朋友们一起走回家。',
+    notes: [
+      { w: 'get up', zh: '起床' },
+      { w: 'in the morning', zh: '在上午' },
+      { w: 'After lunch', zh: '午饭后' },
+      { w: 'like PE best', zh: '最喜欢体育课（like ... best 最喜欢……）' },
+      { w: 'is over', zh: '结束；放学' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'I have Chinese, English and maths in the morning.', ans: true },
+      { kind: 'judge', q: 'School is over at seven.', ans: false },
+      { kind: 'cloze', q: 'I ____ up at six thirty every day.', opts: ['get', 'go', 'stand'], ans: 0 },
+      { kind: 'cloze', q: 'I like ____ best.', opts: ['PE', 'art', 'music'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r16', title: 'A Visit to the Farm', emoji: '🐄', level: '四上同步',
+    text: 'Today our class visits a farm near the hill. The farm is big and green. We see many cows, sheep and ducks. Uncle Li shows us how to milk a cow. We feed the little hens with corn. The farmer works hard, and we thank him.',
+    gloss: 'milk 挤奶 · hens 母鸡',
+    zh: '今天我们班去参观了山附近的一个农场。农场又大又绿。我们看到许多奶牛、绵羊和鸭子。李叔叔教我们怎样给奶牛挤奶。我们用玉米喂小母鸡。农民辛勤劳作，我们感谢他。',
+    notes: [
+      { w: 'visits a farm', zh: '参观农场' },
+      { w: 'milk a cow', zh: '给奶牛挤奶（milk 也能作动词）' },
+      { w: 'hens', zh: '母鸡（hen 的复数）' },
+      { w: 'feed ... with corn', zh: '用玉米喂……' },
+      { w: 'works hard', zh: '辛勤劳作' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'We see many cows, sheep and ducks.', ans: true },
+      { kind: 'judge', q: 'The farm is small.', ans: false },
+      { kind: 'cloze', q: 'Uncle Li shows us how to ____ a cow.', opts: ['milk', 'ride', 'wash'], ans: 0 },
+      { kind: 'cloze', q: 'We feed the little ____ with corn.', opts: ['hens', 'pigs', 'horses'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r17', title: 'Shopping with Mum', emoji: '🛒', level: '四上同步',
+    text: 'On Saturday, Mum and I go to the supermarket. We need some fruit, bread and milk. Mum buys two kilos of apples. I help her carry the heavy bag. At home, we make a big fruit salad together. The salad tastes really good!',
+    gloss: 'kilos 公斤 · carry 拎；提',
+    zh: '星期六，我和妈妈去超市。我们需要一些水果、面包和牛奶。妈妈买了两公斤苹果。我帮她拎那个重袋子。回到家，我们一起做了一个大大的水果沙拉。沙拉尝起来真好吃！',
+    notes: [
+      { w: 'go to the supermarket', zh: '去超市' },
+      { w: 'two kilos of apples', zh: '两公斤苹果（kilo 公斤）' },
+      { w: 'carry the heavy bag', zh: '拎重袋子（heavy 重的）' },
+      { w: 'make a fruit salad', zh: '做水果沙拉' },
+      { w: 'tastes good', zh: '尝起来很好（taste 尝起来）' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Mum buys two kilos of apples.', ans: true },
+      { kind: 'judge', q: 'They go to the supermarket on Sunday.', ans: false },
+      { kind: 'cloze', q: 'Mum buys two ____ of apples.', opts: ['kilos', 'bags', 'boxes'], ans: 0 },
+      { kind: 'cloze', q: 'At home, we make a big fruit ____.', opts: ['salad', 'cake', 'soup'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r18', title: 'The Mid-Autumn Festival', emoji: '🥮', level: '四上同步',
+    text: 'The Mid-Autumn Festival is in autumn. It is usually in September or October. On that night, the moon is round and bright. Families get together and eat mooncakes. We also watch the moon and carry colourful lanterns. I love this festival, because I can see my grandparents.',
+    gloss: 'mooncakes 月饼 · get together 团聚',
+    zh: '中秋节在秋天。它通常在九月或十月。那天晚上，月亮又圆又亮。家人们聚在一起吃月饼。我们还会赏月、提五彩缤纷的灯笼。我喜欢这个节日，因为我能见到爷爷奶奶。',
+    notes: [
+      { w: 'the Mid-Autumn Festival', zh: '中秋节' },
+      { w: 'get together', zh: '聚在一起；团聚' },
+      { w: 'round and bright', zh: '又圆又亮' },
+      { w: 'mooncakes', zh: '月饼（moon 月亮 + cake 糕）' },
+      { w: 'carry lanterns', zh: '提灯笼（lantern 灯笼）' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Families get together and eat mooncakes.', ans: true },
+      { kind: 'judge', q: 'The Mid-Autumn Festival is in spring.', ans: false },
+      { kind: 'cloze', q: 'On that night, the moon is ____ and bright.', opts: ['round', 'long', 'wide'], ans: 0 },
+      { kind: 'cloze', q: 'It is usually in ____ or October.', opts: ['September', 'January', 'May'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r19', title: 'Learning to Swim', emoji: '🏊', level: '四上同步',
+    text: 'I am afraid of water, so I never swim. This summer, Dad teaches me to swim in the pool. At first, I am scared and hold the side tight. Dad says, "Be brave! I am right here." Now I can swim ten metres. I am proud of myself.',
+    gloss: 'be afraid of 害怕 · metres 米',
+    zh: '我害怕水，所以从来不游泳。今年夏天，爸爸在游泳池里教我游泳。一开始，我很害怕，紧紧抓着池边。爸爸说："勇敢点！我就在这儿。"现在我能游十米了。我为自己感到骄傲。',
+    notes: [
+      { w: 'be afraid of water', zh: '害怕水（be afraid of 害怕……）' },
+      { w: 'teaches me to swim', zh: '教我游泳（teach sb. to do sth.）' },
+      { w: 'At first', zh: '一开始' },
+      { w: 'hold the side', zh: '抓着池边（side 边）' },
+      { w: 'be proud of myself', zh: '为自己感到骄傲' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Dad teaches me to swim in the pool.', ans: true },
+      { kind: 'judge', q: 'Now I can swim one hundred metres.', ans: false },
+      { kind: 'cloze', q: 'I am afraid of ____, so I never swim.', opts: ['water', 'dogs', 'the dark'], ans: 0 },
+      { kind: 'cloze', q: 'Now I can swim ten ____.', opts: ['metres', 'minutes', 'hours'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r20', title: 'A Cold Day', emoji: '🤒', level: '四上同步',
+    text: 'Lily has a bad cold today. Her head hurts and her nose runs all day. Mum takes her to see the doctor. The doctor checks her and says, "Take this medicine and rest well." She stays in bed for two days. Now she is much better and can go back to school.',
+    gloss: 'medicine 药 · rest well 好好休息',
+    zh: '莉莉今天得了重感冒。她头疼，一整天流鼻涕。妈妈带她去看医生。医生给她做了检查，说："吃这个药，好好休息。"她卧床两天。现在她好多了，可以回学校了。',
+    notes: [
+      { w: 'have a bad cold', zh: '得了重感冒' },
+      { w: 'head hurts', zh: '头疼（hurt 疼痛）' },
+      { w: 'see the doctor', zh: '看医生' },
+      { w: 'take this medicine', zh: '吃这个药（medicine 药）' },
+      { w: 'rest well', zh: '好好休息' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Mum takes her to see the doctor.', ans: true },
+      { kind: 'judge', q: 'Lily feels well today.', ans: false },
+      { kind: 'cloze', q: 'Her head ____ and her nose runs all day.', opts: ['hurts', 'helps', 'hopes'], ans: 0 },
+      { kind: 'cloze', q: '"____ this medicine and rest well."', opts: ['Take', 'Make', 'Keep'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r21', title: 'Our New Classmate', emoji: '🧒', level: '四上同步',
+    text: 'We have a new classmate today. Her name is Anna and she comes from Canada. At break, she sits alone and looks shy. I go over and say hello with a big smile. We show her our classroom and play games together. Now Anna has many friends and loves our school.',
+    gloss: 'classmate 同班同学 · shy 害羞的',
+    zh: '今天我们班来了一位新同学。她叫安娜，来自加拿大。课间休息时，她独自坐着，看起来很害羞。我走过去，笑着跟她打招呼。我们带她参观教室，一起玩游戏。现在安娜有很多朋友，她爱我们的学校。',
+    notes: [
+      { w: 'classmate', zh: '同班同学（class 班级 + mate 同伴）' },
+      { w: 'comes from Canada', zh: '来自加拿大' },
+      { w: 'sits alone', zh: '独自坐着（alone 独自）' },
+      { w: 'say hello', zh: '打招呼' },
+      { w: 'show her our classroom', zh: '带她参观教室（show sb. sth. 给某人看……）' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Anna comes from Canada.', ans: true },
+      { kind: 'judge', q: 'Anna sits with many friends at break.', ans: false },
+      { kind: 'cloze', q: 'At break, she sits alone and looks ____.', opts: ['shy', 'happy', 'angry'], ans: 0 },
+      { kind: 'cloze', q: 'Now Anna has many ____ and loves our school.', opts: ['friends', 'books', 'pets'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r22', title: 'At the Zoo', emoji: '🐘', level: '四上同步',
+    text: 'Our class goes to the zoo on Friday. The elephants are big and strong. They can drink water with their long noses. The monkeys jump up and down and make us laugh. The pandas are slow but very cute. We must not feed the animals in the zoo.',
+    gloss: 'elephants 大象 · feed 投喂',
+    zh: '星期五我们班去动物园。大象又大又壮。它们能用长鼻子喝水。猴子跳上跳下，逗得我们哈哈大笑。熊猫动作慢但非常可爱。在动物园里我们不能投喂动物。',
+    notes: [
+      { w: 'at the zoo', zh: '在动物园' },
+      { w: 'long noses', zh: '长鼻子（nose 鼻子）' },
+      { w: 'jump up and down', zh: '跳上跳下' },
+      { w: 'make us laugh', zh: '逗我们笑（make sb. do sth.）' },
+      { w: 'feed the animals', zh: '投喂动物（feed 喂养；喂食）' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'They can drink water with their long noses.', ans: true },
+      { kind: 'judge', q: 'We can feed the animals in the zoo.', ans: false },
+      { kind: 'cloze', q: 'The monkeys jump up and down and make us ____.', opts: ['laugh', 'cry', 'sleep'], ans: 0 },
+      { kind: 'cloze', q: 'The pandas are slow but very ____.', opts: ['cute', 'ugly', 'scary'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r23', title: 'The Lost Cat', emoji: '🐱', level: '四上同步',
+    text: 'Mia cannot find her cat Mimi anywhere. She looks under the bed and behind the sofa. Then she hears a soft "meow" from the garden. Mimi is up in the tree and cannot get down. Dad brings a ladder and helps her down. Mia hugs Mimi and says, "Never run away again!"',
+    gloss: 'anywhere 任何地方 · ladder 梯子',
+    zh: '米娅到处找不到她的猫咪米米。她看看床底下，又看看沙发后面。这时她听到花园里传来一声轻轻的"喵"。米米在树上，下不来了。爸爸拿来一把梯子，帮她下来。米娅抱住米米说："再也不许跑掉了！"',
+    notes: [
+      { w: 'cannot find ... anywhere', zh: '到处找不到……（anywhere 任何地方）' },
+      { w: 'under the bed', zh: '在床底下（under 在……下面）' },
+      { w: 'behind the sofa', zh: '在沙发后面（behind 在……后面）' },
+      { w: 'get down', zh: '下来' },
+      { w: 'run away', zh: '跑掉；逃跑' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Mimi is up in the tree.', ans: true },
+      { kind: 'judge', q: 'Mia finds Mimi under the bed.', ans: false },
+      { kind: 'cloze', q: 'She looks ____ the bed and behind the sofa.', opts: ['under', 'on', 'near'], ans: 0 },
+      { kind: 'cloze', q: 'Dad brings a ____ and helps her down.', opts: ['ladder', 'box', 'basket'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r24', title: 'My Robot Helper', emoji: '🤖', level: '四上同步',
+    text: 'One day, my grandpa gives me a robot helper. Its name is Dot and it looks like a small dog. Dot can clean the floor and water the flowers. It can also tell me stories in English. Dot is smart and never gets tired. I think robots will help us a lot in the future.',
+    gloss: 'robot helper 机器人助手 · gets tired 觉得累',
+    zh: '一天，爷爷给了我一个机器人助手。它叫点点，看起来像一只小狗。点点能扫地、浇花。它还能用英语给我讲故事。点点很聪明，而且从不觉得累。我认为机器人将来会帮我们很多忙。',
+    notes: [
+      { w: 'robot helper', zh: '机器人助手（robot 机器人）' },
+      { w: 'looks like a small dog', zh: '看起来像一只小狗（look like 看起来像）' },
+      { w: 'tell me stories', zh: '给我讲故事（tell a story 讲故事）' },
+      { w: 'gets tired', zh: '觉得累（tired 疲倦的）' },
+      { w: 'in the future', zh: '在将来' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Dot can clean the floor and water the flowers.', ans: true },
+      { kind: 'judge', q: 'Dot looks like a small cat.', ans: false },
+      { kind: 'cloze', q: 'Dot can clean the ____ and water the flowers.', opts: ['floor', 'window', 'car'], ans: 0 },
+      { kind: 'cloze', q: 'It can also tell me ____ in English.', opts: ['stories', 'news', 'secrets'], ans: 0 }
+    ]
   }
 ];
 

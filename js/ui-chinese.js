@@ -1,18 +1,19 @@
 /* ============================================================
  * 星际求知号 - 语文星系（人教版四上）
  * 诗词星图（每首 4 关：接下句 · 填名句 · 认作者 · 懂诗意）/ 阅读训练营 / 词语实战
- * 选择题统一走 ask()；名句填空是字块点选（kind:'tiles'，点字块按顺序填字）
+ * 选择题统一走 ask()；名句填空是字块点选（kind:'tiles'，点字块按顺序填字），也可切换田字格手写自评
  * 错题进语文错题池（填空题复习时也是字块界面）；完成一轮即参与打卡
  * ============================================================ */
 
 const Chinese = {
   pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
 
-  /* ---------- 通用：选择式题目 / 字块填空（onDone(ok)） ---------- */
-  ask(q, idx, total, onDone) {
+  /* ---------- 通用：选择式题目 / 字块填空（onDone(ok)） ----------
+   * hdr：自定义头部元素（综合大考复用本界面时传入，自带退出与进度） */
+  ask(q, idx, total, onDone, hdr) {
     const root = $('#quest-root');
     root.innerHTML = '';
-    root.appendChild(h('div', { class: 'quest-top' },
+    root.appendChild(hdr || h('div', { class: 'quest-top' },
       h('button', { class: 'quest-exit', onclick: () => confirmModal('退出练习？', '进度将不保存，确定退出吗？', () => { showScreen('home'); renderHome(); }) }, '✕'),
       h('div', { class: 'quest-prog' }, `${idx + 1} / ${total}`)
     ));
@@ -88,6 +89,55 @@ const Chinese = {
         };
       });
       optsEl.appendChild(tilesEl);
+      /* ---- 手写模式：同一个空，也可以孩子在田字格里亲自写（自评判定） ---- */
+      let hw = null, wasOkW = null;
+      const hwBox = h('div', { class: 'hw-box', style: 'display:none' });
+      const hwTools = h('div', { class: 'hw-tools' });
+      hwBox.appendChild(hwTools);
+      optsEl.appendChild(hwBox);
+      const hwAns = h('div', { class: 'hw-guide-text', style: 'display:none' });
+      const hwBtns = h('div', { class: 'row-gap center', style: 'display:none;margin-top:8px' });
+      const judgeWrite = ok => {
+        if (wasOkW !== null) return;
+        wasOkW = ok;
+        if (ok) {
+          Sound.correct();
+          const c = centerOf(sentEl);
+          burst(c.x, c.y, { count: 8, colors: ['#58e08a'], power: 45 });
+          setTimeout(() => Sound.speak(q.line || q.q, 0.82), 250);
+        } else {
+          Store.addCnWrong(q);
+          Sound.wrong();
+        }
+        root.querySelector('.cn-tip').innerHTML = ok ? '✅ 写得对！' : '❌ ' + (q.tip || `正确答案：${q.line || q.q}`);
+        root.querySelector('.cn-next').style.display = '';
+      };
+      const modeBtn = h('button', { class: 'btn small', onclick: () => {
+        if (wasOk !== null || wasOkW !== null) return;
+        Sound.tap();
+        const toWrite = tilesEl.style.display !== 'none';
+        tilesEl.style.display = toWrite ? 'none' : '';
+        hwBox.style.display = toWrite ? '' : 'none';
+        modeBtn.textContent = toWrite ? '⌨️ 改用字块点选' : '✍️ 改用手写';
+        if (toWrite && !hw) {
+          hw = Handwrite.mount(hwBox, { mode: 'zh', cells: slots });
+          hwBox.appendChild(hwAns);
+          hwBox.appendChild(hwBtns);
+          hwTools.appendChild(h('button', { class: 'btn small', onclick: () => { Sound.tap(); hw.undo(); } }, '↩️ 撤销'));
+          hwTools.appendChild(h('button', { class: 'btn small', onclick: () => { Sound.tap(); hw.clear(); } }, '🧽 清空'));
+          hwTools.appendChild(h('button', { class: 'btn small', onclick: () => {
+            Sound.tap();
+            if (hw.isEmpty()) { toast('还没写呢，先在格子里写几个字'); return; }
+            hw.showGuide(q.ans);
+            hwAns.style.display = '';
+            hwAns.textContent = `对照一下：正确写法是「${q.ans}」`;
+            hwBtns.style.display = '';
+          } }, '🔍 对照'));
+          hwBtns.appendChild(h('button', { class: 'btn', onclick: () => judgeWrite(true) }, '✅ 写对了'));
+          hwBtns.appendChild(h('button', { class: 'btn', onclick: () => judgeWrite(false) }, '❌ 还没写对'));
+        }
+      } }, '✍️ 改用手写');
+      optsEl.appendChild(h('div', { class: 'row-gap center', style: 'margin:6px 0 2px' }, modeBtn));
     } else {
       const map = shuffle(q.opts.map((t, i) => ({ t, ok: i === q.ans })));
       map.forEach(m => {

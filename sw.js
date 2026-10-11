@@ -1,6 +1,6 @@
 /* 星际求知号 - 离线缓存（仅在 http(s) 环境生效）
  * 发版时三处版本一起改：这里 / js/app.js 的 APP_VERSION / index.html 的 ?v= 参数 */
-const CACHE = 'star-english-v33';
+const CACHE = 'star-english-v34';
 const ASSETS = [
   './',
   './index.html',
@@ -10,8 +10,10 @@ const ASSETS = [
   './js/audio.js',
   './js/store.js',
   './js/ui-kit.js',
+  './js/ui-handwrite.js',
   './js/ui-screens.js',
   './js/ui-quest.js',
+  './js/ui-boss.js',
   './js/ui-math.js',
   './js/ui-think.js',
   './js/ui-phonics.js',
