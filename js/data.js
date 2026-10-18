@@ -282,7 +282,16 @@ const PET_OUTFITS = [
   { id: 'shades',  cat: 'face', name: '炫酷墨镜',   emoji: '🕶️', price: 150 },
   { id: 'starg',   cat: 'face', name: '星星眼镜',   emoji: '🤓', price: 180, gold: true },
   { id: 'scarf',   cat: 'neck', name: '暖暖红围巾', emoji: '🧣', price: 100 },
-  { id: 'cape',    cat: 'neck', name: '机长披风',   emoji: '🦸', price: 250, gold: true }
+  { id: 'cape',    cat: 'neck', name: '机长披风',   emoji: '🦸', price: 250, gold: true },
+  /* v35 扩充（星盒掉率下调后放慢收集节奏，装扮池同步扩大） */
+  { id: 'party',   cat: 'head', name: '派对尖帽',   emoji: '🥳', price: 130 },
+  { id: 'bunny',   cat: 'head', name: '兔兔耳朵',   emoji: '🐰', price: 160 },
+  { id: 'helmet',  cat: 'head', name: '太空头盔',   emoji: '🪖', price: 200, gold: true },
+  { id: 'phones',  cat: 'head', name: '太空耳机',   emoji: '🎧', price: 220, gold: true },
+  { id: 'nose',    cat: 'face', name: '小丑圆鼻',   emoji: '🤡', price: 90 },
+  { id: 'blush',   cat: 'face', name: '害羞腮红',   emoji: '😊', price: 80 },
+  { id: 'tie',     cat: 'neck', name: '正式领带',   emoji: '👔', price: 140 },
+  { id: 'bell',    cat: 'neck', name: '叮当铃铛',   emoji: '🔔', price: 110 }
 ];
 
 /* 特权券预设：一键加入兑换商店（孩子用金币换家庭特权，零成本高激励） */
@@ -561,14 +570,71 @@ const PRAISE_WORDS = ['太棒了!', '完美!', '好厉害!', '漂亮!', '没错!
 /* ============================================================
  * 自然拼读词族（拼读星系）：同族词尾发音相同，练"听音辨词、见词能读"
  * 题目由 ui-phonics.js 按词族程序生成：听音选词 / 找出不同类 / 押韵选择
+ * 字段：id 词族标识 · name 展示名 · emoji · words 同族词（首字母尽量不同，
+ *       听音题才分得清）· sound 结尾发音 · rule 给孩子的规律讲解
+ * 注意：sound 相同的词族不会在同一组里碰面（否则"找不同/押韵"会歧义）
  * ============================================================ */
 const WORD_FAMILIES = [
-  { id: 'ake', name: '-ake 家族', emoji: '🍰', words: ['cake', 'lake', 'make', 'take', 'snake'] },
-  { id: 'ight', name: '-ight 家族', emoji: '🌙', words: ['light', 'night', 'right', 'bright', 'fight'] },
-  { id: 'sh', name: 'sh- 家族', emoji: '🐟', words: ['ship', 'shop', 'sheep', 'shoe', 'fish'] },
-  { id: 'ing', name: '-ing 家族', emoji: '🎵', words: ['sing', 'king', 'ring', 'spring', 'morning'] },
-  { id: 'all', name: '-all 家族', emoji: '🏀', words: ['ball', 'tall', 'wall', 'small', 'call'] },
-  { id: 'oat', name: '-oat 家族', emoji: '🛶', words: ['boat', 'coat', 'goat', 'soap', 'float'] }
+  /* ---- 短元音词族 ---- */
+  { id: 'at', name: '-at 家族', emoji: '🐱', sound: '/æt/', rule: 'a 后面只跟一个辅音，读短音"爱不住嘴"的 /æ/。', words: ['cat', 'hat', 'bat', 'mat', 'rat', 'sat'] },
+  { id: 'an', name: '-an 家族', emoji: '👋', sound: '/æn/', rule: 'an 读 /æn/，和 at 是短元音表兄弟。', words: ['man', 'fan', 'pan', 'van', 'ran'] },
+  { id: 'ap', name: '-ap 家族', emoji: '🗺️', sound: '/æp/', rule: 'ap 读 /æp/，嘴唇先大开再合上。', words: ['cap', 'map', 'nap', 'lap', 'tap'] },
+  { id: 'ip', name: '-ip 家族', emoji: '💋', sound: '/ɪp/', rule: 'i 读短音 /ɪ/，小声快速的"伊"。', words: ['lip', 'rip', 'sip', 'tip', 'zip'] },
+  { id: 'og', name: '-og 家族', emoji: '🐸', sound: '/ɒg/', rule: 'o 读短音 /ɒ/，嘴巴圆圆的。', words: ['dog', 'log', 'fog', 'jog', 'frog'] },
+  { id: 'ug', name: '-ug 家族', emoji: '🐛', sound: '/ʌg/', rule: 'u 读短音 /ʌ/，声音从嗓子眼出来。', words: ['bug', 'hug', 'mug', 'rug', 'jug'] },
+  { id: 'et', name: '-et 家族', emoji: '🪰', sound: '/et/', rule: 'et 读 /et/，又轻又快。', words: ['get', 'net', 'pet', 'vet', 'wet', 'jet'] },
+  { id: 'en', name: '-en 家族', emoji: '✏️', sound: '/en/', rule: 'en 读 /en/，鼻子跟着哼一声。', words: ['hen', 'pen', 'ten', 'men'] },
+  { id: 'op', name: '-op 家族', emoji: '🎩', sound: '/ɒp/', rule: 'op 读 /ɒp/，像突然想起"哦！"', words: ['top', 'hop', 'mop', 'pop', 'cop'] },
+  { id: 'un', name: '-un 家族', emoji: '☀️', sound: '/ʌn/', rule: 'un 读 /ʌn/，和 ug 是邻居。', words: ['sun', 'run', 'fun', 'bun'] },
+  { id: 'ell', name: '-ell 家族', emoji: '🔔', sound: '/el/', rule: 'ell 读 /el/，铃儿叮当响。', words: ['bell', 'well', 'tell', 'sell', 'yell'] },
+  { id: 'ill', name: '-ill 家族', emoji: '💊', sound: '/ɪl/', rule: 'ill 读 /ɪl/，舌头轻轻抵住。', words: ['bill', 'fill', 'hill', 'will', 'pill'] },
+  { id: 'and', name: '-and 家族', emoji: '🤝', sound: '/ænd/', rule: 'and 读 /ænd/，d 轻轻带过。', words: ['hand', 'sand', 'land', 'band', 'stand'] },
+  { id: 'est', name: '-est 家族', emoji: '🪹', sound: '/est/', rule: 'est 读 /est/，鸟巢藏在最高处。', words: ['best', 'nest', 'rest', 'test', 'west', 'chest'] },
+  { id: 'ump', name: '-ump 家族', emoji: '🦘', sound: '/ʌmp/', rule: 'ump 读 /ʌmp/，袋鼠"嘭"地跳一下。', words: ['jump', 'bump', 'lump', 'pump', 'dump'] },
+  { id: 'ush', name: '-ush 家族', emoji: '🤫', sound: '/ʊʃ/', rule: 'ush 读 /ʊʃ/，像让人安静的"嘘"。', words: ['brush', 'rush', 'hush', 'crush'] },
+
+  /* ---- 长元音 / 魔法 e ---- */
+  { id: 'ake', name: '-ake 家族', emoji: '🍰', sound: '/eɪk/', rule: 'a 后面跟着不发音的 e（魔法 e），a 就大声读自己的名字 /eɪ/。', words: ['cake', 'lake', 'make', 'take', 'snake', 'bake'] },
+  { id: 'ide', name: '-ide 家族', emoji: '🚲', sound: '/aɪd/', rule: '魔法 e 让 i 读 /aɪ/，骑车冲下山坡。', words: ['ride', 'hide', 'side', 'wide', 'tide'] },
+  { id: 'oke', name: '-oke 家族', emoji: '💨', sound: '/əʊk/', rule: 'oke 读 /əʊk/，魔法 e 把 o 拉长。', words: ['woke', 'coke', 'joke', 'broke', 'smoke'] },
+  { id: 'ee', name: '-ee 家族', emoji: '🌳', sound: '/iː/', rule: '两个 e 手拉手，读长音 /iː/，像大树说"咦——"', words: ['tree', 'bee', 'feet', 'green', 'meet'] },
+  { id: 'ea', name: '-ea 家族', emoji: '🍵', sound: '/iː/', rule: 'ea 也常读 /iː/，和 ee 是一对好朋友。', words: ['sea', 'tea', 'read', 'meat', 'beat'] },
+  { id: 'ay', name: '-ay 家族', emoji: '🎂', sound: '/eɪ/', rule: 'ay 站在词尾，读 /eɪ/，和字母 a 的名字一样。', words: ['day', 'say', 'play', 'way', 'may', 'hay', 'gray'] },
+  { id: 'ai', name: '-ai 家族', emoji: '🌧️', sound: '/eɪ/', rule: 'ai 站在词中间，也读 /eɪ/，雨点打伞"哗啦"。', words: ['rain', 'train', 'wait', 'paint', 'mail'] },
+  { id: 'y', name: '-y 家族', emoji: '🪁', sound: '/aɪ/', rule: 'y 站在词尾，大声读 /aɪ/，风筝飞上天。', words: ['my', 'fly', 'try', 'sky', 'cry', 'by', 'why'] },
+  { id: 'ie', name: '-ie 家族', emoji: '🥧', sound: '/aɪ/', rule: 'ie 在词尾读 /aɪ/，派饼真好吃。', words: ['pie', 'tie', 'lie', 'die'] },
+  { id: 'oat', name: '-oat 家族', emoji: '⛵', sound: '/əʊt/', rule: 'oa 读 /əʊ/，小船划开波浪。', words: ['boat', 'coat', 'goat', 'float', 'moat'] },
+  { id: 'old', name: '-old 家族', emoji: '🧊', sound: '/əʊld/', rule: 'old 读 /əʊld/，冰冰凉凉。', words: ['cold', 'gold', 'old', 'told', 'hold', 'fold', 'sold'] },
+  { id: 'ind', name: '-ind 家族', emoji: '🔍', sound: '/aɪnd/', rule: 'i 后面跟着 nd，读 /aɪnd/，找到啦！', words: ['find', 'kind', 'mind', 'behind'] },
+
+  /* ---- 元音组合 / 双元音 ---- */
+  { id: 'ight', name: '-ight 家族', emoji: '🌙', sound: '/aɪt/', rule: 'igh 三兄弟一起发 /aɪ/，gh 不发音。', words: ['light', 'night', 'right', 'bright', 'might', 'tight'] },
+  { id: 'ow-au', name: '-ow 嗷呜家族', emoji: '🐄', sound: '/aʊ/', rule: 'ow 读 /aʊ/，像牛叫"哞——呜"', words: ['cow', 'how', 'now', 'bow', 'wow'] },
+  { id: 'ow-oh', name: '-ow 哦家族', emoji: '❄️', sound: '/əʊ/', rule: 'ow 读 /əʊ/，把声音拖得长长的。', words: ['snow', 'blow', 'grow', 'know', 'window', 'yellow'] },
+  { id: 'oo-long', name: '-oo 长音家族', emoji: '🐘', sound: '/uː/', rule: '两个 o 读长音 /uː/，像大象呜——叫。', words: ['zoo', 'too', 'food', 'moon', 'room'] },
+  { id: 'oo-short', name: '-oo 短音家族', emoji: '📕', sound: '/ʊ/', rule: 'book 里的 oo 读短音 /ʊ/，又短又快。', words: ['book', 'look', 'cook', 'hook', 'foot'] },
+  { id: 'ou', name: '-ou 家族', emoji: '🏠', sound: '/aʊ/', rule: 'ou 读 /aʊ/，看到房子"哇"地叫。', words: ['house', 'mouse', 'out', 'shout', 'about', 'cloud'] },
+  { id: 'oi', name: '-oi 家族', emoji: '🪙', sound: '/ɔɪ/', rule: 'oi 读 /ɔɪ/，硬币叮叮落进口袋。', words: ['coin', 'oil', 'boil', 'soil', 'point'] },
+  { id: 'aw', name: '-aw 家族', emoji: '👀', sound: '/ɔː/', rule: 'aw 读 /ɔː/，像看到惊奇的东西"噢"。', words: ['saw', 'draw', 'law', 'paw'] },
+  { id: 'ear', name: '-ear 家族', emoji: '👂', sound: '/ɪə/', rule: 'ear 读 /ɪə/，耳朵就在脑袋两边。', words: ['ear', 'near', 'hear', 'year', 'bear'] },
+  { id: 'ew', name: '-ew 家族', emoji: '💧', sound: '/juː/', rule: 'ew 读 /juː/，露珠新鲜又干净。', words: ['new', 'few', 'dew', 'blew', 'grew'] },
+  { id: 'ue', name: '-ue 家族', emoji: '🔵', sound: '/uː/', rule: 'ue 读 /uː/，蓝色蓝得发亮。', words: ['blue', 'glue', 'true', 'due', 'sue'] },
+
+  /* ---- 辅音组合 ---- */
+  { id: 'ch', name: 'ch 家族', emoji: '🪑', sound: '/tʃ/', rule: 'ch 读 /tʃ/，像小火车"嚓嚓嚓"。', words: ['chair', 'lunch', 'much', 'rich'] },
+  { id: 'sh', name: 'sh 家族', emoji: '🐟', sound: '/ʃ/', rule: 'sh 读 /ʃ/，像让人安静的"嘘——"。', words: ['ship', 'shop', 'sheep', 'shoe', 'fish', 'wash'] },
+  { id: 'th-q', name: 'th 清音家族', emoji: '🌪️', sound: '/θ/', rule: 'th 咬住舌尖送气，读 /θ/（嘘——）。', words: ['three', 'thin', 'thick', 'think', 'thank'] },
+  { id: 'th-z', name: 'th 浊音家族', emoji: '🧸', sound: '/ð/', rule: 'th 咬住舌尖不送气，读 /ð/（嗯——）。', words: ['this', 'that', 'them', 'then', 'those'] },
+  { id: 'ph', name: 'ph 家族', emoji: '☎️', sound: '/f/', rule: 'ph 两个字读 /f/，和 f 一个音。', words: ['phone', 'photo', 'dolphin', 'graph'] },
+  { id: 'ck', name: '-ck 家族', emoji: '🦆', sound: '/k/', rule: 'ck 站在短元音后面，读 /k/，鸭子嘎嘎叫。', words: ['duck', 'sock', 'black', 'neck', 'rock', 'kick'] },
+  { id: 'nk', name: '-nk 家族', emoji: '🥤', sound: '/ŋk/', rule: 'nk 读 /ŋk/，鼻子帮忙再 k 一下。', words: ['pink', 'drink', 'bank', 'trunk'] },
+  { id: 'ing', name: '-ing 家族', emoji: '👑', sound: '/ɪŋ/', rule: 'ing 读 /ɪŋ/，国王唱歌鼻子响。', words: ['sing', 'king', 'ring', 'morning', 'wing'] },
+  { id: 'all', name: '-all 家族', emoji: '🏀', sound: '/ɔːl/', rule: 'all 读 /ɔːl/，嘴先圆再收，球砰砰跳。', words: ['ball', 'tall', 'wall', 'small', 'call', 'fall', 'hall'] },
+  { id: 'ar', name: '-ar 家族', emoji: '🚗', sound: '/ɑː/', rule: 'ar 读 /ɑː/，像医生让张嘴"啊——"。', words: ['car', 'star', 'far', 'jar', 'barn'] },
+  { id: 'or', name: '-or 家族', emoji: '🐴', sound: '/ɔː/', rule: 'or 读 /ɔː/，小马跑起来"哦——"。', words: ['for', 'horse', 'corn', 'born', 'storm'] },
+  { id: 'er', name: '-er 家族', emoji: '💧', sound: '/ə/', rule: '词尾的 er 轻轻读 /ə/，一带而过。', words: ['water', 'tiger', 'dinner', 'letter', 'her'] },
+  { id: 'ir', name: '-ir 家族', emoji: '🐦', sound: '/ɜː/', rule: 'ir 读 /ɜː/，小鸟歪头"儿——"。', words: ['bird', 'girl', 'shirt', 'first', 'third'] },
+  { id: 'ur', name: '-ur 家族', emoji: '🐢', sound: '/ɜː/', rule: 'ur 也读 /ɜː/，和 ir 是同音伙伴。', words: ['turn', 'burn', 'fur', 'nurse', 'hurt'] }
 ];
 
 /* ============================================================
@@ -1037,9 +1103,9 @@ const ENGLISH_READINGS = [
 ];
 
 const GOLD_RATE = 0.10;          // 稀有"超新星"贴纸概率
-const COIN_NEW = 10;             // 新词拼对奖励
-const COIN_REVIEW = 3;           // 复习正确奖励（v21 收紧：5 → 3）
-const COIN_QUEST_BONUS = 20;     // 完成每日任务奖励
+const COIN_NEW = 8;              // 新词拼对奖励（v35 再平衡：10 → 8，英语核心占比从 ~60% 降到 ~45%）
+const COIN_REVIEW = 2;           // 复习正确奖励（v21 收紧：5 → 3；v35 再平衡：3 → 2）
+const COIN_QUEST_BONUS = 15;     // 完成每日任务奖励（v35 再平衡：20 → 15）
 const COIN_BOSS = 50;            // 周日 BOSS 挑战通关奖励
 const HINT_COST = 2;             // 提示费用（直接花金币）
 const COIN_CHALLENGE_NEW = 5;    // 高年级挑战词新词加成（难度越高越值钱）
@@ -1047,6 +1113,37 @@ const COIN_CHALLENGE_REVIEW = 2; // 挑战词复习加成
 const STAR_BOX_COST = 80;        // 神秘星盒单价（每天限 2 个）
 const SHIELD_COST = 500;         // 金币兑换连击护盾（v21 新增出口）
 const SHIELD_MAX = 5;            // 护盾持有上限（每周自动补 2 张也在上限内）
+
+/* ============================================================
+ * 版本更新日志：页面刷新检测到 APP_VERSION 变化时弹一次（见 app.js）
+ * 键 = 版本号；只维护"当前版本"一条即可——升级用户永远看最新一版的日志
+ * 发版时在这里补一条（items: [emoji, 标题, 一句话说明]）
+ * ============================================================ */
+const RELEASE_NOTES = {
+  v34: {
+    emoji: '🛠️',
+    title: 'v34 版本内容',
+    items: [
+      ['🐞', '修复 3 个问题', '语文任务行点击无反应、听发音重复计费等'],
+      ['🔊', '听发音按需计费', '出题和切词不再自动朗读，求助发音才花币，先让孩子自己想'],
+      ['📚', '内容库扩充', '诗词 / 阅读 / 词语 / 古文各新增一批题目'],
+      ['✍️', '新增手写板', '中文田字格、英文四线三格，写完对照自评'],
+      ['📅', '航行日志点日期', '点日历上的任意一天，看那天学了什么'],
+      ['👑', 'BOSS 全科综合大考', '周日 15 题跨学科挑战，失误少奖励多']
+    ]
+  },
+  v35: {
+    emoji: '🎉',
+    title: '本次更新内容',
+    items: [
+      ['✍️', '手写板重做', '格子改成方正的小格，范字缩放进格做描红；英文书写不再错位，7 个字母以上的词自动换行'],
+      ['🛡️', '护盾修复', '漏学一天自动扣一张护盾保连击；应用挂在后台跨天也会结算，每周补盾不再清掉金币兑换的盾'],
+      ['🔤', '拼读星系大扩充', '词族从 6 个增加到 53 个，每组开场先讲发音规律，听单词按钮可以反复点'],
+      ['🎁', '星盒与装扮', '装扮掉率从 45% 降到 12%，同时新增 8 件装扮，共 15 件慢慢收集'],
+      ['🪙', '金币更平均', '英语核心收益下调、语文和科学道法上调，每个模块玩一轮都有成就感']
+    ]
+  }
+};
 
 /* Leitner 盒子间隔（天） */
 const BOX_INTERVALS = [1, 2, 4, 7, 15];

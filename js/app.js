@@ -5,7 +5,7 @@
 
 /* 应用版本号：顶栏标题旁显示，供家长一眼确认设备跑的是否最新版。
  * 发版时三处一起改：这里 / sw.js 的 CACHE / index.html 里脚本与 css 的 ?v= 参数 */
-const APP_VERSION = 'v34';
+const APP_VERSION = 'v35';
 
 function showScreen(name) {
   $$('#main .screen').forEach(el => el.classList.remove('active'));
@@ -121,6 +121,54 @@ function welcome() {
   });
 }
 
+/* ---------- 版本更新提示 ---------- */
+/* 刷新后发现版本号变了（且这个版本写了更新日志）就弹一次给孩子/家长看。
+ * 新用户走欢迎引导不弹；徽章弹窗等可能占着弹窗层，稍等它关掉再弹，不叠加。 */
+function maybeShowUpdateNotes() {
+  if (Store.isFirstRun()) return;
+  if (Store.seenVersion() === APP_VERSION) return;
+  const notes = (typeof RELEASE_NOTES !== 'undefined' && RELEASE_NOTES[APP_VERSION]) || null;
+  if (!notes) { Store.markVersionSeen(APP_VERSION); return; }
+  let tries = 0;
+  const show = () => {
+    if ($('#modal-root').classList.contains('show')) {
+      if (tries++ < 8) { setTimeout(show, 700); return; }
+      return; /* 一直被别的弹窗占着就放弃，下次启动再提示 */
+    }
+    showUpdateNotes(notes);
+  };
+  setTimeout(show, 900);
+}
+
+/* 更新日志弹窗：启动检测和家长面板的「更新日志」入口都走这里 */
+function showUpdateNotes(notes) {
+  notes = notes || (typeof RELEASE_NOTES !== 'undefined' && RELEASE_NOTES[APP_VERSION]);
+  if (!notes) { toast('这个版本没有更新日志'); return; }
+  showModal({
+    title: `${notes.emoji || '🎉'} 更新到 ${APP_VERSION} 啦！`,
+    build(el) {
+      el.appendChild(h('div', { class: 'upd-ver' }, APP_VERSION));
+      el.appendChild(h('div', { class: 'upd-sub' }, notes.title || '本次更新内容'));
+      const list = h('div', { class: 'upd-list' });
+      (notes.items || []).forEach(it => {
+        list.appendChild(h('div', { class: 'upd-item' },
+          h('span', { class: 'upd-emoji' }, it[0]),
+          h('div', {},
+            h('div', { class: 'upd-name' }, it[1]),
+            h('div', { class: 'upd-desc' }, it[2])
+          )
+        ));
+      });
+      el.appendChild(list);
+      el.appendChild(h('div', { class: 'tiny center', style: 'margin-top:10px' }, '刷新页面就能用上新版本，离线也能打开'));
+    },
+    actions: [{
+      label: '知道了！', cls: 'btn-main',
+      onClick: close => { Store.markVersionSeen(APP_VERSION); close(); }
+    }]
+  });
+}
+
 function bindNav() {
   $$('#bottomnav button').forEach(b => {
     b.addEventListener('click', () => { Sound.tap(); Sound.stopSpeak(); showScreen(b.dataset.nav); });
@@ -151,7 +199,20 @@ function init() {
   const unlock = () => { Sound.unlock(); document.removeEventListener('pointerdown', unlock); };
   document.addEventListener('pointerdown', unlock);
 
+  /* 版本更新提示（同版本只弹一次） */
+  maybeShowUpdateNotes();
+
   if (Store.isFirstRun()) welcome();
+
+  /* PWA 从后台回到前台（含跨天/挂机一夜）：结算漏学护盾，让孩子看到护盾真的用掉了 */
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    const used = Store.rollDay();
+    if (used > 0) {
+      Sound.tap();
+      toast(`🛡️ 漏学的 ${used} 天已用护盾自动保护，还剩 ${Store.state.streak.shields} 张`);
+    }
+  });
 
   /* PWA：仅在 http(s) 下注册（file:// 打开时自动跳过） */
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {

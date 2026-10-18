@@ -34,6 +34,7 @@
   --text-faint: rgba(255, 255, 255, 0.25);
   --text-on-accent: #fff;
   --text-on-gold: #4a2a00;
+  --hw-guide: rgba(255, 214, 214, 0.42); /* 手写板描红范字 */
 
   /* 青色（主强调） */
   --accent: #4fd1ff;
@@ -125,6 +126,7 @@
   --text-faint: rgba(28, 44, 80, 0.35);
   --text-on-accent: #fff;
   --text-on-gold: #4a2a00;
+  --hw-guide: rgba(196, 84, 84, 0.36); /* 手写板描红范字 */
 
   --accent: #0d9ed9;
   --accent-line: rgba(13, 158, 217, 0.4);
@@ -322,6 +324,35 @@ body {
 .splash-rocket { font-size: 64px; animation: bob 2s ease-in-out infinite; }
 .splash-title { font-size: 24px; font-weight: 900; margin-top: 8px; }
 .splash-sub { color: var(--text-low); margin-top: 6px; }
+
+/* ---- 拼读星系：规律小课堂 / 题目规律提示条 ---- */
+.ph-class-title { font-weight: 800; font-size: 15px; color: var(--accent-text); margin: 16px 0 8px; }
+.ph-fam {
+  text-align: left; margin: 8px 0; padding: 10px 12px;
+  background: var(--fill-1); border: 1px solid var(--line-1); border-radius: 12px;
+}
+.ph-fam-main { border-color: var(--accent-line); background: var(--accent-fill-dim); }
+.ph-fam-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ph-fam-emoji { font-size: 22px; }
+.ph-fam-name { font-weight: 900; font-size: 16px; color: var(--text-hi); }
+.ph-fam-sound {
+  font-weight: 800; font-size: 13px; color: var(--gold-soft-text);
+  background: var(--gold-fill); border: 1px solid var(--gold-line);
+  border-radius: 999px; padding: 1px 9px;
+}
+.ph-fam-rule { font-size: 13.5px; line-height: 1.7; color: var(--text-mid); margin-top: 4px; }
+.ph-fam-words { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ph-word {
+  padding: 5px 12px; border-radius: 999px; font-size: 15px; font-weight: 700;
+  background: var(--fill-3); border: 1px solid var(--line-2); color: var(--text-hi); cursor: pointer;
+}
+.ph-word:active { transform: scale(.94); background: var(--accent-fill); }
+.ph-hint {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; justify-content: center;
+  margin: 2px 0 8px; font-size: 13px; line-height: 1.6;
+}
+.ph-hint-fam { font-weight: 900; color: var(--accent-text); }
+.ph-hint-rule { color: var(--text-low); }
 
 .intro-card, .spell-card, .listen-card { text-align: center; }
 .intro-tag { color: var(--purple); font-weight: 800; letter-spacing: 2px; }
@@ -1059,14 +1090,29 @@ select.input.num { width: auto; min-width: 130px; }
 .cal-detail-title { font-weight: 900; font-size: 15px; margin-bottom: 4px; }
 .cal-detail-row { font-size: 13.5px; line-height: 1.9; color: var(--text-mid); }
 
-/* ---- 手写板（v35） ---- */
+/* ---- 手写板（v35）：格子方正、范字描红、尺寸随格子推算 ---- */
 .hw-box { margin-top: 4px; }
+.hw-wrap { display: block; width: 100%; margin-top: 4px; }
 .hw-canvas {
-  width: 100%; height: 150px; display: block; touch-action: none;
-  background: var(--fill-1); border: 1.5px solid var(--line-4); border-radius: 12px;
+  display: block; margin: 0 auto; touch-action: none;
+  background: var(--fill-1); border-radius: 12px;
+  box-shadow: 0 0 0 1.5px var(--line-3); /* 用阴影描边：不占布局，坐标零偏移 */
 }
 .hw-tools { display: flex; justify-content: center; gap: 8px; margin: 8px 0 2px; flex-wrap: wrap; }
 .hw-guide-text { text-align: center; font-size: 15px; font-weight: 700; color: var(--text-low); margin: 6px 0 2px; }
+
+/* ---- 版本更新提示弹窗（v35） ---- */
+.upd-ver {
+  display: inline-block; padding: 2px 14px; border-radius: 999px;
+  background: var(--accent-grad); color: #fff; font-weight: 900; font-size: 14px; letter-spacing: 1px;
+}
+.upd-sub { font-weight: 800; font-size: 15px; color: var(--text-mid); margin: 8px 0 6px; }
+.upd-list { text-align: left; }
+.upd-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--line-1); }
+.upd-item:last-child { border-bottom: none; }
+.upd-emoji { font-size: 22px; flex: none; line-height: 1.3; }
+.upd-name { font-weight: 900; font-size: 14.5px; color: var(--text-hi); }
+.upd-desc { font-size: 13px; line-height: 1.65; color: var(--text-low); margin-top: 1px; }
 
 /* ---- BOSS 综合大考（v34） ---- */
 .boss-tag { text-align: center; font-weight: 900; font-size: 13px; color: var(--text-low); margin: 2px 0 4px; }

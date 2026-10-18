@@ -4,14 +4,16 @@
  *   1) 听音选词：同族形近词辨音（听 → 选对拼写）
  *   2) 找出不同类：一族三词里混入外来客（练词尾规律）
  *   3) 押韵选择：谁和目标词押韵（词尾发音相同）
- * 5 题一组；答对每题 +4 🪙 全对再 +5；首刷全额、重刷递减
+ * 每组开场有"规律小课堂"：主词族的规律讲解 + 范词点读；
+ * 答题后给带发音符号的讲解。5 题一组；答对每题 +4 🪙 全对再 +5；首刷全额、重刷递减
  * ============================================================ */
 
 const Phonics = {
   items: [], idx: 0, correct: 0,
 
   pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
-  other(fam) { return WORD_FAMILIES.filter(f => f.id !== fam.id); },
+  /* 陪练词族：不同族、且结尾发音不同（发音相同会歧义，"找不同/押韵"就没法做了） */
+  other(fam) { return WORD_FAMILIES.filter(f => f.id !== fam.id && f.sound !== fam.sound); },
 
   /* ---------- 三类出题器：{kind, tip, opts:[{t, ok}]} ---------- */
 
@@ -19,11 +21,14 @@ const Phonics = {
   genListen(fam) {
     const ws = shuffle(fam.words).slice(0, 4);
     const target = this.pick(ws);
+    const others = ws.filter(w => w !== target).slice(0, 2);
+    const sameStart = ws.every(w => w[0] === ws[0][0]);
     return {
-      kind: 'listen', word: target,
+      kind: 'listen', fam, word: target,
       prompt: '仔细听，是哪个词？',
       opts: ws.map(w => ({ t: w, ok: w === target })),
-      tip: `${target} 和 ${ws.filter(w => w !== target).slice(0, 2).join('、')} 都属于 ${fam.name}，结尾发音相同，要听清开头的辅音。`
+      tip: `${target} 和 ${others.join('、')} 都是 ${fam.name}的词，结尾都读 ${fam.sound}。` +
+        (sameStart ? '它们开头也一样，要听清后面的元音！' : '开头辅音不一样，竖起耳朵听清第一个音！')
     };
   },
 
@@ -32,10 +37,11 @@ const Phonics = {
     const inside = shuffle(fam.words).slice(0, 3);
     const outsider = this.pick(fam2.words.filter(w => !fam.words.includes(w)));
     return {
-      kind: 'choice', word: outsider,
+      kind: 'choice', fam, fam2, word: outsider,
       prompt: `下面 3 个词是一家人（${fam.name}），哪一个是从别家来的"外来客"？`,
       opts: shuffle([...inside.map(w => ({ t: w, ok: false })), { t: outsider, ok: true }]),
-      tip: `${inside.join('、')} 的结尾都是「${fam.id}」，读音押韵；${outsider} 的结尾不一样。`
+      tip: `${inside.join('、')} 都属于 ${fam.name}，结尾都读 ${fam.sound}；` +
+        `${outsider} 结尾读 ${fam2.sound}，是 ${fam2.name}的词，所以它是"外来客"。`
     };
   },
 
@@ -45,23 +51,46 @@ const Phonics = {
     const rhyme = this.pick(fam.words.filter(w => w !== target));
     const others = shuffle(fam2.words).slice(0, 2);
     return {
-      kind: 'rhyme', word: target,
+      kind: 'rhyme', fam, fam2, word: target,
       prompt: `哪个词和 "${target}" 押韵？（词尾发音相同）`,
       opts: shuffle([{ t: rhyme, ok: true }, ...others.map(w => ({ t: w, ok: false }))]),
-      tip: `${rhyme} 和 ${target} 结尾都是「${fam.id}」，读一读就押上了；可以先点 🔊 听一听。`
+      tip: `${rhyme} 和 ${target} 都属于 ${fam.name}，结尾都读 ${fam.sound}，读一读就押上了。`
     };
   },
 
+  /* 一组 5 题：主词族 2 道听音，外加押韵/找不同各 1 道，陪练词族尽量不重样 */
   buildRound() {
     const fam = this.pick(WORD_FAMILIES);
-    const fam2 = this.pick(this.other(fam));
+    const others = shuffle(this.other(fam));
     return shuffle([
       this.genListen(fam),
       this.genListen(fam),
-      this.genRhyme(fam, fam2),
-      this.genRhyme(fam2, fam),
-      this.genOdd(fam, fam2)
+      this.genRhyme(fam, others[0]),
+      this.genRhyme(others[1] || others[0], fam),
+      this.genOdd(fam, others[2] || others[0])
     ]);
+  },
+
+  /* ---------- 规律小课堂（开场讲解） ---------- */
+  famCard(fam, main) {
+    const words = main ? fam.words : [];
+    const card = h('div', { class: 'ph-fam' + (main ? ' ph-fam-main' : '') },
+      h('div', { class: 'ph-fam-head' },
+        h('span', { class: 'ph-fam-emoji' }, fam.emoji),
+        h('span', { class: 'ph-fam-name' }, fam.name),
+        h('span', { class: 'ph-fam-sound' }, fam.sound)
+      ),
+      h('div', { class: 'ph-fam-rule' }, fam.rule)
+    );
+    if (words.length) {
+      const row = h('div', { class: 'ph-fam-words' });
+      words.forEach(w => row.appendChild(h('button', {
+        class: 'ph-word', onclick: () => { Sound.tap(); Sound.speak(w); }
+      }, w)));
+      card.appendChild(row);
+      card.appendChild(h('div', { class: 'tiny', style: 'margin-top:2px' }, '💡 点单词可以听发音，先跟着读一遍再出发！'));
+    }
+    return card;
   },
 
   /* ---------- 流程 ---------- */
@@ -70,6 +99,10 @@ const Phonics = {
     this.items = this.buildRound();
     this.idx = 0;
     this.correct = 0;
+    /* 本组出场的词族：主词族（题里考得最多的）完整讲解，陪练词族只露规律 */
+    const fams = [...new Set(this.items.flatMap(q => [q.fam, q.fam2].filter(Boolean)))];
+    const main = this.items.filter(q => q.fam).map(q => q.fam)
+      .sort((a, b) => this.items.filter(q => q.fam === b).length - this.items.filter(q => q.fam === a).length)[0] || fams[0];
     showScreen('quest');
     const root = $('#quest-root');
     root.innerHTML = '';
@@ -81,6 +114,8 @@ const Phonics = {
       h('div', { class: 'splash-rocket' }, '🔤'),
       h('div', { class: 'splash-title' }, '词族拼读挑战！'),
       h('div', { class: 'splash-sub' }, '听音辨词 · 找词尾规律 · 押韵游戏 · 5 题一组，答对每题 +4 🪙'),
+      h('div', { class: 'ph-class-title' }, '📚 开课前先讲规律（本组出场词族）'),
+      ...fams.map(f => this.famCard(f, f === main)),
       h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.next(); } }, '出发 →')
     ));
   },
@@ -103,19 +138,20 @@ const Phonics = {
       onclick: () => { Sound.tap(); this.idx++; this.next(); }
     }, this.idx + 1 >= this.items.length ? '完成 →' : '下一题 →');
 
+    card.appendChild(h('div', { class: 'spell-prompt' }, q.prompt));
+    /* 本组规律提示条：只露族名和发音，不露范词（听音题不剧透） */
+    card.appendChild(h('div', { class: 'ph-hint' },
+      h('span', { class: 'ph-hint-fam' }, `${q.fam.emoji} ${q.fam.name}`),
+      h('span', { class: 'ph-hint-rule' }, q.fam.rule)
+    ));
     if (q.kind === 'listen') {
-      card.appendChild(h('div', { class: 'spell-prompt' }, q.prompt));
       card.appendChild(h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(q.word) }, '🔊'));
-      card.appendChild(h('div', { class: 'tiny', style: 'margin:4px 0' }, '发音一样、长得像，只能靠耳朵！'));
-    } else {
-      card.appendChild(h('div', { class: 'spell-prompt' }, q.prompt));
-      if (q.kind === 'rhyme') {
-        card.appendChild(h('button', { class: 'speak-btn', style: 'margin:4px 0', onclick: e => {
-          Sound.speak(q.word);
-          Sound.speak(q.opts.map(o => o.t).join(', '), 0.9);
-          e.currentTarget.disabled = true;
-        } }, '🔊 听一听这几个词'));
-      }
+      card.appendChild(h('div', { class: 'tiny', style: 'margin:4px 0' }, '发音一样、长得像，只能靠耳朵！可以反复点 🔊 重听'));
+    } else if (q.kind === 'rhyme') {
+      card.appendChild(h('button', { class: 'speak-btn', style: 'margin:4px 0', onclick: () => {
+        Sound.speak(q.word);
+        Sound.speak(q.opts.map(o => o.t).join(', '), 0.9);
+      } }, '🔊 听一听这几个词'));
     }
 
     const optsEl = h('div', { class: 'cn-opts' });
@@ -162,7 +198,7 @@ const Phonics = {
       h('div', { class: 'finish-stamp' }, allOk ? '💯' : '🔤'),
       h('div', { class: 'finish-title' }, `词族拼读 ${this.correct}/${total}`),
       h('div', { class: 'finish-sub' }, `获得 +${gain} 🪙${(Store.state.today.mint.phonics || 0) > 1 ? ' · 今日重刷，奖励减半' : ''} · 累计挑战 ${(Store.state.phonics.rounds || 0)} 组`),
-      h('div', { class: 'finish-pet' }, `“${rnd(PET_LINES.praise)}” —— ${Store.state.pet.name}`),
+      h('div', { class: 'finish-pet' }, `"${rnd(PET_LINES.praise)}" —— ${Store.state.pet.name}`),
       h('div', { class: 'row-gap' },
         h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.start(); } }, '再来一组'),
         h('button', { class: 'btn btn-main', style: 'flex:1', onclick: () => { showScreen('home'); renderHome(); } }, '返回空间站')

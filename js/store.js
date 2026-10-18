@@ -132,7 +132,7 @@ const Store = (() => {
       }
     } catch (e) { state = freshState(); }
     ensureToday();
-    applyShieldBridge();
+    rollDay();
     migrate();
     save();
     return state;
@@ -147,17 +147,34 @@ const Store = (() => {
     if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0, tripleDone: false, mint: {}, capHit: false, capToastShown: false, boxOpened: 0, enReadDone: false };
   }
 
-  /* 护盾桥接：昨天漏打卡时自动消耗一张护盾保住连击 */
-  function applyShieldBridge() {
+  /* 护盾周补：新的一周把持有数补到至少 2 张（金币兑换来的盾不被清掉）；返回是否补过 */
+  function topUpShields(st) {
+    if (st.shieldWeek !== weekKey()) { st.shieldWeek = weekKey(); st.shields = Math.max(st.shields || 0, 2); return true; }
+    return false;
+  }
+
+  /* 翻页结算（跨天/漏学）：从最近一天往前逐天补漏学，每漏一天自动消耗一张护盾，
+   * 护盾用完为止；全部补上才续连击（有漏学没补上时连击照断）。
+   * 返回消耗张数（0 表示没有漏学或没有护盾可用）。
+   * 除了首次加载，PWA 从后台回来时也要调（见 app.js 的 visibilitychange），
+   * 否则应用一直开着不关闭时永远不会结算，护盾既不扣、连击也不保。 */
+  function rollDay() {
     const st = state.streak, t = todayStr();
-    if (st.shieldWeek !== weekKey()) { st.shieldWeek = weekKey(); st.shields = 2; }
-    if (st.lastDone && diffDays(st.lastDone, t) === 2 && st.shields > 0) {
-      st.shields--;
-      const yest = addDays(t, -1);
-      st.lastDone = yest;
-      if (!state.history[yest]) state.history[yest] = {};
-      state.history[yest].shieldUsed = true;
+    ensureToday();
+    const topped = topUpShields(st);
+    if (!st.lastDone) { if (topped) save(); return 0; }
+    const gap = diffDays(st.lastDone, t); /* gap-1 = 漏学天数 */
+    if (gap < 2) { if (topped) save(); return 0; }
+    const use = Math.min(gap - 1, st.shields);
+    for (let d = 1; d <= use; d++) {
+      const missed = addDays(t, -d); /* 从最近一天往前补，日历上盾标连成一片 */
+      if (!state.history[missed]) state.history[missed] = {};
+      state.history[missed].shieldUsed = true;
     }
+    st.shields -= use;
+    if (use === gap - 1) st.lastDone = addDays(t, -1); /* 漏的全补上，连击才续得上 */
+    save();
+    return use;
   }
 
   /* ---------- 词库 ---------- */
@@ -336,6 +353,12 @@ const Store = (() => {
       .slice(0, cap);
   }
 
+  /* ---------- 版本更新提示 ----------
+   * "看过哪一版"单独存一个 key（不混在游戏存档里，家长重置存档不影响） */
+  const VER_KEY = 'star-english-seen-ver';
+  function seenVersion() { try { return localStorage.getItem(VER_KEY) || ''; } catch (e) { return ''; } }
+  function markVersionSeen(v) { try { localStorage.setItem(VER_KEY, v || ''); } catch (e) { /* 存储异常忽略 */ } }
+
   /* ---------- 金币经济 ----------
    * earn(n, opts): 唯一入账口。受每日上限约束（opts.ignoreCap 可豁免，用于段位/BOSS 等里程碑），
    * 返回实际入账数（触顶时可能小于 n）。入账后立刻刷新顶栏金币。
@@ -385,12 +408,12 @@ const Store = (() => {
 
   /* ---------- 完成每日任务 ---------- */
   function completeQuest() {
-    ensureToday();
+    rollDay(); /* 先结算漏学护盾，连击判定才能用上最新的 lastDone */
     if (state.today.questDone) return;
     const st = state.streak, t = state.today.date;
     state.today.questDone = true;
     earn(COIN_QUEST_BONUS);
-    if (st.shieldWeek !== weekKey()) { st.shieldWeek = weekKey(); st.shields = 2; }
+    topUpShields(st);
     if (st.lastDone === t) { /* 今天已完成过 */ }
     else if (st.lastDone && diffDays(st.lastDone, t) === 1) st.count++;
     else st.count = 1;
@@ -446,7 +469,7 @@ const Store = (() => {
    * 500 🪙 换一张护盾；持有上限 SHIELD_MAX，每周自动补的 2 张也计入上限。 */
   function buyShield() {
     const st = state.streak;
-    if (st.shieldWeek !== weekKey()) { st.shieldWeek = weekKey(); st.shields = 2; }
+    topUpShields(st);
     if (st.shields >= SHIELD_MAX) return { ok: false, msg: `护盾已满 ${SHIELD_MAX} 张，先留着用吧` };
     if (!spend(SHIELD_COST)) return { ok: false, msg: '金币还不够' };
     st.shields++;
@@ -462,9 +485,12 @@ const Store = (() => {
   function markEnglishDone() { state.today.enDone = true; save(); }
 
   /* ---------- 语文星系 ---------- */
+  /* v35 再平衡：语文各模块单价上调（诗词全对 12→16、阅读 3→4/题+全对奖 5→6、
+  * 词语 3→4/题、古文 4→4/题+全对奖 5→8），让"一轮语文"和英语核心的收入差距从
+  * 5~7 倍缩到 3~4 倍；英语核心（新词 10→8、复习 3→2、任务奖 20→15）同步下调 */
   function markCnStar(poemId, allOk) {
     if (allOk) state.chinese.stars[poemId] = todayStr();
-    const got = earnScaled('poem', allOk ? 12 : 4);
+    const got = earnScaled('poem', allOk ? 16 : 5);
     checkBadges();
     save();
     return got;
@@ -475,22 +501,22 @@ const Store = (() => {
   }
   /* 阅读训练营一轮结束统一入账（原来每题发一次，改为整轮一次） */
   function finishCnRead(passageId, correct, total) {
-    const got = earnScaled('cnread', correct * 3 + (correct === total ? 5 : 0));
+    const got = earnScaled('cnread', correct * 4 + (correct === total ? 6 : 0));
     markCnRead(passageId);
     checkBadges();
     save();
     return got;
   }
   function finishCnWords(correct) {
-    const got = earnScaled('cnwords', correct * 3);
+    const got = earnScaled('cnwords', correct * 4);
     checkBadges();
     save();
     return got;
   }
-  /* 小古文一篇读完（原文+3 题），难度高于普通阅读，单价 5/题 */
+  /* 小古文一篇读完（原文+3 题），难度高于普通阅读 */
   function finishCnGuwen(passageId, correct, total) {
     if (!state.chinese.guwen.includes(passageId)) state.chinese.guwen.push(passageId);
-    const got = earnScaled('guwen', correct * 4 + (correct === total ? 5 : 0));
+    const got = earnScaled('guwen', correct * 4 + (correct === total ? 8 : 0));
     checkBadges();
     save();
     return got;
@@ -587,10 +613,10 @@ const Store = (() => {
     save();
     return got;
   }
-  /* 次科（科学/道法）一轮结束统一入账 */
+  /* 次科（科学/道法）一轮结束统一入账（v35 再平衡：3→4/题，全对奖 5→6） */
   function finishSubjectRound(id, correct, total) {
     subjectAddRound(id);
-    const got = earnScaled(id, correct * 3 + (correct === total ? 5 : 0));
+    const got = earnScaled(id, correct * 4 + (correct === total ? 6 : 0));
     save();
     return got;
   }
@@ -641,12 +667,14 @@ const Store = (() => {
     const roll = Math.random();
     let drop;
     const anyLeft = unowned('normal').length || unowned('gold').length;
-    if (!anyLeft || roll < 0.55) {
+    /* v35：装扮掉率 45% → 12%（家长反馈"很快就集齐"）。
+     * 普通款 9% / 稀有款 3%，其余 88% 掉金币；装扮池同步扩到 15 件放慢收集节奏 */
+    if (!anyLeft || roll < 0.88) {
       const c = Math.floor(Math.random() * 36) + 5;
       earn(c, { ignoreCap: true });
       drop = { kind: 'coins', n: c };
     } else {
-      const tier = roll < 0.85 ? 'normal' : 'gold';
+      const tier = roll < 0.97 ? 'normal' : 'gold';
       let pool = unowned(tier);
       if (!pool.length) pool = unowned(tier === 'gold' ? 'normal' : 'gold');
       if (pool.length) {
@@ -958,7 +986,7 @@ const Store = (() => {
     allPacks, activePacks, isActive, findWord, newPool, dueList,
     masterWord, reviewWord, addMinutes, completeQuest,
     isWeak, weakList, addCoins,
-    earnScaled, spend, buyShield,
+    earnScaled, spend, buyShield, rollDay,
     rankInfo, checkRank, learnedCount, bossInfo, bossComplete, bossHurtReward,
     addMistake, markEnglishDone, checkBadges, popPendingBadge, noteDictation, markDrillDone, markSpoken,
     addMathWrong, clearMathWrong, finishMathRun, setMath, addPracticeWrong, clearPracticeWrong,
@@ -973,6 +1001,6 @@ const Store = (() => {
     nextJuniorCard, markJuniorSeen,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,
-    isFirstRun, markGreeted, FEED_COST
+    isFirstRun, markGreeted, FEED_COST, seenVersion, markVersionSeen
   };
 })();

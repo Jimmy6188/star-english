@@ -21,13 +21,22 @@ function robotSVG(stage) {
     shades: '<g><rect x="68" y="54" width="27" height="17" rx="8" fill="#141d38"/><rect x="105" y="54" width="27" height="17" rx="8" fill="#141d38"/><line x1="95" y1="62" x2="105" y2="62" stroke="#141d38" stroke-width="3"/><line x1="74" y1="58" x2="84" y2="58" stroke="#4fd1ff" stroke-width="2" opacity=".7"/><line x1="111" y1="58" x2="121" y2="58" stroke="#4fd1ff" stroke-width="2" opacity=".7"/></g>',
     starg: '<g><circle cx="83" cy="62" r="11" fill="rgba(255,209,102,.15)" stroke="#ffd166" stroke-width="3"/><circle cx="117" cy="62" r="11" fill="rgba(255,209,102,.15)" stroke="#ffd166" stroke-width="3"/><line x1="94" y1="62" x2="106" y2="62" stroke="#ffd166" stroke-width="3"/><text x="83" y="67" text-anchor="middle" font-size="12">⭐</text><text x="117" y="67" text-anchor="middle" font-size="12">⭐</text></g>',
     scarf: '<g><rect x="60" y="95" width="80" height="13" rx="6.5" fill="#ff5d73"/><rect x="120" y="104" width="15" height="28" rx="6" fill="#ff5d73"/><line x1="66" y1="101" x2="134" y2="101" stroke="#ffd9de" stroke-width="2" opacity=".6"/></g>',
-    cape: '<g><polygon points="56,100 144,100 172,180 28,180" fill="#4a2f8f"/><polygon points="56,100 100,100 100,180 28,180" fill="#5b3fa8"/><circle cx="100" cy="106" r="4" fill="#ffd166"/></g>'
+    cape: '<g><polygon points="56,100 144,100 172,180 28,180" fill="#4a2f8f"/><polygon points="56,100 100,100 100,180 28,180" fill="#5b3fa8"/><circle cx="100" cy="106" r="4" fill="#ffd166"/></g>',
+    /* v35 新增装扮 */
+    party: '<g><polygon points="100,2 76,34 124,34" fill="#ff6bd6" stroke="#e055c0" stroke-width="1.5"/><circle cx="100" cy="9" r="5" fill="#ffd166"/><path d="M84 29 q16 8 32 0" stroke="#ffd166" stroke-width="2" fill="none"/></g>',
+    bunny: '<g><g transform="rotate(-14 80 28)"><ellipse cx="80" cy="28" rx="8" ry="24" fill="#eaf2ff" stroke="#9fb0d0" stroke-width="1.5"/><ellipse cx="80" cy="30" rx="4" ry="15" fill="#ffb8e6"/></g><g transform="rotate(14 120 28)"><ellipse cx="120" cy="28" rx="8" ry="24" fill="#eaf2ff" stroke="#9fb0d0" stroke-width="1.5"/><ellipse cx="120" cy="30" rx="4" ry="15" fill="#ffb8e6"/></g></g>',
+    helmet: '<g><ellipse cx="100" cy="62" rx="48" ry="47" fill="rgba(140,210,255,.16)" stroke="#4fd1ff" stroke-width="2.5"/><rect x="66" y="46" width="68" height="34" rx="16" fill="rgba(11,18,38,.32)"/><line x1="74" y1="63" x2="126" y2="63" stroke="rgba(255,255,255,.35)" stroke-width="2"/></g>',
+    phones: '<g><path d="M60 60 a40 38 0 0 1 80 0" fill="none" stroke="#2b3f6e" stroke-width="7" stroke-linecap="round"/><rect x="50" y="54" width="17" height="28" rx="8" fill="#2b3f6e" stroke="#4fd1ff" stroke-width="1.5"/><rect x="133" y="54" width="17" height="28" rx="8" fill="#2b3f6e" stroke="#4fd1ff" stroke-width="1.5"/><path d="M142 82 q12 6 6 16" fill="none" stroke="#2b3f6e" stroke-width="3" stroke-linecap="round"/><circle cx="148" cy="100" r="4.5" fill="#4fd1ff"/></g>',
+    nose: '<g><circle cx="100" cy="76" r="9" fill="#ff5d73" stroke="#e0455c" stroke-width="1.5"/><circle cx="97" cy="73" r="2.5" fill="rgba(255,255,255,.65)"/></g>',
+    blush: '<g><circle cx="72" cy="78" r="8" fill="rgba(255,107,214,.4)"/><circle cx="128" cy="78" r="8" fill="rgba(255,107,214,.4)"/></g>',
+    tie: '<g><polygon points="100,95 91,103 91,112 100,119 109,112 109,103" fill="#e0455c" stroke="#b03048" stroke-width="1.5"/><polygon points="100,119 93,127 93,142 100,150 107,142 107,127" fill="#e0455c" stroke="#b03048" stroke-width="1.5"/></g>',
+    bell: '<g><rect x="62" y="95" width="76" height="9" rx="4.5" fill="#ffd166" stroke="#e0a63c" stroke-width="1.5"/><circle cx="100" cy="113" r="9" fill="#ffd166" stroke="#e0a63c" stroke-width="1.5"/><rect x="91" y="112" width="18" height="3" fill="#e0a63c"/><circle cx="100" cy="118" r="2.2" fill="#8a6100"/></g>'
   };
   const back = worn.neck === 'cape' ? ACC.cape : '';
   const front =
-    ['hat', 'crown', 'bow'].filter(k => worn.head === k).map(k => ACC[k]).join('') +
-    ['shades', 'starg'].filter(k => worn.face === k).map(k => ACC[k]).join('') +
-    (worn.neck === 'scarf' ? ACC.scarf : '');
+    ['hat', 'crown', 'bow', 'party', 'bunny', 'helmet', 'phones'].filter(k => worn.head === k).map(k => ACC[k]).join('') +
+    ['shades', 'starg', 'nose', 'blush'].filter(k => worn.face === k).map(k => ACC[k]).join('') +
+    (worn.neck === 'scarf' ? ACC.scarf : '') + (worn.neck === 'tie' ? ACC.tie : '') + (worn.neck === 'bell' ? ACC.bell : '');
   return `
   <svg viewBox="0 0 200 190" class="robot stage-${stage}">
     <defs>
@@ -892,7 +901,10 @@ function renderParent() {
         }
       }, '修改 PIN')
     ),
-    h('div', { class: 'tiny' }, '初始 PIN 为 1234，请及时修改（当前 PIN：' + set.pin + '）')
+    h('div', { class: 'tiny' }, '初始 PIN 为 1234，请及时修改（当前 PIN：' + set.pin + '）'),
+    h('div', { class: 'row-gap', style: 'margin-top:10px' },
+      h('button', { class: 'btn', onclick: () => { Sound.tap(); showUpdateNotes(); } }, `📋 查看 ${APP_VERSION} 更新日志`)
+    )
   ));
 
   /* 词库管理 */

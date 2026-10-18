@@ -1,6 +1,6 @@
 /* 星际求知号 - 离线缓存（仅在 http(s) 环境生效）
  * 发版时三处版本一起改：这里 / js/app.js 的 APP_VERSION / index.html 的 ?v= 参数 */
-const CACHE = 'star-english-v34';
+const CACHE = 'star-english-v35';
 const ASSETS = [
   './',
   './index.html',

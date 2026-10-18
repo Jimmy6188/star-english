@@ -38,13 +38,17 @@ const Sound = (() => {
   }
 
   /* 朗读：英文用英文声音，含汉字的文本自动换中文声音（英文声音读中文会静音）。
-   * Chrome 的 cancel() 后立刻 speak() 会被吞掉，所以等一小拍再开口。 */
+   * Chrome/Android 上 cancel() 后立刻 speak() 会被吞掉（表现为"第一次能响、
+   * 之后再点没声音"）：正在读时先取消、多等一拍再开口，并加一次兜底补读。 */
   function speak(text, rate = 0.85, onEnd) {
     if (!window.speechSynthesis) { if (onEnd) setTimeout(onEnd, 200); return; }
     const seq = ++speakSeq;
+    const busy = speechSynthesis.speaking || speechSynthesis.pending || speechSynthesis.paused;
     try { speechSynthesis.cancel(); } catch (e) { /* 忽略 */ }
+    if (speechSynthesis.paused) { try { speechSynthesis.resume(); } catch (e) { /* 忽略 */ } }
     const zh = /[\u3400-\u9fff]/.test(text);
-    setTimeout(() => {
+    let tries = 0;
+    const fire = () => {
       if (seq !== speakSeq) return; /* 期间又被取消或被新朗读取代 */
       try {
         const u = new SpeechSynthesisUtterance(text);
@@ -54,9 +58,20 @@ const Sound = (() => {
         const v = zh ? zhPreferred : preferred;
         if (v) u.voice = v;
         if (onEnd) u.onend = onEnd;
+        let started = false;
+        u.onstart = () => { started = true; };
+        u.onerror = () => { if (onEnd) onEnd(); };
         speechSynthesis.speak(u);
+        /* 兜底：被浏览器吞掉时（400ms 后既没在读也没排队）自动补读一次 */
+        if (tries++ === 0) {
+          setTimeout(() => {
+            if (seq !== speakSeq || started) return;
+            if (!speechSynthesis.speaking && !speechSynthesis.pending) fire();
+          }, 400);
+        }
       } catch (e) { if (onEnd) onEnd(); }
-    }, 60);
+    };
+    setTimeout(fire, busy ? 300 : 60);
   }
 
   function stopSpeak() {
