@@ -14,6 +14,9 @@ const MathSprint = {
   pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
 
   /* 生成一道口算题 {q, a} */
+  /* v36 难度调整：核心档（lv2）加强——去掉"12×10"这类一眼题，加入三位数除以一位数、
+   * 两位数乘整十、四位数加减；挑战档（lv3）放缓——两步混合用友好数字，
+   * 两位×两位只出 11/12/15/21/25 这类有巧算空间的因数 */
   gen() {
     const lv = this.level, r = this.r, pick = this.pick;
     let q, a;
@@ -24,18 +27,21 @@ const MathSprint = {
       else if (t === 'mul') { const x = r(3, 9), y = r(3, 9); q = `${x} × ${y}`; a = x * y; }
       else { const b = r(3, 9), c = r(3, 9); q = `${b * c} ÷ ${b}`; a = c; }
     } else if (lv === 2) {
-      const t = pick(['mul1', 'mul10', 'div10', 'div1', 'add', 'sub']);
-      if (t === 'mul1') { const x = r(102, 899), y = r(2, 9); q = `${x} × ${y}`; a = x * y; }
-      else if (t === 'mul10') { const x = r(12, 89), y = pick([10, 20, 30, 40, 50]); q = `${x} × ${y}`; a = x * y; }
-      else if (t === 'div10') { const y = pick([20, 30, 40, 50]), c = r(3, 19); q = `${y * c} ÷ ${y}`; a = c; }
-      else if (t === 'div1') { const y = r(4, 9), c = r(21, 89); q = `${y * c} ÷ ${y}`; a = c; }
+      const t = pick(['mul1', 'mulT', 'divT', 'div2', 'add', 'sub', 'add4']);
+      if (t === 'mul1') { const x = r(102, 899), y = r(3, 9); q = `${x} × ${y}`; a = x * y; }
+      else if (t === 'mulT') { const x = r(21, 89), y = pick([20, 30, 40, 50]); q = `${x} × ${y}`; a = x * y; }
+      else if (t === 'divT') { const y = pick([20, 30, 40, 60, 80]), c = r(3, 19); q = `${y * c} ÷ ${y}`; a = c; }
+      else if (t === 'div2') { const y = r(3, 9), c = r(15, Math.min(99, Math.floor(999 / y))); q = `${y * c} ÷ ${y}`; a = c; }
       else if (t === 'add') { const x = r(150, 850), y = r(120, 780); q = `${x} + ${y}`; a = x + y; }
-      else { const x = r(300, 950), y = r(110, x - 60); q = `${x} − ${y}`; a = x - y; }
+      else if (t === 'sub') { const x = r(300, 950), y = r(110, x - 60); q = `${x} − ${y}`; a = x - y; }
+      else { const x = r(1200, 8999), y = r(1100, 7800); q = `${x} + ${y}`; a = x + y; }
     } else {
-      const t = pick(['mix', 'mix2', 'mul22']);
+      const t = pick(['mix', 'mix2', 'mul22', 'mix3', 'mul11']);
       if (t === 'mix') { const x = r(12, 25), y = r(3, 6), z = r(10, 90); q = `${x} × ${y} + ${z}`; a = x * y + z; }
-      else if (t === 'mix2') { const x = r(100, 400), y = r(2, 9), z = r(5, 40); q = `${x} ÷ ${y} − ${z}`; a = Math.round(x / y) - z; q = `${y * Math.round(x / y)} ÷ ${y} − ${z}`; }
-      else { const x = r(21, 89), y = r(11, 29); q = `${x} × ${y}`; a = x * y; }
+      else if (t === 'mix2') { const y = r(2, 9), c = r(12, 40), z = r(5, Math.min(30, c - 2)); q = `${y * c} ÷ ${y} − ${z}`; a = c - z; }
+      else if (t === 'mul22') { const x = r(21, 89), y = pick([11, 12, 15, 21, 25]); q = `${x} × ${y}`; a = x * y; }
+      else if (t === 'mix3') { const x = r(120, 860), y = r(110, 780), z = r(100, Math.max(110, Math.min(690, x + y - 20))); q = `${x} + ${y} − ${z}`; a = x + y - z; }
+      else { const x = r(23, 89); q = `${x} × 11`; a = x * 11; }
     }
     return { q, a };
   },
@@ -69,6 +75,7 @@ const MathSprint = {
     this.wrongThisRun = [];
     this.warm = shuffle((Store.state.math && Store.state.math.wrong) || []).slice(0, 5).map(x => ({ q: x.q, a: x.a, fromWrong: true }));
     this.running = true;
+    setQuestSub('var(--accent)');
     showScreen('quest');
     this.intro();
   },
@@ -89,7 +96,7 @@ const MathSprint = {
     return h('div', { class: 'quest-top' },
       h('button', {
         class: 'quest-exit', onclick: () => confirmModal('退出冲刺？', '本轮成绩将不保存。', () => this.abort())
-      }, '✕'),
+      }, icon('x')),
       h('div', { class: 'quest-prog' }, '🪐 数学星系')
     );
   },
@@ -138,7 +145,7 @@ const MathSprint = {
     const left = Math.max(0, this.endAt - Date.now());
     const remain = h('div', { class: 'math-timebar' }, h('i', { id: 'math-time', style: 'width:' + (left / (this.seconds * 10)) + '%' }));
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => confirmModal('退出冲刺？', '本轮成绩将不保存。', () => this.abort()) }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => confirmModal('退出冲刺？', '本轮成绩将不保存。', () => this.abort()) }, icon('x')),
       remain,
       h('div', { class: 'quest-prog' }, `✅ ${this.correct}`)
     ));
@@ -246,7 +253,7 @@ const MathDrill = {
   r(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); },
 
   gen() {
-    const r = this.r.bind(this), type = this.pick(['mul', 'div', 'app-price', 'app-qty', 'app-speed', 'app-times']);
+    const r = this.r.bind(this), type = this.pick(['mul', 'div', 'app-price', 'app-qty', 'app-speed', 'app-times', 'unit', 'peri', 'area']);
     if (type === 'mul') {
       const a = r(102, 989), b = r(11, 29);
       return { kind: 'calc', text: `用竖式算：${a} × ${b}`, ans: a * b, tip: `${a} × ${b} = ${a * b}` };
@@ -254,6 +261,35 @@ const MathDrill = {
     if (type === 'div') {
       const b = r(12, 49), c = r(11, 89);
       return { kind: 'calc', text: `用竖式算：${b * c} ÷ ${b}`, ans: c, tip: `${b * c} ÷ ${b} = ${c}` };
+    }
+    /* v36：单位换算（长度/质量/面积，正反两个方向） */
+    if (type === 'unit') {
+      const pairs = [['千米', '米', 1000], ['米', '分米', 10], ['米', '厘米', 100], ['厘米', '毫米', 10],
+        ['千克', '克', 1000], ['吨', '千克', 1000], ['平方米', '平方分米', 100], ['平方分米', '平方厘米', 100]];
+      const [big, small, k] = this.pick(pairs);
+      const n = k >= 1000 ? r(2, 9) : r(2, 40);
+      if (Math.random() < 0.5) {
+        return { kind: 'calc', text: `单位换算：${n} ${big} = ＿ ${small}`, ans: n * k, tip: `1 ${big} = ${k} ${small}，${n} × ${k} = ${n * k}（${small}）` };
+      }
+      return { kind: 'calc', text: `单位换算：${n * k} ${small} = ＿ ${big}`, ans: n, tip: `${k} ${small} = 1 ${big}，${n * k} ÷ ${k} = ${n}（${big}）` };
+    }
+    /* v36：图形周长（长方形/正方形） */
+    if (type === 'peri') {
+      if (Math.random() < 0.5) {
+        const a = r(4, 25), b = r(3, 20);
+        return { kind: 'app', text: `一个长方形长 ${a} 厘米、宽 ${b} 厘米，周长是多少厘米？`, ans: 2 * (a + b), tip: `长方形周长 =（长＋宽）× 2 =（${a}＋${b}）× 2 = ${2 * (a + b)}（厘米）` };
+      }
+      const s2 = r(3, 15);
+      return { kind: 'app', text: `一个正方形的边长是 ${s2} 米，周长是多少米？`, ans: 4 * s2, tip: `正方形周长 = 边长 × 4 = ${s2} × 4 = ${4 * s2}（米）` };
+    }
+    /* v36：图形面积（长方形/正方形） */
+    if (type === 'area') {
+      if (Math.random() < 0.5) {
+        const a = r(4, 15), b = r(3, 12);
+        return { kind: 'app', text: `一块长方形菜地长 ${a} 米、宽 ${b} 米，面积是多少平方米？`, ans: a * b, tip: `长方形面积 = 长 × 宽 = ${a} × ${b} = ${a * b}（平方米）` };
+      }
+      const s3 = r(3, 12);
+      return { kind: 'app', text: `一个正方形手帕边长 ${s3} 分米，面积是多少平方分米？`, ans: s3 * s3, tip: `正方形面积 = 边长 × 边长 = ${s3} × ${s3} = ${s3 * s3}（平方分米）` };
     }
     const name = this.pick(this.names);
     if (type === 'app-price') {
@@ -281,6 +317,7 @@ const MathDrill = {
     this.idx = 0;
     this.correct = 0;
     this.input = '';
+    setQuestSub('var(--accent)');
     showScreen('quest');
     this.renderIntro();
   },
@@ -289,13 +326,13 @@ const MathDrill = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, '📐 练习场')
     ));
     root.appendChild(h('div', { class: 'card quest-splash' },
       h('div', { class: 'splash-rocket' }, '📐'),
       h('div', { class: 'splash-title' }, '数学练习场'),
-      h('div', { class: 'splash-sub' }, `5 道题 · 笔算和应用题 · 不计时 · 首刷全额，当天重刷减半${this.items.some(i => i.fromWrong) ? ' · 含之前的错题' : ''}`),
+      h('div', { class: 'splash-sub' }, `5 道题 · 笔算 · 应用 · 单位换算 · 图形周长面积 · 不计时 · 首刷全额，当天重刷减半${this.items.some(i => i.fromWrong) ? ' · 含之前的错题' : ''}`),
       h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.next(); } }, '开始 →')
     ));
   },
@@ -308,7 +345,7 @@ const MathDrill = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `${this.idx + 1} / ${this.items.length}`)
     ));
     const inputEl = h('div', { class: 'drill-input' }, '_');
@@ -349,7 +386,7 @@ const MathDrill = {
     }
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `${this.idx + 1} / ${this.items.length}`)
     ));
     root.appendChild(h('div', { class: 'card spell-card center' },

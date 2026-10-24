@@ -20,13 +20,14 @@ const EnRead = {
     this.passage = this.nextPassage();
     this.idx = 0;
     this.correct = 0;
+setQuestSub('var(--accent)');
     showScreen('quest');
     this.renderPassage();
   },
 
   exitBtn() {
     return h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { Sound.stopSpeak(); showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { Sound.stopSpeak(); showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, '📚 英语小短文')
     );
   },
@@ -36,8 +37,9 @@ const EnRead = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(this.exitBtn());
-    /* 朗读按钮：播放中再点一次就停（自动朗读也同步成“停止”态） */
-    const hearBtn = h('button', { class: 'speak-btn xl', style: 'margin:10px 0', onclick: () => {
+    /* 朗读按钮：播放中再点一次就停（自动朗读也同步成"停止"态）。
+     * 注意用普通 btn 而不是圆形 speak-btn——那是给单个图标用的，放文字会溢出错位 */
+    const hearBtn = h('button', { class: 'btn big', style: 'margin:10px 0 2px', onclick: () => {
       Sound.tap();
       if (hearBtn.dataset.speaking === '1') {
         Sound.stopSpeak();
@@ -47,7 +49,7 @@ const EnRead = {
       }
       hearBtn.dataset.speaking = '1';
       hearBtn.textContent = '⏹️ 停止';
-      Sound.speak(p.text, 0.78, () => {
+      Sound.speakSentence(p.text, 0.78, () => {
         hearBtn.dataset.speaking = '0';
         hearBtn.textContent = '🔊 听一遍';
       });
@@ -62,7 +64,7 @@ const EnRead = {
     ));
     hearBtn.dataset.speaking = '1';
     hearBtn.textContent = '⏹️ 停止';
-    setTimeout(() => Sound.speak(p.text, 0.78, () => {
+    setTimeout(() => Sound.speakSentence(p.text, 0.78, () => {
       hearBtn.dataset.speaking = '0';
       hearBtn.textContent = '🔊 听一遍';
     }), 400);
@@ -74,14 +76,14 @@ const EnRead = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { Sound.stopSpeak(); showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { Sound.stopSpeak(); showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `Q${this.idx + 1} / ${this.passage.qs.length}`)
     ));
     const card = h('div', { class: 'card drill-card' },
       h('div', { class: 'drill-tag' }, q.kind === 'judge' ? '⚖️ True or False? 判断对错' : '✏️ Fill in the blank 选词填空')
     );
     let wasOk = null;
-    const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px' }, '');
+    const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px' });
     const nextBtn = h('button', {
       class: 'btn btn-main big cn-next', style: 'display:none',
       onclick: () => { Sound.tap(); this.idx++; this.next(); }
@@ -140,7 +142,7 @@ const EnRead = {
               e.currentTarget.classList.add('right');
               const c = centerOf(e.currentTarget);
               burst(c.x, c.y, { count: 8, colors: ['#58e08a'], power: 45 });
-              setTimeout(() => Sound.speak(q.q.replace('____', m.t), 0.82), 250);
+              setTimeout(() => Sound.speakSentence(q.q.replace('____', m.t), 0.82), 250);
             } else {
               Sound.wrong();
               e.currentTarget.classList.add('wrong');
@@ -174,7 +176,7 @@ const EnRead = {
       h('div', { class: 'analysis-zh' }, p.zh || '（这篇还没有翻译）'),
       h('div', { class: 'analysis-tag', style: 'margin-top:12px' }, '🔑 重点词汇与词组'),
       (p.notes || []).map(n => h('div', { class: 'note-row' },
-        h('button', { class: 'speak-btn', onclick: () => Sound.speak(n.w) }, '🔊'),
+        h('button', { class: 'speak-btn', onclick: () => Sound.speakWord(n.w) }, '🔊'),
         h('span', { class: 'note-w' }, n.w),
         h('span', { class: 'note-zh' }, n.zh)
       ))
@@ -187,7 +189,7 @@ const EnRead = {
         const show = wrap.style.display === 'none';
         wrap.style.display = show ? '' : 'none';
         toggle.textContent = show ? '🔼 收起翻译与解析' : '🔽 查看全文翻译与解析';
-        if (show) Sound.speak(p.text, 0.78);
+        if (show) Sound.speakSentence(p.text, 0.78);
       }
     }, '🔽 查看全文翻译与解析');
     const root = $('#quest-root');

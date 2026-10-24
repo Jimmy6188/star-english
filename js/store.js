@@ -28,11 +28,11 @@ const Store = (() => {
       v: 1,
       settings: { dailyNew: 4, dailyReview: 10, sessionLimitMin: 20, soundOff: false, pin: '1234', activePacks: null, grade: 4, range: 'below', warmupPerDay: 1, theme: 'auto', dailyCoinCap: 150, challengePerDay: 1 },
       coins: 0,
-      pet: { name: '小星', fed: 0, outfits: { owned: [], worn: {} } },
+      pet: { name: '小星', kind: 'bot', kinds: ['bot'], fed: 0, outfits: { owned: [], worn: {} } },
       streak: { count: 0, best: 0, lastDone: null, shields: 2, shieldWeek: null },
       srs: {},        // id -> {box, due, ok, bad, wrongStreak, learnedAt}
       album: {},      // id -> {at, gold}
-      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0, tripleDone: false, mint: {}, capHit: false, capToastShown: false, boxOpened: 0, enReadDone: false },
+      today: { date: todayStr(), newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0, tripleDone: false, mint: {}, capHit: false, capToastShown: false, boxOpened: 0, enReadDone: false, eyeRemindedAt: 0 },
       subjects: { science: subjFresh(), daofa: subjFresh() },
       shop: { rewards: [], pending: [], history: [] },
       history: {},    // date -> {done, minutes, news, revs, shieldUsed}
@@ -82,6 +82,8 @@ const Store = (() => {
     if (state.today && state.today.capToastShown === undefined) state.today.capToastShown = false;
     if (state.today && state.today.boxOpened === undefined) state.today.boxOpened = 0;
     if (state.today && state.today.enReadDone === undefined) state.today.enReadDone = false;
+    if (state.today && state.today.eyeRemindedAt === undefined) state.today.eyeRemindedAt = 0; /* v36 护眼提醒 */
+    if (state.settings.eyeRestMin === undefined) state.settings.eyeRestMin = 25;
     if (!state.enRead) state.enRead = { reads: [] };
     if (!state.junior) state.junior = { seen: {} }; /* v26：每日一星知识卡 */
     if (!state.sentence) state.sentence = { runs: 0, done: [], best: 0 }; /* v30：句子默写 */
@@ -89,6 +91,9 @@ const Store = (() => {
     if (!state.sentence.hard) state.sentence.hard = {}; /* v31：句中难词复现计数 */
     if (!state.sentence.newWords) state.sentence.newWords = {}; /* v32：句子默写生词本 */
     if (!state.pet.outfits) state.pet.outfits = { owned: [], worn: {} };
+    if (!Array.isArray(state.pet.kinds)) state.pet.kinds = ['bot']; /* v36：多物种伙伴 */
+    if (!state.pet.kind || !state.pet.kinds.includes(state.pet.kind)) state.pet.kind = 'bot';
+    if (state.sentence.showIpa === undefined) state.sentence.showIpa = false; /* v36：生词本音标开关 */
     if (state.stats && !state.stats.thinkDone) state.stats.thinkDone = 0;
     if (state.stats && !state.stats.boxesOpened) state.stats.boxesOpened = 0;
     if (state.settings.dailyCoinCap === undefined) state.settings.dailyCoinCap = 150;
@@ -144,7 +149,7 @@ const Store = (() => {
 
   function ensureToday() {
     const t = todayStr();
-    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0, tripleDone: false, mint: {}, capHit: false, capToastShown: false, boxOpened: 0, enReadDone: false };
+    if (state.today.date !== t) state.today = { date: t, newDone: 0, revDone: 0, minutes: 0, questDone: false, mistakes: 0, enDone: false, mathDone: false, cnRounds: 0, coinsEarned: 0, tripleDone: false, mint: {}, capHit: false, capToastShown: false, boxOpened: 0, enReadDone: false, eyeRemindedAt: 0 };
   }
 
   /* 护盾周补：新的一周把持有数补到至少 2 张（金币兑换来的盾不被清掉）；返回是否补过 */
@@ -401,8 +406,36 @@ const Store = (() => {
   }
   function addCoins(n, opts) { const got = earn(n, opts); save(); return got; }
 
+  /* 护眼提醒（v36）：当天累计用时每跨过一个"护眼间隔"（默认 25 分钟）弹一次休息提醒 */
   function addMinutes(min) {
-    state.today.minutes = Math.min(180, state.today.minutes + min);
+    const before = state.today.minutes || 0;
+    state.today.minutes = Math.min(180, before + min);
+    const gap = Math.max(10, state.settings.eyeRestMin || 25);
+    const last = state.today.eyeRemindedAt || 0;
+    if (state.today.minutes >= last + gap && before < last + gap) {
+      state.today.eyeRemindedAt = state.today.minutes;
+      setTimeout(() => {
+        try {
+          if (typeof showModal === 'function' && typeof Sound !== 'undefined') {
+            Sound.tap();
+            showModal({
+              title: '👀 眼睛要休息啦！',
+              dismissable: true,
+              build(el) {
+                el.appendChild(h('div', { class: 'center', style: 'line-height:2' },
+                  h('div', { style: 'font-size:56px;margin:6px 0' }, '👀'),
+                  h('div', {}, '已经学习 ' + state.today.minutes + ' 分钟啦，眼睛辛苦了！'),
+                  h('div', { class: 'tiny', style: 'margin-top:8px;line-height:1.9' },
+                    '去窗边看看远处 20 秒，再闭上眼睛数 20 下；' + String.fromCharCode(10) + '站起来伸个懒腰，喝口水再回来。'),
+                  h('div', { class: 'tiny', style: 'margin-top:6px;color:var(--gold)' }, '“护眼小卫士 ' + state.pet.name + ' 提示你”')
+                ));
+              },
+              actions: [{ label: '休息好啦，继续！', cls: 'btn-main' }]
+            });
+          }
+        } catch (e) { /* UI 未就绪忽略 */ }
+      }, 600);
+    }
     save();
   }
 
@@ -720,6 +753,12 @@ const Store = (() => {
     state.sentence.layout = layout === 'qwerty' ? 'qwerty' : 'abc';
     save();
   }
+  /* 生词本练习里是否默认展开音标（孩子/家长可切，全练习共用） */
+  function setSentenceShowIpa(on) {
+    if (!state.sentence) state.sentence = {};
+    state.sentence.showIpa = !!on;
+    save();
+  }
   /* 句中拼错的词计入难词表：之后抽句优先出含这些词的句子，及时复现 */
   function bumpSentenceHard(words) {
     if (!state.sentence) state.sentence = {};
@@ -879,6 +918,35 @@ const Store = (() => {
     PET_STAGES.forEach((s, i) => { if (state.pet.fed >= s.need) idx = i; });
     return idx;
   }
+  function petKind() {
+    const k = (typeof PET_KINDS !== 'undefined') && PET_KINDS.find(x => x.id === state.pet.kind);
+    return k || PET_KINDS[0];
+  }
+  /* 当前物种 + 当前阶段的形态名（喂食进度跨物种保留，换了伙伴从头像上也不违和） */
+  function petStageInfo() {
+    const kind = petKind();
+    return kind.stages[Math.min(petStage(), kind.stages.length - 1)];
+  }
+  /* 招募新伙伴（金币一次性买断），招募后自动切换为当前伙伴 */
+  function buyPetKind(id) {
+    const k = (typeof PET_KINDS !== 'undefined') && PET_KINDS.find(x => x.id === id);
+    if (!k) return { ok: false, msg: '没有这个伙伴' };
+    if (state.pet.kinds.includes(id)) return { ok: false, msg: '已经拥有啦' };
+    if (state.coins < k.price) return { ok: false, msg: '金币还不够' };
+    state.coins -= k.price;
+    state.pet.kinds.push(id);
+    state.pet.kind = id;
+    checkBadges();
+    save();
+    return { ok: true, kind: k };
+  }
+  /* 已拥有的伙伴之间随时免费切换 */
+  function setPetKind(id) {
+    if (!state.pet.kinds.includes(id)) return false;
+    state.pet.kind = id;
+    save();
+    return true;
+  }
   function feedPet() {
     if (state.coins < FEED_COST) return null;
     const before = petStage();
@@ -922,7 +990,7 @@ const Store = (() => {
     /* 只清学习记录（图鉴/连击/错题/成长数据），保留设置、词库、金币、兑换商店和宠物装扮 */
     const keep = {
       settings: state.settings,
-      pet: { name: state.pet.name, fed: 0, outfits: state.pet.outfits || { owned: [], worn: {} } },
+      pet: { name: state.pet.name, kind: state.pet.kind || 'bot', kinds: state.pet.kinds || ['bot'], fed: 0, outfits: state.pet.outfits || { owned: [], worn: {} } },
       custom: state.custom,
       coins: state.coins,
       shop: state.shop
@@ -994,9 +1062,9 @@ const Store = (() => {
     markCnStar, markCnRead, addCnWrong, finishCnRead, finishCnWords, finishCnGuwen, markPhonicsRound,
     subjectWeek, subjectAddRound, subjectMarkDone, subjectWrong, subjectAddWrong, subjectClearWrong,
     addShopReward, removeShopReward, redeemReward, approveRedeem, rejectRedeem, tomorrowDueCount,
-    petStage, feedPet, setSetting,
+    petStage, petStageInfo, petKind, buyPetKind, setPetKind, feedPet, setSetting,
     buyOutfit, wearOutfit, openStarBox, markEnRead,
-    markSentence, bumpSentenceRun, setSentenceLayout, bumpSentenceHard,
+    markSentence, bumpSentenceRun, setSentenceLayout, setSentenceShowIpa, bumpSentenceHard,
     sentenceNewAdd, sentenceNewList, sentenceNewOk, sentenceNewRemove, finishSentenceBook,
     nextJuniorCard, markJuniorSeen,
     addCustomWords, removeCustomWord,

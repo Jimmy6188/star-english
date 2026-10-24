@@ -11,14 +11,16 @@ const BossAll = {
 
   pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
 
-  start() {
+  start(free) {
     Sound.stopSpeak();
+    this.free = !!free; /* 自由练模式：主科全达后随时玩，不影响周奖励 */
     const pool = Object.keys(Store.state.srs).filter(id => Store.state.srs[id].box >= 3 && Store.findWord(id));
-    if (pool.length < 5) { toast('综合大考需要先掌握 5 个以上较熟的词，先去冒险吧！'); return; }
-    this.wasDone = Store.bossInfo().done; // 本周已通关 → 本次是友谊赛
+    if (pool.length < 5) { toast('综合练习需要先掌握 5 个以上较熟的词，先去冒险吧！'); return; }
+    this.wasDone = this.free || Store.bossInfo().done; // 自由练/本周已通关 → 走友谊赛结算
     this.plan = this.buildPlan(shuffle(pool));
     this.idx = 0;
     this.wrong = 0;
+setQuestSub('var(--gold-strong)');
     showScreen('quest');
     this.renderIntro();
   },
@@ -190,7 +192,7 @@ const BossAll = {
     root.innerHTML = '';
     root.appendChild(this.hdr());
     const optsEl = h('div', { class: 'cn-opts' });
-    const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px;line-height:1.8;text-align:left' }, '');
+    const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px;line-height:1.8;text-align:left' });
     const nextBtn = h('button', {
       class: 'btn btn-main big cn-next', style: 'display:none;margin-top:10px',
       onclick: () => { Sound.tap(); done(answeredOk); }
@@ -229,7 +231,7 @@ const BossAll = {
   runInput(q, root, done) {
     root.innerHTML = '';
     root.appendChild(this.hdr());
-    const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px;line-height:1.8;text-align:left' }, '');
+    const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px;line-height:1.8;text-align:left' });
     const nextBtn = h('button', {
       class: 'btn btn-main big cn-next', style: 'display:none;margin-top:10px',
       onclick: () => { Sound.tap(); done(answeredOk); }
@@ -280,8 +282,8 @@ const BossAll = {
         h('button', {
           class: 'quest-exit',
           onclick: () => confirmModal('退出大考？', '进度将不保存，确定退出吗？', () => this.abort())
-        }, '✕'),
-        h('div', { class: 'quest-prog' }, `👑 第 ${this.idx + 1} / ${this.total} 题 · 失误 ${this.wrong}`)
+        }, icon('x')),
+        h('div', { class: 'quest-prog' }, `${this.free ? '🎯' : '👑'} 第 ${this.idx + 1} / ${this.total} 题 · 失误 ${this.wrong}`)
       ),
       tag ? h('div', { class: 'boss-tag' }, tag) : ''
     );
@@ -299,14 +301,14 @@ const BossAll = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { Sound.stopSpeak(); showScreen('home'); renderHome(); } }, '✕'),
-      h('div', { class: 'quest-prog' }, '👑 BOSS 周挑战')
+      h('button', { class: 'quest-exit', onclick: () => { Sound.stopSpeak(); showScreen('home'); renderHome(); } }, icon('x')),
+      h('div', { class: 'quest-prog' }, this.free ? '🎯 全科自由练' : '👑 BOSS 周挑战')
     ));
     root.appendChild(h('div', { class: 'card quest-splash' },
-      h('div', { class: 'splash-rocket' }, '👑'),
-      h('div', { class: 'splash-title' }, 'BOSS 周挑战 · 全科综合大考'),
+      h('div', { class: 'splash-rocket' }, this.free ? '🎯' : '👑'),
+      h('div', { class: 'splash-title' }, this.free ? '全科自由练 · 三科主科一起复习' : 'BOSS 周挑战 · 全科综合大考'),
       h('div', { class: 'splash-sub' }, '15 道题 · 英语拼写 / 语文 / 数学思维 / 科学道法 / 初中知识'),
-      h('div', { class: 'intro-zh', style: 'margin-top:6px;line-height:1.7' },
+      h('div', { class: 'intro-zh', style: 'margin-top:6px;line-height:1.7' }, this.free ? '主科任务全部完成后解锁：英语、语文、数学混在一起练，题多又全。答错的题会收进对应学科的错题本。可以反复玩，每次 +3 🪙。' :
         `选择和判断题答错就记 1 次失误，英语拼写连错 2 次算失守。\n失误 ≤1 击败 BOSS +${COIN_BOSS} 🪙 · ≤3 击伤 +10 🪙 · 奖励每周只发一次。\n答错的题会收进对应学科的错题本，正好知道哪里没学牢。`),
       h('button', { class: 'btn btn-main big', style: 'margin-top:12px', onclick: () => { Sound.tap(); this.begin(); } }, '开考 →')
     ));
@@ -341,7 +343,11 @@ const BossAll = {
     const total = this.total;
     const score = Math.max(0, total - this.wrong);
     let icon = '💀', title = 'BOSS 挡住了这次进攻…', sub = '';
-    if (this.wasDone) {
+    if (this.free) {
+      Store.addCoins(3);
+      icon = '🎯'; title = '自由练完成！';
+      sub = `成绩 ${score}/${total} · 全科混合 · 切磋奖励 +3 🪙`;
+    } else if (this.wasDone) {
       Store.bossComplete(score, total, true);
       Store.addCoins(3);
       icon = '🤝'; title = '友谊赛完成！';
@@ -374,10 +380,12 @@ const BossAll = {
       h('div', { class: 'finish-sub' }, sub),
       h('div', { class: 'finish-pet' }, `“${rnd(PET_LINES.praise)}” —— ${Store.state.pet.name}`),
       h('div', { class: 'row-gap' },
-        h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.start(); } }, '⚔️ 再战一次'),
+        h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.start(this.free); } }, '⚔️ 再战一次'),
         h('button', { class: 'btn btn-main', style: 'flex:1', onclick: () => { Sound.tap(); showScreen('home'); renderHome(); } }, '返回空间站')
       )
     ));
+    /* v37：BOSS 结算宠物表情——击败/击伤→cheer，战败→expect（鼓励不惩罚） */
+    petSay(this.wrong <= 3 || this.free || this.wasDone ? 'cheer' : 'expect', 3200);
     const c = centerOf($('.finish-stamp'));
     burst(c.x, c.y, { count: 30, emojis: ['🎉', '⭐', '✨', '🚀', '💛'], power: 160 });
     renderHome();

@@ -42,6 +42,7 @@ const Quest = {
     this.idx = 0;
     this.startedTs = Date.now();
     this.warnedLimit = false;
+setQuestSub('var(--accent)');
     showScreen('quest');
     this.splash();
   },
@@ -60,6 +61,7 @@ const Quest = {
     this.idx = 0;
     this.startedTs = Date.now();
     this.warnedLimit = false;
+setQuestSub('var(--accent)');
     showScreen('quest');
     this.splash();
   },
@@ -78,6 +80,7 @@ const Quest = {
     this.idx = 0;
     this.startedTs = Date.now();
     this.warnedLimit = false;
+setQuestSub('var(--accent)');
     showScreen('quest');
     this.splash();
   },
@@ -157,13 +160,13 @@ const Quest = {
     root.appendChild(h('div', { class: 'card spell-card' },
       h('div', { class: 'spell-prompt' }, `📝 听写第 ${this.idx + 1} 题（共 ${this.items.length} 题）`),
       h('div', { class: 'spell-zh' }, w.zh),
-      h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(w.word) }, '🔊'),
+      h('button', { class: 'speak-btn xl', onclick: () => Sound.speakWord(w.word) }, icon('sound')),
       ipaEl(w),
       h('div', { class: 'tiny' }, '听发音看中文拼单词 · 只有一次机会！'),
       slotsEl,
       tilesEl
     ));
-    setTimeout(() => Sound.speak(w.word), 350);
+    setTimeout(() => Sound.speakWord(w.word), 350);
   },
 
   splash() {
@@ -239,7 +242,7 @@ const Quest = {
         class: 'quest-exit', onclick: () => confirmModal('退出冒险？', this.dictMode ? '退出后本次听写作废，成绩不保存。' : '今天学的进度会保留，随时可以回来继续。', () => {
           this.addMinutes(); showScreen('home'); renderHome();
         })
-      }, '✕'),
+      }, icon('x')),
       h('div', { class: 'quest-prog' }, `${this.idx + 1} / ${this.items.length}`)
     );
   },
@@ -280,16 +283,16 @@ const Quest = {
       h('div', { class: 'intro-emoji' }, w.emoji),
       h('div', { class: 'intro-word-row' },
         h('span', { class: 'intro-word' + (w.phrase ? ' phrase' : '') }, w.word),
-        h('button', { class: 'speak-btn big', onclick: () => Sound.speak(w.word) }, '🔊')
+        h('button', { class: 'speak-btn big', onclick: () => Sound.speakWord(w.word) }, icon('sound'))
       ),
       ipaEl(w),
       h('div', { class: 'intro-zh' }, w.zh),
       h('div', { class: 'intro-ex' },
-        h('button', { class: 'speak-btn', onclick: () => Sound.speak(w.ex) }, '🔊 '),
+        h('button', { class: 'speak-btn', onclick: () => Sound.speakSentence(w.ex) }, icon('sound')),
         h('span', {}, w.ex)
       ),
       h('div', { class: 'tiny intro-exzh' }, w.exZh),
-      w.phrase ? '' : h('button', { class: 'btn small', style: 'margin:4px 0', onclick: () => Sound.speak(w.word.split('').join(', ') + '. ' + w.word, 0.7) }, '🔤 拼读一下（听每个字母）'),
+      w.phrase ? '' : h('button', { class: 'btn small', style: 'margin:4px 0', onclick: () => { Sound.tap(); Sound.speak(w.word.split('').join(', '), 0.65, () => Sound.speakWord(w.word)); } }, '🔤 拼读一下（听每个字母）'),
       buildSpeakPanel(w),
       h('button', {
         class: 'btn btn-main big',
@@ -297,7 +300,7 @@ const Quest = {
       }, '进入拼写舱 →')
     );
     root.appendChild(card);
-    setTimeout(() => Sound.speak(w.word), 400);
+    setTimeout(() => Sound.speakWord(w.word), 400);
   },
 
   /* ---------- 拼写挑战 ----------
@@ -436,7 +439,7 @@ const Quest = {
     /* 新词刚在上一屏教过，拼读按钮直接可用；复习/听写挑战先藏起来，拼错后再出现 */
     const spellBtn = h('button', {
       class: 'btn', style: isNew ? '' : 'display:none',
-      onclick: () => Sound.speak(w.word.split('').join(', ') + '. ' + w.word, 0.7)
+      onclick: () => { Sound.speak(w.word.split('').join(', '), 0.65, () => Sound.speakWord(w.word)); }
     }, '🔤 拼读一下');
 
     const cardKids = [
@@ -447,7 +450,7 @@ const Quest = {
               : (opts.hardMode ? '⚡ 听写挑战：听发音拼写' : (isPhrase ? '复习：拼出这个词组' : '复习：拼出这个单词'))))),
       opts.hardMode ? '' : h('div', { class: 'spell-zh' }, w.zh),
       useCloze ? h('div', { class: 'cloze-line' }, clozeBefore, h('span', { class: 'cloze-blank' }, '＿＿＿＿'), clozeAfter) : '',
-      h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(spokenText) }, '🔊'),
+      h('button', { class: 'speak-btn xl', onclick: () => Sound.speakWord(spokenText) }, icon('sound')),
       this.bossMode ? '' : ipaEl(w),
       h('div', { class: 'tiny' },
         useCloze ? '🔊 可重听整句（缺的词会读成 something）· 不给中文，靠句子猜词'
@@ -506,7 +509,7 @@ const Quest = {
       }
     }
     root.appendChild(h('div', { class: 'card spell-card' }, cardKids.filter(Boolean)));
-    setTimeout(() => Sound.speak(spokenText), 350);
+    setTimeout(() => Sound.speakWord(spokenText), 350);
   },
 
   /* BOSS 战败一题：亮出正确答案加深印象，随后自动进入下一题 */
@@ -549,7 +552,7 @@ const Quest = {
             const c = centerOf(e.currentTarget);
             burst(c.x, c.y, { count: 10, emojis: ['✨', '⭐'], power: 60 });
             floatText(c.x, c.y - 20, `+${reward} 🪙`);
-            Sound.speak(w.word);
+            Sound.speakWord(w.word);
             e.currentTarget.classList.add('right');
             setTimeout(() => { self.idx++; self.next(); }, 1000);
           } else {
@@ -563,10 +566,10 @@ const Quest = {
 
     root.appendChild(h('div', { class: 'card listen-card' },
       h('div', { class: 'spell-prompt' }, '听！是哪个词？'),
-      h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(w.word) }, '🔊'),
+      h('button', { class: 'speak-btn xl', onclick: () => Sound.speakWord(w.word) }, icon('sound')),
       grid
     ));
-    setTimeout(() => Sound.speak(w.word), 350);
+    setTimeout(() => Sound.speakWord(w.word), 350);
   },
 
   /* ---------- 看图选词 ---------- */
@@ -591,7 +594,7 @@ const Quest = {
             const c = centerOf(e.currentTarget);
             burst(c.x, c.y, { count: 8, emojis: ['✨', '⭐'], power: 50 });
             floatText(c.x, c.y - 20, `+${reward} 🪙`);
-            Sound.speak(w.word);
+            Sound.speakWord(w.word);
             e.currentTarget.classList.add('right');
             setTimeout(() => { self.idx++; self.next(); }, 1000);
           } else {
@@ -638,7 +641,7 @@ const Quest = {
             const c = centerOf(e.currentTarget);
             burst(c.x, c.y, { count: 8, emojis: ['✨', '⭐'], power: 50 });
             floatText(c.x, c.y - 20, `+${reward} 🪙`);
-            setTimeout(() => Sound.speak(w.ex), 250);
+            setTimeout(() => Sound.speakSentence(w.ex), 250);
             e.currentTarget.classList.add('right');
             setTimeout(() => { self.idx++; self.next(); }, 1400);
           } else {
@@ -787,6 +790,9 @@ const Quest = {
       ) : h('button', { class: 'btn btn-main big', onclick: () => { showScreen('home'); renderHome(); } }, '返回空间站')
     );
     root.appendChild(card);
+    /* v37：结算时宠物表情——盖章/全对→cheer 欢呼；答错/战败→expect 期待（鼓励不惩罚） */
+    const ok = icon === '🚀' || icon === '💪' || icon === '⚡' || icon === '💯' || icon === '👑' || icon === '🤝';
+    petSay(ok ? 'cheer' : 'expect', ok ? 3200 : 2600);
     setTimeout(() => {
       const c = centerOf($('.finish-stamp'));
       burst(c.x, c.y, { count: 30, emojis: ['🎉', '⭐', '✨', '🚀', '💛'], power: 160 });
@@ -906,7 +912,7 @@ function buildSpeakPanel(w) {
       return;
     }
     wrap.appendChild(h('div', { class: 'talk-compare' },
-      h('button', { class: 'btn talk-play', onclick: () => Sound.speak(w.word) }, '🔊 听标准发音'),
+      h('button', { class: 'btn talk-play', onclick: () => Sound.speakWord(w.word) }, '🔊 听标准发音'),
       h('audio', { controls: '', src: url, class: 'talk-mine' })
     ));
     wrap.appendChild(h('div', { class: 'row-gap center', style: 'justify-content:center' },

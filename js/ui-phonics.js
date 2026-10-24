@@ -85,7 +85,7 @@ const Phonics = {
     if (words.length) {
       const row = h('div', { class: 'ph-fam-words' });
       words.forEach(w => row.appendChild(h('button', {
-        class: 'ph-word', onclick: () => { Sound.tap(); Sound.speak(w); }
+        class: 'ph-word', onclick: () => { Sound.tap(); Sound.speakWord(w); }
       }, w)));
       card.appendChild(row);
       card.appendChild(h('div', { class: 'tiny', style: 'margin-top:2px' }, '💡 点单词可以听发音，先跟着读一遍再出发！'));
@@ -103,11 +103,12 @@ const Phonics = {
     const fams = [...new Set(this.items.flatMap(q => [q.fam, q.fam2].filter(Boolean)))];
     const main = this.items.filter(q => q.fam).map(q => q.fam)
       .sort((a, b) => this.items.filter(q => q.fam === b).length - this.items.filter(q => q.fam === a).length)[0] || fams[0];
+setQuestSub('var(--purple)');
     showScreen('quest');
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, '🔤 拼读星系')
     ));
     root.appendChild(h('div', { class: 'card quest-splash' },
@@ -126,13 +127,13 @@ const Phonics = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { Sound.stopSpeak(); showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { Sound.stopSpeak(); showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `${this.idx + 1} / ${this.items.length}`)
     ));
     const card = h('div', { class: 'card drill-card' },
       h('div', { class: 'drill-tag' }, '🔤 拼读星系'));
     let wasOk = null;
-    const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px' }, '');
+    const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px' });
     const nextBtn = h('button', {
       class: 'btn btn-main big cn-next', style: 'display:none',
       onclick: () => { Sound.tap(); this.idx++; this.next(); }
@@ -145,13 +146,13 @@ const Phonics = {
       h('span', { class: 'ph-hint-rule' }, q.fam.rule)
     ));
     if (q.kind === 'listen') {
-      card.appendChild(h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(q.word) }, '🔊'));
+      card.appendChild(h('button', { class: 'speak-btn xl', onclick: () => Sound.speakWord(q.word) }, '🔊'));
       card.appendChild(h('div', { class: 'tiny', style: 'margin:4px 0' }, '发音一样、长得像，只能靠耳朵！可以反复点 🔊 重听'));
     } else if (q.kind === 'rhyme') {
-      card.appendChild(h('button', { class: 'speak-btn', style: 'margin:4px 0', onclick: () => {
-        Sound.speak(q.word);
-        Sound.speak(q.opts.map(o => o.t).join(', '), 0.9);
-      } }, '🔊 听一听这几个词'));
+      card.appendChild(h('button', {
+        class: 'btn small', style: 'margin:6px auto 2px',
+        onclick: () => { Sound.tap(); Sound.speakWordSeq([q.word].concat(q.opts.map(o => o.t)), 0.9); }
+      }, icon('sound', 16), ' 听一听这几个词（先目标词，再逐个选项）'));
     }
 
     const optsEl = h('div', { class: 'cn-opts' });
@@ -167,7 +168,7 @@ const Phonics = {
             e.currentTarget.classList.add('right');
             const c = centerOf(e.currentTarget);
             burst(c.x, c.y, { count: 8, colors: ['#58e08a'], power: 45 });
-            if (q.kind === 'listen') setTimeout(() => Sound.speak(q.word), 200);
+            if (q.kind === 'listen') setTimeout(() => Sound.speakWord(q.word), 200);
           } else {
             Sound.wrong();
             e.currentTarget.classList.add('wrong');
@@ -184,7 +185,7 @@ const Phonics = {
     card.appendChild(tipEl);
     card.appendChild(nextBtn);
     root.appendChild(card);
-    if (q.kind === 'listen') setTimeout(() => Sound.speak(q.word), 400);
+    if (q.kind === 'listen') setTimeout(() => Sound.speakWord(q.word), 400);
   },
 
   finish() {

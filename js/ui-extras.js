@@ -1,6 +1,7 @@
 /* ============================================================
  * 星际求知号 - 金币出口：机器伙伴衣柜 + 神秘星盒
- * 衣柜：三类装扮（头饰/脸部/围绕），普通款金币购买，金色款星盒掉落
+ * 衣柜：先挑伙伴（v36 多物种），再配三类装扮（头饰/脸部/围绕）
+ * 装扮全物种通用；普通款金币购买，金色款星盒掉落
  * 星盒：每天限开 2 个，概率掉装扮（稀有优先）或金币
  * ============================================================ */
 
@@ -8,11 +9,55 @@ const Extras = {
   /* ---------- 衣柜 ---------- */
   openWardrobe() {
     const o = Store.state.pet.outfits || { owned: [], worn: {} };
-    const cats = [['head', '🎩 头饰'], ['face', '🕶️ 脸部'], ['neck', '🧣 围绕']];
+    const kinds = Store.state.pet.kinds || ['bot'];
+    const activeKind = Store.state.pet.kind || 'bot';
     showModal({
-      title: '🎩 机器伙伴衣柜',
+      title: '🛰️ 伙伴衣柜',
       build(el, close) {
-        el.appendChild(h('div', { class: 'tiny', style: 'margin-bottom:6px' },
+        /* ---- 伙伴挑选：已招募的随时免费切换，没招募的花金币领回家 ---- */
+        el.appendChild(h('div', { class: 'wf-cat' }, '🛰️ 挑伙伴（换上的伙伴共用喂食进度和全部装扮）'));
+        const kgrid = h('div', { class: 'wf-grid' });
+        PET_KINDS.forEach(k => {
+          const owned = kinds.includes(k.id);
+          const active = activeKind === k.id;
+          const wfe = h('div', { class: 'wfe wfe-pet' });
+          wfe.innerHTML = robotSVG(Math.min(2, Store.petStage()), k.id);
+          const tile = h('button', {
+            class: 'wf-item' + (owned ? ' owned' : '') + (active ? ' worn' : ''),
+            onclick: e => {
+              Sound.tap();
+              if (active) { toast('它已经陪在你身边啦'); return; }
+              if (owned) {
+                Store.setPetKind(k.id);
+                Sound.correct();
+                toast(`${k.emoji} ${k.name} 上场！`);
+                renderHome();
+                Extras.openWardrobe();
+                return;
+              }
+              const r = Store.buyPetKind(k.id);
+              if (r.ok) {
+                Sound.gold();
+                const c = centerOf(e.currentTarget);
+                burst(c.x, c.y, { count: 16, emojis: [k.emoji, '✨', '⭐'], power: 90 });
+                updateTop();
+                renderHome();
+                Extras.openWardrobe();
+              } else toast(r.msg);
+            }
+          },
+            wfe,
+            h('div', { class: 'wfn' }, `${k.emoji} ${k.name}`),
+            active ? h('div', { class: 'wfp' }, '当前伙伴')
+              : owned ? h('div', { class: 'wfp' }, '点它上场')
+                : h('div', { class: 'wfp' }, `${k.price} 🪙 招募`)
+          );
+          kgrid.appendChild(tile);
+        });
+        el.appendChild(kgrid);
+
+        const cats = [['head', '🎩 头饰'], ['face', '🕶️ 脸部'], ['neck', '🧣 围绕']];
+        el.appendChild(h('div', { class: 'tiny', style: 'margin:4px 0 2px' },
           `当前金币 ${Store.state.coins} 🪙 · 已收集 ${o.owned.length}/${PET_OUTFITS.length} 件 · 金色款只能从神秘星盒掉落`));
         cats.forEach(([cat, label]) => {
           el.appendChild(h('div', { class: 'wf-cat' }, label));

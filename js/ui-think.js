@@ -1,7 +1,8 @@
 /* ============================================================
  * 星际求知号 - 数学思维挑战场（拔高加餐）
- * 找规律 / 巧算 / 周期问题 / 鸡兔同笼，程序自动出题
- * 5 题一组不计时，答对每题 +5 🪙 全对再 +8；首刷全额、重刷递减
+ * 找规律 / 巧算 / 周期 / 鸡兔同笼 / 24点 / 年龄 / 和差 / 爬井 / 锯木头 / 星期周期
+ * v36：老题型加难（二阶等差、斐波那契、连减凑整、×99…），新增 5 类应用题；
+ * 每轮从 10 类里随机抽 5 题。5 题一组不计时，答对每题 +5 🪙 全对再 +8；首刷全额、重刷递减
  * ============================================================ */
 
 const MathThink = {
@@ -12,14 +13,20 @@ const MathThink = {
 
   /* ---------- 出题器：每题 {kind:'input'|'choice', text, ans, tip, opts?, ansIdx?} ---------- */
 
-  /* 找规律：等差 / ×2 / ×10 */
+  /* 找规律：等差 / 二阶等差 / ×2 / ×3 / 斐波那契 / 递减 */
   genSeq() {
-    const kind = this.pick(['add', 'geo', 'geo10']);
+    const kind = this.pick(['add', 'add2', 'geo', 'geo3', 'fib', 'sub']);
     if (kind === 'add') {
-      const s = this.r(1, 15), d = this.r(2, 9);
+      const s = this.r(1, 15), d = this.r(3, 9);
       const seq = [0, 1, 2, 3].map(i => s + i * d);
       const ans = s + 4 * d;
       return { kind: 'input', text: `找规律填数：${seq.join('，')}，＿＿`, ans, tip: `每次多 ${d}：${seq[3]} + ${d} = ${ans}` };
+    }
+    if (kind === 'add2') {
+      const s = this.r(2, 20), d = this.r(2, 6);
+      const seq = [s, s + d, s + 2 * d + 2, s + 3 * d + 6, s + 4 * d + 12];
+      const ans = s + 5 * d + 20;
+      return { kind: 'input', text: `找规律填数：${seq.join('，')}，＿＿`, ans, tip: `相邻两数的差每次多 2：${d}、${d + 2}、${d + 4}、${d + 6}，下一个差是 ${d + 8}，${seq[4]} + ${d + 8} = ${ans}` };
     }
     if (kind === 'geo') {
       const s = this.r(1, 4);
@@ -27,15 +34,27 @@ const MathThink = {
       const ans = s * 16;
       return { kind: 'input', text: `找规律填数：${seq.join('，')}，＿＿`, ans, tip: `每次 ×2：${seq[3]} × 2 = ${ans}` };
     }
-    const s = this.r(1, 9);
-    const seq = [s, s * 10, s * 100, s * 1000];
-    const ans = s * 10000;
-    return { kind: 'input', text: `找规律填数：${seq.join('，')}，＿＿`, ans, tip: `每次 ×10：${seq[3]} × 10 = ${ans}` };
+    if (kind === 'geo3') {
+      const s = this.r(1, 3);
+      const seq = [s, s * 3, s * 9, s * 27];
+      const ans = s * 81;
+      return { kind: 'input', text: `找规律填数：${seq.join('，')}，＿＿`, ans, tip: `每次 ×3：${seq[3]} × 3 = ${ans}` };
+    }
+    if (kind === 'fib') {
+      const a = this.r(1, 4), b = this.r(2, 6);
+      const seq = [a, b, a + b, a + 2 * b, 2 * a + 3 * b];
+      const ans = 3 * a + 5 * b;
+      return { kind: 'input', text: `找规律填数：${seq.join('，')}，＿＿`, ans, tip: `前两个数相加等于后一个：${seq[3]} + ${seq[4]} = ${ans}` };
+    }
+    const s = this.r(60, 130), d = this.r(3, 9);
+    const seq = [s, s - d, s - 2 * d, s - 3 * d];
+    const ans = s - 4 * d;
+    return { kind: 'input', text: `找规律填数：${seq.join('，')}，＿＿`, ans, tip: `每次少 ${d}：${seq[3]} − ${d} = ${ans}` };
   },
 
-  /* 巧算：凑整 / 加 99 / 减 198 / 25×4 */
+  /* 巧算：凑整 / 加 99 / 减 198 / 25×4 / 连减凑整 / ×99 / 125×8 */
   genClever() {
-    const kind = this.pick(['sum100', 'add99', 'sub198', 'mul25']);
+    const kind = this.pick(['sum100', 'add99', 'sub198', 'mul25', 'sub2', 'mul99', 'mul125']);
     if (kind === 'sum100') {
       const a = this.r(12, 88), c = this.r(15, 85), b = 100 - a;
       return { kind: 'input', text: `巧算：${a} + ${c} + ${b} = ?`, ans: 100 + c, tip: `${a} + ${b} = 100，100 + ${c} = ${100 + c}` };
@@ -48,8 +67,20 @@ const MathThink = {
       const a = this.r(320, 900), p = this.pick([198, 199, 197]), sub = 200 - p;
       return { kind: 'input', text: `巧算：${a} − ${p} = ?`, ans: a - p, tip: `${a} − ${p} = ${a} − 200 + ${sub} = ${a - p}` };
     }
-    const k = this.r(3, 9);
-    return { kind: 'input', text: `巧算：25 × 4 × ${k} = ?`, ans: 100 * k, tip: `25 × 4 = 100，100 × ${k} = ${100 * k}` };
+    if (kind === 'mul25') {
+      const k = this.r(3, 9);
+      return { kind: 'input', text: `巧算：25 × 4 × ${k} = ?`, ans: 100 * k, tip: `25 × 4 = 100，100 × ${k} = ${100 * k}` };
+    }
+    if (kind === 'sub2') {
+      const a = this.r(320, 940), b = this.r(25, 75), c = 100 - b;
+      return { kind: 'input', text: `巧算：${a} − ${b} − ${c} = ?`, ans: a - 100, tip: `连减可以先把后两个相加：${b} + ${c} = 100，${a} − 100 = ${a - 100}` };
+    }
+    if (kind === 'mul99') {
+      const a = this.r(13, 89);
+      return { kind: 'input', text: `巧算：${a} × 99 = ?`, ans: a * 99, tip: `${a} × 99 = ${a} × 100 − ${a} = ${a * 100} − ${a} = ${a * 99}` };
+    }
+    const k = this.r(3, 9), m = 8 * k;
+    return { kind: 'input', text: `巧算：125 × ${m} = ?`, ans: 1000 * k, tip: `125 × 8 = 1000，所以 125 × ${m} = 125 × 8 × ${k} = ${1000 * k}` };
   },
 
   /* 周期问题：按规律排图形，问第 N 个 */
@@ -80,9 +111,88 @@ const MathThink = {
     };
   },
 
+  /* ---------- v36 新题型 ---------- */
+
+  /* 年龄问题：年龄差不变 */
+  genAge() {
+    const name = this.pick(['小明', '小红', '乐乐', '朵朵', '小宇']);
+    const a = this.r(7, 12);
+    if (Math.random() < 0.5) {
+      const d = this.r(24, 32), y = this.r(3, 9);
+      return {
+        kind: 'input',
+        text: `${name}今年 ${a} 岁，爸爸比${name}大 ${d} 岁。${y} 年后爸爸多少岁？`,
+        ans: a + d + y,
+        tip: `年龄差永远不变：爸爸今年 ${a} + ${d} = ${a + d} 岁，${y} 年后再加 ${y} 岁，是 ${a + d + y} 岁。`
+      };
+    }
+    const k = this.r(5, 8);
+    return {
+      kind: 'input',
+      text: `${name}今年 ${a} 岁，爷爷的年龄正好是${name}的 ${k} 倍。爷爷今年多少岁？`,
+      ans: a * k,
+      tip: `${a} × ${k} = ${a * k}（岁）。`
+    };
+  },
+
+  /* 和差问题 */
+  genSumDiff() {
+    const small = this.r(8, 20), diff = this.r(1, 6) * 2;
+    const sum = small * 2 + diff, big = small + diff;
+    return {
+      kind: 'input',
+      text: `哥哥和弟弟一共有 ${sum} 张邮票，哥哥比弟弟多 ${diff} 张。哥哥有多少张？`,
+      ans: big,
+      tip: `和差问题：（${sum} + ${diff}）÷ 2 = ${big}（张）。也可以想：哥哥拿出 ${diff / 2} 张给弟弟两人就一样多。`
+    };
+  },
+
+  /* 蜗牛爬井：最后一天爬出井口不再下滑 */
+  genSnail() {
+    const u = this.r(3, 5), d = this.r(1, u - 1);
+    const top = u + this.r(2, 5) * (u - d) + this.r(1, u - 1);
+    const rest = top - u;
+    const pre = Math.ceil(rest / (u - d));
+    const days = pre + 1;
+    return {
+      kind: 'input',
+      text: `一只蜗牛从井底往上爬，白天爬上 ${u} 米，晚上滑下 ${d} 米。井深 ${top} 米，第几天能爬出井口？`,
+      ans: days,
+      tip: `最后一天白天直接爬出井口，不再下滑。前面的日子每天净爬 ${u} − ${d} = ${u - d} 米：(${top} − ${u}) ÷ ${u - d}，有余数就再加 1 天，得 ${pre} 天，再加最后 1 天：第 ${days} 天。`
+    };
+  },
+
+  /* 锯木头：段数 − 1 = 锯的次数 */
+  genCut() {
+    const p = this.r(2, 5), segA = this.r(3, 6), segB = segA + this.r(2, 4);
+    return {
+      kind: 'input',
+      text: `把一根木头锯成 ${segA} 段要 ${p * (segA - 1)} 分钟。照这样的速度，锯成 ${segB} 段要多少分钟？`,
+      ans: p * (segB - 1),
+      tip: `锯成 ${segA} 段只要锯 ${segA - 1} 次，每次 ${p} 分钟；锯成 ${segB} 段要锯 ${segB - 1} 次：${p} × ${segB - 1} = ${p * (segB - 1)}（分钟）。`
+    };
+  },
+
+  /* 星期周期：周期问题的日期版 */
+  genWeek() {
+    const NAMES = { 1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六', 7: '日' };
+    const w0 = this.r(1, 7);
+    const n = 7 * this.r(2, 8) + this.r(1, 6);
+    const w = ((w0 - 1 + n) % 7) + 1;
+    return {
+      kind: 'choice',
+      text: `今天是星期${NAMES[w0]}，再过 ${n} 天是星期几？`,
+      opts: ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'],
+      ansIdx: w - 1,
+      tip: `7 天一循环：${n} ÷ 7 = ${Math.floor(n / 7)} 组余 ${n % 7}，从星期${NAMES[w0]}往后数 ${n % 7} 天，就是星期${NAMES[w]}。`
+    };
+  },
+
   buildRound() {
-    const qs = [this.genSeq(), this.genClever(), this.genCycle(), this.genJitu(), this.gen24()];
-    return shuffle(qs);
+    /* 10 类题打乱抽 5，每轮组合都不一样 */
+    const gens = [this.genSeq(), this.genClever(), this.genCycle(), this.genJitu(), this.gen24(),
+      this.genAge(), this.genSumDiff(), this.genSnail(), this.genCut(), this.genWeek()];
+    return shuffle(gens).slice(0, 5);
   },
 
   /* 24 点（选择式）：3 个数配运算符，选出结果是 24 的算式 */
@@ -132,6 +242,7 @@ const MathThink = {
     this.idx = 0;
     this.correct = 0;
     this.input = '';
+setQuestSub('var(--accent)');
     showScreen('quest');
     this.renderIntro();
   },
@@ -140,13 +251,13 @@ const MathThink = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, '🧠 思维挑战场')
     ));
     root.appendChild(h('div', { class: 'card quest-splash' },
       h('div', { class: 'splash-rocket' }, '🧠'),
       h('div', { class: 'splash-title' }, '思维挑战场！'),
-      h('div', { class: 'splash-sub' }, '5 道烧脑题 · 找规律 / 巧算 / 周期 / 鸡兔同笼 · 答对每题 +5 🪙，全对再 +8'),
+      h('div', { class: 'splash-sub' }, '5 道烧脑题 · 找规律 / 巧算 / 周期 / 鸡兔同笼 / 年龄 / 和差 / 爬井 / 锯木头…每轮随机 5 类 · 答对每题 +5 🪙，全对再 +8'),
       h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.next(); } }, '出发 →')
     ));
   },
@@ -159,7 +270,7 @@ const MathThink = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `${this.idx + 1} / ${this.items.length}`)
     ));
     const card = h('div', { class: 'card drill-card' },
@@ -206,7 +317,7 @@ const MathThink = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `${this.idx + 1} / ${this.items.length}`)
     ));
     root.appendChild(h('div', { class: 'card spell-card center' },
@@ -382,6 +493,7 @@ const Sudoku = {
     try { localStorage.setItem('sdk-level', String(lvl)); } catch (e) { /* 忽略 */ }
     this.gen(lvl, diff);
     if (lvl === 9) { try { localStorage.setItem('sdk-diff', String(this.diff)); } catch (e) { /* 忽略 */ } }
+setQuestSub('var(--accent)');
     showScreen('quest');
     this.render();
   },
@@ -391,13 +503,13 @@ const Sudoku = {
     root.innerHTML = '';
     const solved = this.kid.every((row, r) => row.every((v, c) => v === this.sol[r][c]));
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, this.n === 9 ? `🔢 数独九宫 · ${this.DIFF_NAME[this.diff]}` : `🔢 数独 ${this.n} 宫`)
     ));
     /* 四宫/六宫用固定格子；九宫格用弹性布局自适应屏宽，整盘不溢出 */
     const is9 = this.n === 9;
     const cell = this.n === 4 ? 52 : 44;
-    const font = is9 ? 16 : 23;
+    const font = is9 ? 16 : 24;
     /* 按宫分块：每宫一个粗框盒子，宫的区域一眼可见 */
     const grid = h('div', {
       class: 'sdk-grid' + (is9 ? ' flex' : ''),

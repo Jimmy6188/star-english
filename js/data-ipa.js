@@ -139,7 +139,9 @@ const IPA_DICT = {
   teeth: 'tiːθ', tall: 'tɔːl', time: 'taɪm', today: 'təˈdeɪ',
   tonight: 'təˈnaɪt', trees: 'triːz',
   want: 'wɑːnt', well: 'wel', where: 'wer',
-  zoo: 'zuː'
+  zoo: 'zuː',
+  /* v36 补录：句库剩余实词（生词本音标开关用） */
+  after: 'ˈæftər', before: 'bɪˈfɔːr', each: 'iːtʃ', other: 'ˈʌðər', please: 'pliːz'
 };
 
 /* 取一个词条的音标：词组不注、词典没有不注，返回空串 */
@@ -153,5 +155,5 @@ function wordIpa(w) {
 /* 音标展示组件：点一下重听这个单词 */
 function ipaEl(w) {
   const ipa = wordIpa(w);
-  return ipa ? h('button', { class: 'word-ipa', onclick: () => Sound.speak(w.word) }, '/' + ipa + '/') : '';
+  return ipa ? h('button', { class: 'word-ipa', onclick: () => Sound.speakWord(w.word) }, '/' + ipa + '/') : '';
 }

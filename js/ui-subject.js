@@ -18,7 +18,8 @@ const SubjectUI = {
 
   /* 首页学科宫格的磁贴（由 ui-screens.js 的 renderSubjects 调用） */
   tiles() {
-    return this.defs.map(def => subjectTile(def.emoji, def.name, this.tileSub(def), () => this.openHub(def)));
+    return this.defs.map(def => subjectTile(def.emoji, def.name, this.tileSub(def), () => this.openHub(def),
+      def.id === 'science' ? 'var(--green)' : 'var(--pink)'));
   },
 
   tileSub(def) {
@@ -81,6 +82,7 @@ const SubjectUI = {
     Sound.stopSpeak();
     const qs = this.buildRound(def, unit, wrongOnly);
     if (!qs.length) { toast('题目准备好了，稍后再来！'); return; }
+    setQuestSub(def.id === 'science' ? 'var(--green)' : 'var(--pink)');
     showScreen('quest');
     let idx = 0, correct = 0;
     const step = () => {
@@ -107,7 +109,7 @@ const SubjectUI = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(hdr || h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => confirmModal('退出练习？', '进度将不保存，确定退出吗？', () => { showScreen('home'); renderHome(); }) }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => confirmModal('退出练习？', '进度将不保存，确定退出吗？', () => { showScreen('home'); renderHome(); }) }, icon('x')),
       h('div', { class: 'quest-prog' }, `${idx + 1} / ${total}`)
     ));
 
@@ -118,7 +120,7 @@ const SubjectUI = {
       if (ok) Sound.correct();
       else { Sound.wrong(); Store.subjectAddWrong(def.id, q); }
     };
-    const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px' }, '');
+    const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px' });
     const nextBtn = h('button', {
       class: 'btn btn-main big cn-next', style: 'display:none',
       onclick: () => { Sound.tap(); onDone(wasOk); }

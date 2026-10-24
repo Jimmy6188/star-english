@@ -5,7 +5,7 @@
 
 /* 应用版本号：顶栏标题旁显示，供家长一眼确认设备跑的是否最新版。
  * 发版时三处一起改：这里 / sw.js 的 CACHE / index.html 里脚本与 css 的 ?v= 参数 */
-const APP_VERSION = 'v35';
+const APP_VERSION = 'v37';
 
 function showScreen(name) {
   $$('#main .screen').forEach(el => el.classList.remove('active'));
@@ -91,6 +91,7 @@ function initTheme() {
 
 /* 首次欢迎引导 */
 function welcome() {
+  let chosen = 'bot';
   showModal({
     title: '🚀 欢迎来到星际求知号！',
     dismissable: false,
@@ -98,19 +99,34 @@ function welcome() {
       el.appendChild(h('div', { class: 'welcome-lines' },
         h('p', {}, '👋 你好，小宇航员！'),
         h('p', {}, '📖 每天完成今日任务，就能收集奇妙的星际贴纸，'),
-        h('p', {}, '🤖 赚金币喂养你的机器伙伴，让它慢慢进化！'),
+        h('p', {}, '🤖 赚金币喂养你的伙伴，让它慢慢进化！'),
         h('p', { class: 'tiny' }, '（这个小程序是爸爸/妈妈为你准备的，有问题找他们哦）')
       ));
       const row = h('div', { class: 'row-gap' },
-        h('span', {}, '给机器伙伴起名字：'),
+        h('span', {}, '给伙伴起名字：'),
         h('input', { id: 'pet-name-input', class: 'input', maxlength: '6', value: '小星' })
       );
       el.appendChild(row);
+      /* v36：挑一个喜欢的伙伴出发（以后还能在「换装」里招募别的） */
+      el.appendChild(h('div', { class: 'tiny', style: 'margin-top:10px' }, '再挑一个陪你出发的伙伴：'));
+      const picks = h('div', { class: 'row-gap wrap', style: 'justify-content:center' },
+        PET_KINDS.map(k => h('button', {
+          class: 'btn small' + (k.id === 'bot' ? ' btn-on' : ''),
+          'data-kind': k.id,
+          onclick: e => {
+            Sound.tap();
+            chosen = k.id;
+            picks.querySelectorAll('[data-kind]').forEach(b => b.classList.toggle('btn-on', b.dataset.kind === chosen));
+          }
+        }, `${k.emoji} ${k.name}`)));
+      el.appendChild(picks);
     },
     actions: [{
       label: '启航！', cls: 'btn-main big', onClick: close => {
         const name = ($('#pet-name-input').value || '小星').trim().slice(0, 6);
         Store.state.pet.name = name || '小星';
+        if (!Store.state.pet.kinds.includes(chosen)) Store.state.pet.kinds.push(chosen);
+        Store.state.pet.kind = chosen;
         Store.save();
         Store.markGreeted();
         close();

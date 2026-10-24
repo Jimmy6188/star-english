@@ -26,6 +26,25 @@ function h(tag, attrs, ...children) {
 const $ = sel => document.querySelector(sel);
 const $$ = sel => Array.from(document.querySelectorAll(sel));
 
+/* ---------- 功能图标（v36 第二档）----------
+ * 操作类图标（退出/喇叭/翻页）用统一线条 SVG，颜色跟随文字；
+ * 奖励与装饰场景（贴纸、行星、伙伴）仍用 emoji。 */
+const ICON_PATHS = {
+  x: 'M6 6 L18 18 M18 6 L6 18',
+  left: 'M14 6 L8 12 L14 18',
+  right: 'M10 6 L16 12 L10 18',
+  sound: 'M11 5 6.5 9H4a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2.5L11 19V5z M15.5 9.5a3.6 3.6 0 0 1 0 5 M18.2 7a7.2 7.2 0 0 1 0 10'
+};
+function icon(name, size = 18) {
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  p.setAttribute('d', ICON_PATHS[name] || ICON_PATHS.x);
+  return h('svg', {
+    viewBox: '0 0 24 24', width: size, height: size, fill: 'none',
+    stroke: 'currentColor', 'stroke-width': 2.4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+    style: 'flex:none;vertical-align:-3px'
+  }, p);
+}
+
 function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -133,6 +152,32 @@ function flyTo(fromEl, toSel, text, { dur = 800 } = {}) {
     clone.remove();
     to.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }], { duration: 300 });
   };
+}
+
+/* 学科色顶条（v36 第三档）：进入模块时把学科色挂到题目屏，卡顶色条/印章随之变色 */
+function setQuestSub(color) {
+  const root = $('#quest-root');
+  if (root) root.style.setProperty('--sub', color || 'var(--accent)');
+}
+
+/* 空状态小插画：几笔线条画 + 一句话（生词本/记录/商店等空场景） */
+const EMPTY_ART = {
+  book: '<path d="M12 6c-2-1.6-5-2-8-2v14c3 0 6 .4 8 2 2-1.6 5-2 8-2V4c-3 0-6 .4-8 2z"/><path d="M12 6v14"/><path d="M19 2.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
+  rocket: '<path d="M13.5 4.5c3 2 4.5 5 4.5 8.5l-3 2h-6l-3-2c0-3.5 1.5-6.5 4.5-8.5L12 3z"/><circle cx="12" cy="10.5" r="2"/><path d="M9.5 17.5 8 21l2.8-.9M14.5 17.5 16 21l-2.8-.9M12 18.5V21"/><path d="M4 6.5l.6 1.5 1.5.6-1.5.6L4 10.7l-.6-1.5L1.9 8.6l1.5-.6z"/>',
+  gift: '<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M4 14h16M12 10v10"/><path d="M12 10c-1.5-3-6-3-6 0 0 1 .9 1.6 2 1.6M12 10c1.5-3 6-3 6 0 0 1-.9 1.6-2 1.6"/><path d="M19.5 3.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/>'
+};
+function emptyArt(kind, tip) {
+  const wrap = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  wrap.setAttribute('viewBox', '0 0 24 24');
+  wrap.setAttribute('width', 72); wrap.setAttribute('height', 72);
+  wrap.setAttribute('fill', 'none');
+  wrap.setAttribute('stroke', 'currentColor');
+  wrap.setAttribute('stroke-width', '1.6');
+  wrap.setAttribute('stroke-linecap', 'round');
+  wrap.setAttribute('stroke-linejoin', 'round');
+  wrap.setAttribute('style', 'color:var(--accent-text);opacity:.8');
+  wrap.innerHTML = EMPTY_ART[kind] || EMPTY_ART.book;
+  return h('div', { class: 'empty-art' }, wrap, h('div', { class: 'ea-tip' }, tip));
 }
 
 function centerOf(el) {

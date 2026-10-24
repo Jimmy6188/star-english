@@ -8,13 +8,38 @@
 const Chinese = {
   pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
 
+  /* ---------- 古诗朗读多音字修正 ----------
+   * TTS 只会按字最常见的读音读，遇到多音字常常读错（如"人未还"读成 hái）。
+   * 办法：朗读前把易错的字/词组替换成同音字"骗"它读对——只影响朗读，不影响界面显示。
+   * 注意："为/将"这类在诗库里两种读音都出现的字必须用词组级替换，不能整字替换。
+   * 以后发现新的读错字，往表里加一行 [原文, 同音替换] 即可。 */
+  SPEAK_FIX: [
+    ['草长莺飞', '草涨莺飞'],   /* 长 zhǎng（生长） */
+    ['一行白鹭', '一航白鹭'],   /* 行 háng（列） */
+    ['为有暗香', '未有暗香'],   /* 为 wèi（因为；"死亦为鬼雄"是 wéi，不能整字替换） */
+    ['龙城飞将', '龙城飞酱'],   /* 将 jiàng（将领；"将绿绕"是 jiāng） */
+    ['朝露待日', '昭露待日'],   /* 朝 zhāo（早晨；"南朝"是 cháo） */
+    ['门泊东吴', '门勃东吴'],   /* 泊 bó（停泊） */
+    ['人未还', '人未环'],       /* 还 huán */
+    ['不教胡马', '不骄胡马'],   /* 教 jiāo（让） */
+    ['单于', '蝉于'],           /* 单 chán */
+    ['亡赖', '无赖'],           /* 亡 wú（同"无"） */
+    ['卧剥莲蓬', '卧包莲蓬'],   /* 剥 bāo */
+    ['露', '鹭']                /* 露 lù（诗里三处都读 lù） */
+  ],
+  readText(s) {
+    let t = String(s || '');
+    this.SPEAK_FIX.forEach(([from, to]) => { t = t.split(from).join(to); });
+    return t;
+  },
+
   /* ---------- 通用：选择式题目 / 字块填空（onDone(ok)） ----------
    * hdr：自定义头部元素（综合大考复用本界面时传入，自带退出与进度） */
   ask(q, idx, total, onDone, hdr) {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(hdr || h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => confirmModal('退出练习？', '进度将不保存，确定退出吗？', () => { showScreen('home'); renderHome(); }) }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => confirmModal('退出练习？', '进度将不保存，确定退出吗？', () => { showScreen('home'); renderHome(); }) }, icon('x')),
       h('div', { class: 'quest-prog' }, `${idx + 1} / ${total}`)
     ));
     const optsEl = h('div', { class: 'cn-opts' });
@@ -58,7 +83,7 @@ const Chinese = {
           Sound.correct();
           const c = centerOf(sentEl);
           burst(c.x, c.y, { count: 8, colors: ['#58e08a'], power: 45 });
-          setTimeout(() => Sound.speak(q.line || q.q, 0.82), 250);
+          setTimeout(() => Sound.speak(Chinese.readText(q.line || q.q), 0.82), 250);
         } else {
           Store.addCnWrong(q);
           Sound.wrong();
@@ -104,7 +129,7 @@ const Chinese = {
           Sound.correct();
           const c = centerOf(sentEl);
           burst(c.x, c.y, { count: 8, colors: ['#58e08a'], power: 45 });
-          setTimeout(() => Sound.speak(q.line || q.q, 0.82), 250);
+          setTimeout(() => Sound.speak(Chinese.readText(q.line || q.q), 0.82), 250);
         } else {
           Store.addCnWrong(q);
           Sound.wrong();
@@ -170,7 +195,7 @@ const Chinese = {
     root.appendChild(h('div', { class: 'card drill-card' },
       qText,
       optsEl,
-      h('div', { class: 'cn-tip tiny', style: 'margin-top:10px;min-height:20px' }, ''),
+      h('div', { class: 'cn-tip tiny', style: 'margin-top:10px;min-height:20px' }),
       h('button', {
         class: 'btn btn-main big cn-next', style: 'display:none',
         onclick: () => { Sound.tap(); onDone(wasOk); }
@@ -194,35 +219,47 @@ const Chinese = {
 
   /* ---------- 诗词星图 ---------- */
   /* 没学过的诗先走学习页（读全诗 + 白话译文 + 重点字词），学过才直接挑战；
-   * 已点亮的星随时可以重刷巩固（重刷奖励递减）。 */
+   * 已点亮的星随时可以重刷巩固（重刷奖励递减）。
+   * v36：四下预习诗单独一个分区，点亮不计入四上"星河诗卷 36"。 */
+  poemRow(p) {
+    const stars = Store.state.chinese.stars;
+    const learned = Store.state.chinese.learned || {};
+    const got = stars[p.id];
+    const isLearned = !!learned[p.id];
+    const stateIcon = got ? '⭐' : (isLearned ? '📖' : '🌑');
+    const stateText = got ? '已点亮 · 再挑战' : (isLearned ? '学过 · 挑战' : '未学 · 先学习');
+    return h('button', {
+      class: 'pack-row cn-poem-row', onclick: () => { Sound.tap(); isLearned ? this.poemChallenge(p) : this.poemLearn(p); }
+    },
+      h('span', { class: 'pack-info' }, stateIcon, ` 《${p.title}》`, h('span', { class: 'tiny' }, `　${p.dynasty}·${p.author}`)),
+      h('span', { class: 'tiny' }, stateText)
+    );
+  },
+
   poemList() {
+setQuestSub('var(--gold-strong)');
     showScreen('quest');
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, '📜 诗词星图')
     ));
-    const stars = Store.state.chinese.stars;
-    const learned = Store.state.chinese.learned || {};
     root.appendChild(h('div', { class: 'card drill-card' },
       h('div', { class: 'drill-tag' }, '每首诗挑战 4 关：接下句 · 填名句 · 认作者 · 懂诗意'),
       h('div', { class: 'tiny', style: 'margin:6px 0 2px' }, '没学过的诗要先读一读：全诗 · 译文 · 重点字词，学完再挑战。全部答对点亮一颗 ⭐'),
-      h('div', { class: 'cn-poem-list' },
-        CN_POEMS.map(p => {
-          const got = stars[p.id];
-          const isLearned = !!learned[p.id];
-          const stateIcon = got ? '⭐' : (isLearned ? '📖' : '🌑');
-          const stateText = got ? '已点亮 · 再挑战' : (isLearned ? '学过 · 挑战' : '未学 · 先学习');
-          return h('button', {
-            class: 'pack-row cn-poem-row', onclick: () => { Sound.tap(); isLearned ? this.poemChallenge(p) : this.poemLearn(p); }
-          },
-            h('span', { class: 'pack-info' }, stateIcon, ` 《${p.title}》`, h('span', { class: 'tiny' }, `　${p.dynasty}·${p.author}`)),
-            h('span', { class: 'tiny' }, stateText)
-          );
-        })
-      )
+      h('div', { class: 'cn-poem-list' }, CN_POEMS.map(p => this.poemRow(p)))
     ));
+    /* 四下预习分区（先飞一步） */
+    if (typeof CN_POEMS_NEXT !== 'undefined' && CN_POEMS_NEXT.length) {
+      const stars = Store.state.chinese.stars;
+      const gotN = CN_POEMS_NEXT.filter(p => stars[p.id]).length;
+      root.appendChild(h('div', { class: 'card drill-card' },
+        h('div', { class: 'drill-tag' }, '🚀 四下预习 · 先飞一步', h('span', { class: 'level-badge' }, `⭐ ${gotN}/${CN_POEMS_NEXT.length}`)),
+        h('div', { class: 'tiny', style: 'margin:6px 0 2px' }, '下学期课文里的古诗词，提前读一读、挑战一下；点亮不计入四上星河诗卷'),
+        h('div', { class: 'cn-poem-list' }, CN_POEMS_NEXT.map(p => this.poemRow(p)))
+      ));
+    }
   },
 
   /* ---------- 诗词学习页（未学诗先学后考） ---------- */
@@ -231,16 +268,16 @@ const Chinese = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `📜 学古诗 · 《${p.title}》`)
     ));
     const poemText = h('div', { class: 'gw-text poem-learn-text' },
-      p.lines.map(l => h('div', { class: 'poem-line', onclick: () => Sound.speak(l, 0.85) }, l))
+      p.lines.map(l => h('div', { class: 'poem-line', onclick: () => Sound.speak(this.readText(l), 0.85) }, l))
     );
     root.appendChild(h('div', { class: 'card drill-card' },
       h('div', { class: 'drill-tag' }, `${p.title}`, h('span', { class: 'level-badge' }, `${p.dynasty} · ${p.author}`)),
       poemText,
-      h('button', { class: 'btn big', style: 'margin:10px 0 2px', onclick: () => Sound.speak(p.lines.join('，') + '。', 0.8) }, '🔊 听一遍全诗'),
+      h('button', { class: 'btn big', style: 'margin:10px 0 2px', onclick: () => Sound.speak(this.readText(p.lines.join('，')) + '。', 0.8) }, '🔊 听一遍全诗'),
       h('div', { class: 'read-analysis', style: 'margin-top:6px' },
         h('div', { class: 'analysis-tag' }, '📖 白话译文'),
         h('div', { class: 'analysis-zh' }, p.trans),
@@ -267,7 +304,7 @@ const Chinese = {
         }
       }, '我学会了，去挑战 →')
     ));
-    setTimeout(() => Sound.speak(p.lines.join('，') + '。', 0.8), 400);
+    setTimeout(() => Sound.speak(this.readText(p.lines.join('，')) + '。', 0.8), 400);
   },
 
   /* ---------- 名句填空出题（v32） ----------
@@ -295,7 +332,9 @@ const Chinese = {
     const qs = [];
     const i = Math.floor(Math.random() * (p.lines.length - 1));
     const correctLine = p.lines[i + 1];
-    const others = shuffle(CN_POEMS.filter(x => x.id !== p.id).map(x => x.lines[Math.min(i + 1, x.lines.length - 1)])).slice(0, 3);
+    /* 干扰项从四上 + 四下预习全池抽，避免挑战预习诗时选项全来自本册 */
+    const allPoems = (typeof CN_POEMS_NEXT !== 'undefined') ? CN_POEMS.concat(CN_POEMS_NEXT) : CN_POEMS;
+    const others = shuffle(allPoems.filter(x => x.id !== p.id).map(x => x.lines[Math.min(i + 1, x.lines.length - 1)])).slice(0, 3);
     const lineQ = {
       q: `“${p.lines[i]}”的下一句是？`,
       opts: [correctLine, ...others],
@@ -327,7 +366,7 @@ const Chinese = {
         Sound.gold();
         this.summary(allOk ? '⭐' : '📜',
           allOk ? `点亮 ⭐《${p.title}》` : `《${p.title}》挑战完成`,
-          `获得 +${gained} 🪙 · 星河诗卷 ${Object.keys(Store.state.chinese.stars).length}/${CN_POEMS.length}${!allOk ? ' · 错题已收进语文错题本，明天来消灭它们！' : (allOk && (Store.state.today.mint.poem || 0) > 1 ? ' · 今日重刷，奖励减半' : '')}`);
+          `获得 +${gained} 🪙 · 星河诗卷 ${cnStarCount()}/${CN_POEMS.length}${!allOk ? ' · 错题已收进语文错题本，明天来消灭它们！' : (allOk && (Store.state.today.mint.poem || 0) > 1 ? ' · 今日重刷，奖励减半' : '')}`);
         renderHome();
         return;
       }
@@ -338,13 +377,14 @@ const Chinese = {
 
   /* ---------- 阅读训练营 ---------- */
   readList() {
+setQuestSub('var(--gold-strong)');
     showScreen('quest');
     const done = Store.state.chinese.reads;
     const next = CN_READINGS.find(r => !done.includes(r.id)) || this.pick(CN_READINGS);
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `📖 阅读训练营 ${done.length}/${CN_READINGS.length}`)
     ));
     root.appendChild(h('div', { class: 'card drill-card' },
@@ -380,11 +420,12 @@ const Chinese = {
     Sound.stopSpeak();
     const done = (Store.state.chinese.guwen || []);
     const next = CN_GUWEN.find(g => !done.includes(g.id)) || this.pick(CN_GUWEN);
+setQuestSub('var(--gold-strong)');
     showScreen('quest');
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, '✕'),
+      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `🧧 小古文 ${done.length}/${CN_GUWEN.length}`)
     ));
     root.appendChild(h('div', { class: 'card drill-card' },
@@ -397,9 +438,11 @@ const Chinese = {
   },
 
   guwenQuiz(p) {
+    /* v36：题目顺序打乱，重读同一篇时不再是固定套路 */
+    const qs = shuffle(p.qs.slice());
     let idx = 0, correct = 0;
     const step = () => {
-      if (idx >= p.qs.length) {
+      if (idx >= qs.length) {
         const gained = Store.finishCnGuwen(p.id, correct, p.qs.length);
         Store.state.today.cnRounds = (Store.state.today.cnRounds || 0) + 1;
         Store.save();
@@ -414,7 +457,7 @@ const Chinese = {
           h('div', { class: 'finish-sub' }, `获得 +${gained} 🪙${(Store.state.today.mint.guwen || 0) > 1 ? ' · 今日重刷，奖励减半' : ''} · 已读 ${Store.state.chinese.guwen.length}/${CN_GUWEN.length} 篇`),
           h('div', { class: 'card', style: 'padding:12px;margin:10px 0;text-align:left' },
             h('div', { class: 'tiny', style: 'margin-bottom:4px;font-weight:800' }, '📖 白话翻译'),
-            h('div', { style: 'font-size:15px;line-height:1.9' }, p.trans)),
+            h('div', { style: 'font-size:16px;line-height:1.9' }, p.trans)),
           h('div', { class: 'finish-pet' }, `“${rnd(PET_LINES.praise)}” —— ${Store.state.pet.name}`),
           h('div', { class: 'row-gap' },
             h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); Chinese.guwenList(); } }, '🧧 再读一篇'),
@@ -426,19 +469,21 @@ const Chinese = {
         renderHome();
         return;
       }
-      this.ask(p.qs[idx], idx, p.qs.length, ok => { idx++; if (ok) correct++; step(); });
+      this.ask(qs[idx], idx, qs.length, ok => { idx++; if (ok) correct++; step(); });
     };
     step();
   },
 
   /* ---------- 词语实战 ---------- */
+  /* v36：题库三池混合——易错字 / 成语 / 词语运用（量词·搭配·近反义·陆续连续继续） */
   words() {
+setQuestSub('var(--gold-strong)');
     showScreen('quest');
     const wrong = (Store.state.chinese.wrong || []).slice();
     const qs = shuffle(wrong).slice(0, 2);
     while (qs.length < 5) {
-      const isIdiom = Math.random() < 0.4;
-      const pool = isIdiom ? CN_IDIOMS : CN_TRAPS;
+      const roll = Math.random();
+      const pool = roll < 0.4 ? CN_TRAPS : (roll < 0.75 ? CN_IDIOMS : CN_WORDFIT);
       const q = this.pick(pool);
       if (!qs.some(x => x.q === q.q)) qs.push(q);
     }

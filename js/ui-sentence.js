@@ -59,6 +59,7 @@ const SentWrite = {
     this.idx = 0;
     this.perfectCnt = 0;   // 一遍过（无拼错）的句子数
     this.fixedCnt = 0;    // 拼错过但最终改对的词数
+setQuestSub('var(--accent)');
     showScreen('quest');
     this.renderIntro();
   },
@@ -100,7 +101,7 @@ const SentWrite = {
       h('button', {
         class: 'quest-exit',
         onclick: () => { Sound.stopSpeak(); this.leave(); showScreen('home'); renderHome(); }
-      }, '\u2715'),
+      }, icon('x')),
       h('div', { class: 'quest-prog' }, prog)
     );
   },
@@ -243,7 +244,7 @@ const SentWrite = {
     }, '\u{1F50D} 看句子结构（主谓宾）');
     const hearAllBtn = h('button', {
       class: 'btn', style: 'margin-top:8px',
-      onclick: () => { Sound.tap(); Sound.speak(this.fullText(), 0.8); }
+      onclick: () => { Sound.tap(); Sound.speakSentence(this.fullText(), 0.8); }
     }, '\u{1F50A} 再听一遍');
     const nextBtn = h('button', {
       class: 'btn btn-main big', style: 'margin-top:8px',
@@ -400,7 +401,7 @@ const SentWrite = {
     this.hearN++;
     if (this.hearN > 1) updateTop();
     Sound.tap();
-    Sound.speak(w, 0.8);
+    Sound.speakWord(w, 0.8);
     this.paint(); /* 刷新按钮文案：免费 → 收费 */
   },
 
@@ -427,17 +428,18 @@ const SentWrite = {
   rescue() {
     if (this.resultShown) return;
     const w = this.words[this.wi];
-    if (!w || this.typed.length >= w.length) return;
-    if (!Store.spend(this.RESCUE_COST)) { toast(`金币不够啦，直接拼需要 ${this.RESCUE_COST} \u{1FA99}`); return; }
-    while (this.typed.length < w.length) {
-      const ch = w[this.typed.length];
-      this.typed.push(ch);
-      this.locked.push(ch);
-    }
+    if (!w) return;
+    if (this.typed.join('').toLowerCase() === w) return; /* 已经拼对了不用救 */
+    if (!Store.spend(this.RESCUE_COST)) { toast(`金币不够啦，直接拼需要 ${this.RESCUE_COST} 🪙`); return; }
+    /* 整词替换：把之前敲错的字母一并清掉，全部换成正确字母并锁定
+     * （旧实现是在错误字母后追加，拼出来仍是错词，确认永远过不了） */
+    this.typed = w.split('');
+    this.locked = w.split('');
     updateTop();
     Sound.tap();
     const saved = this.autoSaveWord(w);
     this.toggleHelp(false);
+    this.paintCurrent();
     toast(saved ? '已经帮你拼好了，点「确认」过关；这个词收进了生词本'
       : '已经帮你拼好了，点「确认」过关');
   },
@@ -557,7 +559,7 @@ const SentWrite = {
     });
     seen.forEach(role => {
       wrap.appendChild(h('span', { class: 'gram-lg role-' + (this.ROLE_IDX[role] != null ? this.ROLE_IDX[role] : 0) },
-        h('b', { class: 'gram-r', style: 'font-size:13px' }, role),
+        h('b', { class: 'gram-r', style: 'font-size:14px' }, role),
         h('span', {}, DESC[role])));
     });
     return wrap;
@@ -577,7 +579,7 @@ const SentWrite = {
     this.resultEl.querySelector('.sw-en').textContent = this.fullText();
     this.nextBtn.textContent = (this.idx + 1 >= this.list.length) ? '看成绩 \u2192' : '下一句 \u2192';
     this.resultEl.style.display = '';
-    setTimeout(() => Sound.speak(this.fullText(), 0.78), 350);
+    setTimeout(() => Sound.speakSentence(this.fullText(), 0.78), 350);
   },
 
   /* ---------- 实体键盘支持 ---------- */
@@ -619,8 +621,7 @@ const SentWrite = {
       h('div', { class: 'drill-tag' }, '\u{1F4D2} 英语生词本',
         h('span', { class: 'level-badge' }, `${list.length} 个词`)));
     if (!list.length) {
-      card.appendChild(h('div', { class: 'intro-zh', style: 'margin-top:8px;line-height:1.7' },
-        '还没有生词。\n默写时卡住了求个助，或者点「\u2B50 收进生词本」，词就会来到这里。\n在这里拼对 2 次，这个词就算学会啦。'));
+      card.appendChild(emptyArt('book', '还没有生词。默写时卡住了求个助，或者点「⭐ 收进生词本」，词就会来到这里；拼对 2 次就算学会啦。'));
     } else {
       card.appendChild(h('div', { class: 'tiny', style: 'margin:6px 0 2px' },
         '求助过和连错的词都在这里 · 拼对 2 次算学会，自动移出本子'));
@@ -638,11 +639,11 @@ const SentWrite = {
             ipa ? h('span', { class: 'tiny' }, `　/${ipa}/`) : '',
             h('span', { class: 'tiny' }, `　${gloss}${rec.ok ? ` · 已拼对 ${rec.ok} 次` : ''}`)),
           h('span', { class: 'row-gap' },
-            h('button', { class: 'speak-btn', onclick: () => { Sound.tap(); Sound.speak(rec.word); } }, '\u{1F50A}'),
+            h('button', { class: 'speak-btn', onclick: () => { Sound.tap(); Sound.speakWord(rec.word); } }, '\u{1F50A}'),
             h('button', {
               class: 'btn small',
               onclick: () => { Sound.tap(); Store.sentenceNewRemove(rec.word); toast('已移出生词本'); this.renderNewBook(); }
-            }, '\u2715'))
+            }, icon('x', 14)))
         ));
       });
     }
@@ -660,6 +661,7 @@ const SentWrite = {
     this.book = list;
     this.bookIdx = 0;
     this.bookMastered = 0;
+setQuestSub('var(--accent)');
     showScreen('quest');
     this.renderBookWord();
   },
@@ -674,7 +676,45 @@ const SentWrite = {
     this.bHints = 0;   // 本词已用提示次数（首次免费，之后收费）
     this.bDone = false;
     const fromSent = rec.from ? SENTENCE_BANK.find(s => s.id === rec.from) : null;
-    const gloss = rec.zh ? `意思：${rec.zh}` : (fromSent ? `原句：${fromSent.zh}` : '看提示拼一拼');
+
+    /* v36：显示来源英文原句，把要练的词高亮出来（不用再靠听发音猜是哪个词） */
+    const sentWrap = h('div', {});
+    let hit = false;
+    if (fromSent) {
+      const sentEl = h('div', { class: 'nb-sent' });
+      fromSent.en.split(' ').forEach((tok, i) => {
+        if (i) sentEl.appendChild(document.createTextNode(' '));
+        const m = tok.match(/^([^A-Za-z']*)([A-Za-z']+)(.*)$/);
+        if (!hit && m && m[2].toLowerCase() === rec.word) {
+          hit = true;
+          if (m[1]) sentEl.appendChild(document.createTextNode(m[1]));
+          sentEl.appendChild(h('b', { class: 'nb-hl' }, m[2]));
+          if (m[3]) sentEl.appendChild(document.createTextNode(m[3]));
+          return;
+        }
+        sentEl.appendChild(document.createTextNode(tok));
+      });
+      if (hit) {
+        sentWrap.appendChild(h('div', { class: 'tiny', style: 'margin-top:6px' }, '📖 原句（金色就是要拼的词）：'));
+        sentWrap.appendChild(sentEl);
+      }
+    }
+    const gloss = rec.zh ? `意思：${rec.zh}`
+      : (hit ? '' : (fromSent ? `原句：${fromSent.zh}` : '看提示拼一拼'));
+
+    /* v36：音标参考开关（记住选择，全部生词练习共用） */
+    const ipa = this.swIpa(rec.word);
+    let ipaOn = !!(Store.state.sentence && Store.state.sentence.showIpa);
+    const ipaEl = h('div', { class: 'nb-ipa' }, ipaOn && ipa ? `/${ipa}/` : '');
+    const ipaBtn = ipa ? h('button', {
+      class: 'btn small', onclick: () => {
+        Sound.tap();
+        ipaOn = !ipaOn;
+        Store.setSentenceShowIpa(ipaOn);
+        ipaEl.textContent = ipaOn ? `/${ipa}/` : '';
+        ipaBtn.textContent = ipaOn ? '🔤 收起音标' : '🔤 显示音标';
+      }
+    }, ipaOn ? '🔤 收起音标' : '🔤 显示音标') : null;
 
     const root = $('#quest-root');
     root.innerHTML = '';
@@ -704,10 +744,13 @@ const SentWrite = {
     this.bHintBtn = hintBtn;
 
     root.appendChild(h('div', { class: 'card spell-card' },
-      h('div', { class: 'sw-zh' }, gloss),
+      gloss ? h('div', { class: 'sw-zh' }, gloss) : '',
+      sentWrap,
+      ipaEl,
       h('div', { class: 'sw-words' }, wordEl),
       h('div', { class: 'sw-tools' },
-        h('button', { class: 'btn small', onclick: () => { Sound.tap(); Sound.speak(rec.word, 0.8); } }, '\u{1F50A} 听发音'),
+        h('button', { class: 'btn small', onclick: () => { Sound.tap(); Sound.speakWord(rec.word, 0.8); } }, '\u{1F50A} 听发音'),
+        ipaBtn || '',
         hintBtn),
       kbWrap,
       tipEl,
