@@ -914,6 +914,10 @@ function renderSubjects() {
   ];
   /* 次科模块加载后自动出现在宫格里 */
   if (typeof SubjectUI !== 'undefined') SubjectUI.tiles().forEach(t => tiles.push(t));
+  /* 竞技场（v38 竞赛玩法专项）：不占打卡、纯加餐 */
+  tiles.push(subjectTile('🏆', '竞技场',
+    `擂台 ${s.arena.spell.best} 连胜 · 袋鼠 ${s.arena.roo.best} 分`,
+    () => Arena.open(), 'var(--orange, #ff9f43)'));
   slot.innerHTML = '';
   slot.appendChild(h('div', { class: 'card' },
     h('div', { class: 'sec-title' }, '🌌 学科星系'),
@@ -1379,6 +1383,45 @@ function renderParent() {
     root.appendChild(nbCard);
   }
 
+  /* 小练笔作品回看（v38 写作星系） */
+  const writes = Store.writingList();
+  if (writes.length) {
+    const wCard = h('div', { class: 'card' },
+      h('div', { class: 'sec-title' }, '✍️ 小练笔作品'),
+      h('div', { class: 'tiny', style: 'margin-bottom:6px' }, '写作星系写的小练笔都收在这里。孩子端「去请爸妈点评」可以打星；这里随时回看全文和手写照片'));
+    writes.slice(-5).reverse().forEach(e => {
+      const d = new Date(e.at);
+      const n = ((e.open || '') + (e.mid || '') + (e.end || '')).replace(/\s/g, '').length;
+      wCard.appendChild(h('div', {
+        class: 'pack-row', style: 'cursor:pointer',
+        onclick: () => {
+          Sound.tap();
+          showModal({
+            title: `${e.emoji} ${e.title}`,
+            build(el) {
+              if (e.photo) el.appendChild(h('img', { class: 'wp-photo', src: e.photo, alt: '手写照片' }));
+              if (e.audio) {
+                el.appendChild(h('div', { class: 'tiny center', style: 'margin:4px 0' }, `🎧 孩子的录音 ${e.audioSec || '?'} 秒`));
+                try { el.appendChild(h('audio', { class: 'wp-audio', controls: '', src: e.audio })); } catch (err) { /* 忽略 */ }
+              }
+              ['open', 'mid', 'end'].forEach(k => {
+                if (e[k]) el.appendChild(h('div', { style: 'text-align:left;line-height:1.9;margin-top:4px' }, e[k]));
+              });
+              el.appendChild(h('div', { class: 'tiny', style: 'margin-top:8px' },
+                `${d.getMonth() + 1}月${d.getDate()}日 · ${n} 字 · ${e.stars ? '⭐'.repeat(e.stars) : '还没点评'}`));
+              if (e.note) el.appendChild(h('div', { class: 'wp-note' }, '💬 点评：' + e.note));
+            },
+            actions: [{ label: '关掉', cls: 'btn-main' }]
+          });
+        }
+      },
+        h('span', { class: 'pack-info' }, `${e.emoji} ${e.title}`, h('span', { class: 'tiny' }, `　${d.getMonth() + 1}月${d.getDate()}日 · ${n} 字${e.photo ? ' · 📷' : ''}`)),
+        h('span', { class: 'tiny' }, e.stars ? '⭐'.repeat(e.stars) : '待点评')
+      ));
+    });
+    root.appendChild(wCard);
+  }
+
   /* 学习设置 */
   const set = s.settings;
   root.appendChild(h('div', { class: 'card' },
@@ -1615,6 +1658,17 @@ function renderParent() {
           Store.resetProgress(); showScreen('home'); toast('已清空学习进度');
         })
       }, '清空学习进度'),
+      h('button', {
+        class: 'btn danger', onclick: () => {
+          const pet = Store.state.pet;
+          const kind = (typeof PET_KINDS !== 'undefined' && PET_KINDS.find(x => x.id === pet.kind)) || { name: '伙伴' };
+          confirmModal('重置伙伴成长', `把当前伙伴「${pet.name}」（${kind.emoji} ${kind.name}）的进化进度清零，从头养起。金币和装扮不受影响，确定？`, () => {
+            Store.resetPetProgress();
+            renderHome();
+            toast('🐾 伙伴成长已重置，从最初始形态重新养吧');
+          });
+        }
+      }, '重置伙伴成长'),
       h('button', {
         class: 'btn danger', onclick: () => confirmModal('恢复出厂', '将删除全部数据（包括自定义词库和设置），确定？', () => {
           Store.factoryReset(); parentUnlocked = false; showScreen('home'); toast('已恢复出厂设置');

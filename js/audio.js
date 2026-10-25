@@ -121,11 +121,13 @@ const Sound = (() => {
     }
     }
   }
-  function speakWord(word, rate = 0.85) {
+  /* onEnd：单词读完后回调（词典音播完或 TTS 读完都算；被新朗读取代则不回调），
+   * 供"选词填空读完整句再进下一题"这类等读完的场景使用 */
+  function speakWord(word, rate = 0.85, onEnd) {
     const cfg = Store.state && Store.state.settings;
     const useYd = !(cfg && cfg.wordVoice === 'tts');
     const type = cfg && cfg.voiceType === 'uk' ? 1 : 2;
-    if (!word || !useYd || !navigator.onLine) { speak(word, rate); return; }
+    if (!word || !useYd || !navigator.onLine) { speak(word, rate, onEnd); return; }
     clipSeq++;
     const seq = ++speakSeq;
     try { speechSynthesis.cancel(); } catch (e) { /* 忽略 */ }
@@ -134,7 +136,7 @@ const Sound = (() => {
     const fallback = () => {
       if (seq !== speakSeq) return;
       stopWordAudio();
-      speak(word, rate);
+      speak(word, rate, onEnd);
     };
     const giveUp = setTimeout(() => { if (!played) fallback(); }, 1800);
     let a;
@@ -143,7 +145,11 @@ const Sound = (() => {
     } catch (e) { clearTimeout(giveUp); fallback(); return; }
     wordAudio = a;
     a.onplaying = () => { played = true; clearTimeout(giveUp); };
-    a.onended = () => { if (wordAudio === a) wordAudio = null; };
+    a.onended = () => {
+      if (wordAudio === a) wordAudio = null;
+      /* 读完了才通知调用方；若期间被新朗读顶替（seq 变了）则不回调，避免假结束 */
+      if (onEnd && seq === speakSeq) setTimeout(onEnd, 60);
+    };
     a.onerror = () => { clearTimeout(giveUp); fallback(); };
     a.play().catch(() => { clearTimeout(giveUp); fallback(); });
   }
@@ -184,15 +190,16 @@ const Sound = (() => {
   }
 
   /* 整句朗读（v36）：有道接口只认词条/常见短句（任意句子多数会 500），
-   * 所以短句（≤6 词）先试词典音频、不行自动回退 TTS；长句直接 TTS */
-  function speakSentence(text, rate = 0.82) {
+   * 所以短句（≤6 词）先试词典音频、不行自动回退 TTS；长句直接 TTS。
+   * onEnd（v38）可选：整句读完后回调 */
+  function speakSentence(text, rate = 0.82, onEnd) {
     const cfg = Store.state && Store.state.settings;
     const isEn = /^[A-Za-z0-9 ,.'!?-]+$/.test(text || '');
     const words = (text || '').trim().split(/\s+/).filter(Boolean).length;
     if (isEn && words > 0 && words <= 6 && (text || '').length <= 45 && !(cfg && cfg.wordVoice === 'tts')) {
-      speakWord(text, rate); /* 复用单词通道：词典音优先 + 自动回退 */
+      speakWord(text, rate, onEnd); /* 复用单词通道：词典音优先 + 自动回退 */
     } else {
-      speak(text, rate);
+      speak(text, rate, onEnd);
     }
   }
 

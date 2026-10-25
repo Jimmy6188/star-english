@@ -28,7 +28,7 @@ const Store = (() => {
       v: 1,
       settings: { dailyNew: 4, dailyReview: 10, sessionLimitMin: 20, soundOff: false, pin: '1234', activePacks: null, grade: 4, range: 'below', warmupPerDay: 1, theme: 'auto', dailyCoinCap: 150, challengePerDay: 1 },
       coins: 0,
-      pet: { name: '小星', kind: 'bot', kinds: ['bot'], fed: 0, outfits: { owned: [], worn: {} } },
+      pet: { name: '小星', kind: 'bot', kinds: ['bot'], fed: 0, feds: { bot: 0 }, outfits: { owned: [], worn: {} } },
       streak: { count: 0, best: 0, lastDone: null, shields: 2, shieldWeek: null },
       srs: {},        // id -> {box, due, ok, bad, wrongStreak, learnedAt}
       album: {},      // id -> {at, gold}
@@ -50,6 +50,8 @@ const Store = (() => {
       enRead: { reads: [] }, // 已读完的英语短文 id
       sentence: { runs: 0, done: [], best: 0, layout: 'abc', hard: {} }, // 句子默写：轮数/已默写句子 id/最好成绩/键盘排列(abc|qwerty)/难词复现计数
       junior: { seen: {} },  // 每日一星：已收下的初中知识卡 id -> 日期
+      writing: { entries: [] }, // 小练笔工坊（v38）：作品 {at,id,title,emoji,open,mid,end,photo,stars,note,reviewed}
+      arena: { spell: { best: 0, plays: 0 }, clue: { best: 0, plays: 0 }, idiom: { best: 0, plays: 0 }, roo: { best: 0, plays: 0 } }, // 竞技场纪录（v38）
       stats: { drillsDone: 0, thinkDone: 0, boxesOpened: 0 }
     };
   }
@@ -86,6 +88,9 @@ const Store = (() => {
     if (state.settings.eyeRestMin === undefined) state.settings.eyeRestMin = 25;
     if (!state.enRead) state.enRead = { reads: [] };
     if (!state.junior) state.junior = { seen: {} }; /* v26：每日一星知识卡 */
+    if (!state.writing) state.writing = { entries: [] }; /* v38：小练笔工坊 */
+    if (!state.arena) state.arena = { spell: { best: 0, plays: 0 }, clue: { best: 0, plays: 0 }, idiom: { best: 0, plays: 0 }, roo: { best: 0, plays: 0 } }; /* v38：竞技场 */
+    ['spell', 'clue', 'idiom', 'roo'].forEach(k => { if (!state.arena[k]) state.arena[k] = { best: 0, plays: 0 }; });
     if (!state.sentence) state.sentence = { runs: 0, done: [], best: 0 }; /* v30：句子默写 */
     if (state.sentence.layout === undefined) state.sentence.layout = 'abc'; /* v31：键盘排列，默认字母序 */
     if (!state.sentence.hard) state.sentence.hard = {}; /* v31：句中难词复现计数 */
@@ -93,6 +98,13 @@ const Store = (() => {
     if (!state.pet.outfits) state.pet.outfits = { owned: [], worn: {} };
     if (!Array.isArray(state.pet.kinds)) state.pet.kinds = ['bot']; /* v36：多物种伙伴 */
     if (!state.pet.kind || !state.pet.kinds.includes(state.pet.kind)) state.pet.kind = 'bot';
+    /* v38：每只伙伴各自记喂食进度（pet.feds）。老存档共享的 pet.fed 记到当时出战的
+     * 伙伴名下，其他已招募伙伴从蛋壳重新养（新招募的伙伴一律从 0 开始）。
+     * state.pet.fed 保留，始终等于"当前伙伴"的进度，喂食条/徽章照常读它 */
+    if (!state.pet.feds) {
+      state.pet.feds = {};
+      state.pet.feds[state.pet.kind] = state.pet.fed || 0;
+    }
     if (state.sentence.showIpa === undefined) state.sentence.showIpa = false; /* v36：生词本音标开关 */
     if (state.stats && !state.stats.thinkDone) state.stats.thinkDone = 0;
     if (state.stats && !state.stats.boxesOpened) state.stats.boxesOpened = 0;
@@ -785,7 +797,9 @@ const Store = (() => {
     const nw = state.sentence.newWords;
     if (!nw[k]) {
       const w = findWord(k);
-      nw[k] = { n: 1, at: todayStr(), from: from || '', zh: w ? w.zh : '', ok: 0 };
+      /* v38：新句库的词多数不在主词库，中文释义依次查句库补充表、拼读词典 */
+      const zh = w ? w.zh : ((typeof SENT_WORD_ZH !== 'undefined' && SENT_WORD_ZH[k]) || (typeof phZh !== 'undefined' && phZh(k)) || '');
+      nw[k] = { n: 1, at: todayStr(), from: from || '', zh, ok: 0 };
       /* 封顶 60 个：先请出快掌握的（ok 多）里最旧的 */
       const keys = Object.keys(nw);
       if (keys.length > 60) {
@@ -795,7 +809,7 @@ const Store = (() => {
     } else {
       nw[k].n++;
       const w = findWord(k);
-      if (w && !nw[k].zh) nw[k].zh = w.zh;
+      if (!nw[k].zh) nw[k].zh = (w && w.zh) || (typeof SENT_WORD_ZH !== 'undefined' && SENT_WORD_ZH[k]) || (typeof phZh !== 'undefined' && phZh(k)) || '';
     }
     save();
   }
@@ -803,6 +817,44 @@ const Store = (() => {
     const nw = (state.sentence && state.sentence.newWords) || {};
     return Object.keys(nw).map(k => Object.assign({ word: k }, nw[k]))
       .sort((a, b) => b.n - a.n || a.word.localeCompare(b.word));
+  }
+
+  /* ---------- 小练笔工坊（v38）：完成给奖励，家长点评另加小奖 ---------- */
+  function writingList() { return (state.writing && state.writing.entries) || []; }
+  function saveWriting(entry) {
+    if (!state.writing) state.writing = { entries: [] };
+    state.writing.entries.push(entry);
+    /* 作品墙只留最近 30 篇（照片 base64 占空间，防爆 localStorage） */
+    if (state.writing.entries.length > 30) state.writing.entries = state.writing.entries.slice(-30);
+    const got = earnScaled('writing', 12);
+    checkBadges();
+    save();
+    return got;
+  }
+  function reviewWriting(idx, stars, note, texts) {
+    const e = state.writing && state.writing.entries[idx];
+    if (!e) return 0;
+    e.stars = stars || e.stars || 0;
+    if (note) e.note = note;
+    /* 家长誊写（v38.2）：听录音/看照片后帮孩子把文字写进作品（只更新有新内容的格） */
+    if (texts && texts.length === 3) {
+      ['open', 'mid', 'end'].forEach((k, i) => { if (texts[i]) e[k] = texts[i]; });
+    }
+    let bonus = 0;
+    if (!e.reviewed) { e.reviewed = true; bonus = earnScaled('writing', 2); }
+    save();
+    return bonus;
+  }
+
+  /* ---------- 竞技场（v38）：纪录与奖励，破纪录另有加奖 ---------- */
+  function arenaFinish(kind, score) {
+    const rec = state.arena[kind] || (state.arena[kind] = { best: 0, plays: 0 });
+    rec.plays++;
+    const isBest = score > (rec.best || 0);
+    if (isBest) rec.best = score;
+    const got = earnScaled('arena', Math.max(2, Math.round(score / 2)) + (isBest ? 5 : 0));
+    save();
+    return { got, isBest };
   }
   /* 练习拼对一次；2 次算掌握并移出本子 */
   function sentenceNewOk(word) {
@@ -922,12 +974,13 @@ const Store = (() => {
     const k = (typeof PET_KINDS !== 'undefined') && PET_KINDS.find(x => x.id === state.pet.kind);
     return k || PET_KINDS[0];
   }
-  /* 当前物种 + 当前阶段的形态名（喂食进度跨物种保留，换了伙伴从头像上也不违和） */
+  /* 当前物种 + 当前阶段的形态名（v38 起每只伙伴进度独立，pet.fed 即当前伙伴的） */
   function petStageInfo() {
     const kind = petKind();
     return kind.stages[Math.min(petStage(), kind.stages.length - 1)];
   }
-  /* 招募新伙伴（金币一次性买断），招募后自动切换为当前伙伴 */
+  /* 招募新伙伴（金币一次性买断），招募后自动切换为当前伙伴。
+   * v38：新伙伴从蛋壳期从零开始养，不再继承别的伙伴的喂食进度 */
   function buyPetKind(id) {
     const k = (typeof PET_KINDS !== 'undefined') && PET_KINDS.find(x => x.id === id);
     if (!k) return { ok: false, msg: '没有这个伙伴' };
@@ -936,14 +989,17 @@ const Store = (() => {
     state.coins -= k.price;
     state.pet.kinds.push(id);
     state.pet.kind = id;
+    state.pet.feds[id] = 0;
+    state.pet.fed = 0;
     checkBadges();
     save();
     return { ok: true, kind: k };
   }
-  /* 已拥有的伙伴之间随时免费切换 */
+  /* 已拥有的伙伴之间随时免费切换（各自的喂食进度跟着走） */
   function setPetKind(id) {
     if (!state.pet.kinds.includes(id)) return false;
     state.pet.kind = id;
+    state.pet.fed = petFedOf(id);
     save();
     return true;
   }
@@ -952,10 +1008,29 @@ const Store = (() => {
     const before = petStage();
     state.coins -= FEED_COST;
     state.pet.fed++;
+    state.pet.feds[state.pet.kind] = state.pet.fed;
     const after = petStage();
     checkBadges();
     save();
     return { evolved: after > before, stage: after };
+  }
+  /* 某只伙伴的喂食进度（没记录过就是 0） */
+  function petFedOf(kindId) {
+    const feds = state.pet.feds || {};
+    return feds[kindId] !== undefined ? feds[kindId] : 0;
+  }
+  /* 某只伙伴的进化阶段号（衣柜预览各伙伴用） */
+  function petStageOf(kindId) {
+    let idx = 0;
+    PET_STAGES.forEach((s, i) => { if (petFedOf(kindId) >= s.need) idx = i; });
+    return idx;
+  }
+  /* 家长面板：把某只伙伴的成长清零（默认当前伙伴），重新体验进化 */
+  function resetPetProgress(kindId) {
+    const k = kindId || state.pet.kind;
+    if (state.pet.feds) state.pet.feds[k] = 0;
+    if (k === state.pet.kind) state.pet.fed = 0;
+    save();
   }
 
   /* ---------- 设置与数据管理 ---------- */
@@ -990,7 +1065,7 @@ const Store = (() => {
     /* 只清学习记录（图鉴/连击/错题/成长数据），保留设置、词库、金币、兑换商店和宠物装扮 */
     const keep = {
       settings: state.settings,
-      pet: { name: state.pet.name, kind: state.pet.kind || 'bot', kinds: state.pet.kinds || ['bot'], fed: 0, outfits: state.pet.outfits || { owned: [], worn: {} } },
+      pet: { name: state.pet.name, kind: state.pet.kind || 'bot', kinds: state.pet.kinds || ['bot'], fed: 0, feds: {}, outfits: state.pet.outfits || { owned: [], worn: {} } },
       custom: state.custom,
       coins: state.coins,
       shop: state.shop
@@ -1062,10 +1137,12 @@ const Store = (() => {
     markCnStar, markCnRead, addCnWrong, finishCnRead, finishCnWords, finishCnGuwen, markPhonicsRound,
     subjectWeek, subjectAddRound, subjectMarkDone, subjectWrong, subjectAddWrong, subjectClearWrong,
     addShopReward, removeShopReward, redeemReward, approveRedeem, rejectRedeem, tomorrowDueCount,
-    petStage, petStageInfo, petKind, buyPetKind, setPetKind, feedPet, setSetting,
+    petStage, petStageInfo, petKind, petFedOf, petStageOf, buyPetKind, setPetKind, feedPet, resetPetProgress, setSetting,
     buyOutfit, wearOutfit, openStarBox, markEnRead,
     markSentence, bumpSentenceRun, setSentenceLayout, setSentenceShowIpa, bumpSentenceHard,
     sentenceNewAdd, sentenceNewList, sentenceNewOk, sentenceNewRemove, finishSentenceBook,
+    writingList, saveWriting, reviewWriting,
+    arenaFinish,
     nextJuniorCard, markJuniorSeen,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,

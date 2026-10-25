@@ -1,6 +1,6 @@
 /* 星际求知号 - 离线缓存（仅在 http(s) 环境生效）
  * 发版时三处版本一起改：这里 / js/app.js 的 APP_VERSION / index.html 的 ?v= 参数 */
-const CACHE = 'star-english-v37';
+const CACHE = 'star-english-v38';
 const ASSETS = [
   './',
   './index.html',
@@ -26,6 +26,11 @@ const ASSETS = [
   './js/ui-reading.js',
   './js/data-sentence.js',
   './js/ui-sentence.js',
+  './js/data-junior-prep.js',
+  './js/data-writing.js',
+  './js/ui-writing.js',
+  './js/data-arena.js',
+  './js/ui-arena.js',
   './js/ui-extras.js',
   './js/app.js',
   './fonts/baloo2-latin.woff2',
@@ -35,7 +40,12 @@ const ASSETS = [
   './icons/icon-512.png'
 ];
 
+/* 本地调试（localhost / 127.0.0.1）不启用任何缓存：
+ * 改完文件刷新页面立即生效，避免调试时被旧缓存挡住；线上（GitHub Pages）不受影响 */
+const IS_LOCAL = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+
 self.addEventListener('install', e => {
+  if (IS_LOCAL) { self.skipWaiting(); return; }
   /* cache:'reload' 强制绕过 HTTP 缓存，保证预缓存的一定是服务器上的最新文件 */
   e.waitUntil(
     caches.open(CACHE)
@@ -51,6 +61,7 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  if (IS_LOCAL) return; /* 本地调试：全部走网络，不读不写缓存 */
   if (e.request.method !== 'GET') return;
   e.respondWith(
     caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {

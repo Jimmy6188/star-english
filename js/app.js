@@ -5,7 +5,7 @@
 
 /* 应用版本号：顶栏标题旁显示，供家长一眼确认设备跑的是否最新版。
  * 发版时三处一起改：这里 / sw.js 的 CACHE / index.html 里脚本与 css 的 ?v= 参数 */
-const APP_VERSION = 'v37';
+const APP_VERSION = 'v38';
 
 function showScreen(name) {
   $$('#main .screen').forEach(el => el.classList.remove('active'));
@@ -219,6 +219,12 @@ function init() {
   maybeShowUpdateNotes();
 
   if (Store.isFirstRun()) welcome();
+
+  /* v38 护眼计时改全局：页面在前台时每满 1 分钟记一次学习时长（护眼提醒、
+   * 家长周报都按它算），任何模块学习都计时；切后台/息屏不计时 */
+  setInterval(() => {
+    if (document.visibilityState === 'visible') Store.addMinutes(1);
+  }, 60 * 1000);
 
   /* PWA 从后台回到前台（含跨天/挂机一夜）：结算漏学护盾，让孩子看到护盾真的用掉了 */
   document.addEventListener('visibilitychange', () => {

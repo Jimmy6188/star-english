@@ -19,7 +19,7 @@ const SubjectUI = {
   /* 首页学科宫格的磁贴（由 ui-screens.js 的 renderSubjects 调用） */
   tiles() {
     return this.defs.map(def => subjectTile(def.emoji, def.name, this.tileSub(def), () => this.openHub(def),
-      def.id === 'science' ? 'var(--green)' : 'var(--pink)'));
+      def.color || (def.id === 'science' ? 'var(--green)' : 'var(--pink)')));
   },
 
   tileSub(def) {
@@ -50,6 +50,8 @@ const SubjectUI = {
             onclick: () => { close(); SubjectUI.startRound(def, u); }
           }, `${u.emoji} ${u.name}（已练 ${doneL}/${u.lessons.length} 课）`));
         });
+        /* 学科自定义入口（v38：写作星系的「今日小练笔」） */
+        if (def.hook) def.hook(el, close);
         el.appendChild(h('div', { class: 'tiny center', style: 'margin-top:12px' },
           `完成任意一轮都算盖章 · 每周建议 ${def.weeklyGoal} 轮（首刷金币全额，重刷减半）`));
       }

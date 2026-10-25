@@ -14,14 +14,16 @@ const Extras = {
     showModal({
       title: '🛰️ 伙伴衣柜',
       build(el, close) {
-        /* ---- 伙伴挑选：已招募的随时免费切换，没招募的花金币领回家 ---- */
-        el.appendChild(h('div', { class: 'wf-cat' }, '🛰️ 挑伙伴（换上的伙伴共用喂食进度和全部装扮）'));
+        /* ---- 伙伴挑选：已招募的随时免费切换，没招募的花金币领回家 ----
+         * v38：每只伙伴各自记成长进度（新招募从蛋壳期养起），装扮全队通用 */
+        el.appendChild(h('div', { class: 'wf-cat' }, '🛰️ 挑伙伴（每只伙伴有自己的成长进度 · 装扮全队通用）'));
         const kgrid = h('div', { class: 'wf-grid' });
         PET_KINDS.forEach(k => {
           const owned = kinds.includes(k.id);
           const active = activeKind === k.id;
+          const kStage = Store.petStageOf(k.id);
           const wfe = h('div', { class: 'wfe wfe-pet' });
-          wfe.innerHTML = robotSVG(Math.min(2, Store.petStage()), k.id);
+          wfe.innerHTML = robotSVG(kStage, k.id);
           const tile = h('button', {
             class: 'wf-item' + (owned ? ' owned' : '') + (active ? ' worn' : ''),
             onclick: e => {
@@ -30,7 +32,7 @@ const Extras = {
               if (owned) {
                 Store.setPetKind(k.id);
                 Sound.correct();
-                toast(`${k.emoji} ${k.name} 上场！`);
+                toast(`${k.emoji} ${k.name} 上场！${kStage === 0 ? '它还是小不点，喂能量块帮它长大吧' : ''}`);
                 renderHome();
                 Extras.openWardrobe();
                 return;
@@ -42,15 +44,16 @@ const Extras = {
                 burst(c.x, c.y, { count: 16, emojis: [k.emoji, '✨', '⭐'], power: 90 });
                 updateTop();
                 renderHome();
+                toast(`🐣 ${k.name} 报到！从「${k.stages[0].name}」开始养大它吧`);
                 Extras.openWardrobe();
               } else toast(r.msg);
             }
           },
             wfe,
             h('div', { class: 'wfn' }, `${k.emoji} ${k.name}`),
-            active ? h('div', { class: 'wfp' }, '当前伙伴')
-              : owned ? h('div', { class: 'wfp' }, '点它上场')
-                : h('div', { class: 'wfp' }, `${k.price} 🪙 招募`)
+            active ? h('div', { class: 'wfp' }, `当前伙伴 · ${k.stages[Math.min(kStage, k.stages.length - 1)].name}`)
+              : owned ? h('div', { class: 'wfp' }, `点它上场 · ${k.stages[Math.min(kStage, k.stages.length - 1)].name}`)
+                : h('div', { class: 'wfp' }, `${k.price} 🪙 招募 · 从蛋壳养起`)
           );
           kgrid.appendChild(tile);
         });

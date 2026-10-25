@@ -141,7 +141,21 @@ const IPA_DICT = {
   want: 'wɑːnt', well: 'wel', where: 'wer',
   zoo: 'zuː',
   /* v36 补录：句库剩余实词（生词本音标开关用） */
-  after: 'ˈæftər', before: 'bɪˈfɔːr', each: 'iːtʃ', other: 'ˈʌðər', please: 'pliːz'
+  after: 'ˈæftər', before: 'bɪˈfɔːr', each: 'iːtʃ', other: 'ˈʌðər', please: 'pliːz',
+  /* v38 补录：句子默写新增 57 句里的实词（含句中变形） */
+  love: 'lʌv', dad: 'dæd', doctor: 'ˈdɑːktər', together: 'təˈɡeðər', sunday: 'ˈsʌndeɪ',
+  walk: 'wɔːk', cooks: 'kʊks', often: 'ˈɔːfn', mum: 'mʌm', lives: 'lɪvz',
+  saturday: 'ˈsætərdeɪ', black: 'blæk', beautiful: 'ˈbjuːtɪfl', kite: 'kaɪt',
+  golden: 'ˈɡoʊldən', night: 'naɪt', hops: 'hɑːps', clever: 'ˈklevər',
+  morning: 'ˈmɔːrnɪŋ', colour: 'ˈkʌlər', drawing: 'ˈdrɔːɪŋ', makes: 'meɪks',
+  songs: 'sɔːŋz', play: 'pleɪ', plays: 'pleɪz', football: 'ˈfʊtbɔːl',
+  dances: 'ˈdænsɪz', playing: 'ˈpleɪɪŋ', chess: 'tʃes', reading: 'ˈriːdɪŋ',
+  lesson: 'ˈlesn', quiet: 'ˈkwaɪət', here: 'hɪr', arrives: 'əˈraɪvz',
+  blows: 'bloʊz', raincoat: 'ˈreɪnkoʊt', put: 'pʊt', comes: 'kʌmz',
+  october: 'ɑːkˈtoʊbər', thank: 'θæŋk', sleepy: 'ˈsliːpi', checks: 'tʃeks',
+  early: 'ˈɜːrli', strong: 'strɔːŋ', smart: 'smɑːrt', practice: 'ˈpræktɪs',
+  perfect: 'ˈpɜːrfɪkt', shines: 'ʃaɪnz', hard: 'hɑːrd', keep: 'kiːp',
+  take: 'teɪk', how: 'haʊ', vegetables: 'ˈvedʒtəblz'
 };
 
 /* 取一个词条的音标：词组不注、词典没有不注，返回空串 */

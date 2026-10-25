@@ -240,17 +240,14 @@ setQuestSub('var(--accent)');
     return h('div', { class: 'quest-top' },
       h('button', {
         class: 'quest-exit', onclick: () => confirmModal('退出冒险？', this.dictMode ? '退出后本次听写作废，成绩不保存。' : '今天学的进度会保留，随时可以回来继续。', () => {
-          this.addMinutes(); showScreen('home'); renderHome();
+          showScreen('home'); renderHome();
         })
       }, icon('x')),
       h('div', { class: 'quest-prog' }, `${this.idx + 1} / ${this.items.length}`)
     );
   },
 
-  addMinutes() {
-    const min = Math.round((Date.now() - this.startedTs) / 60000);
-    if (min > 0) Store.addMinutes(Math.min(60, min));
-  },
+  /* 学习时长由 app.js 的全局前台计时统一累计（v38），模块内不再重复计时 */
 
   /* 取同星系的干扰项（不足时从全部词库补） */
   distractors(w, n = 3) {
@@ -641,9 +638,20 @@ setQuestSub('var(--accent)');
             const c = centerOf(e.currentTarget);
             burst(c.x, c.y, { count: 8, emojis: ['✨', '⭐'], power: 50 });
             floatText(c.x, c.y - 20, `+${reward} 🪙`);
-            setTimeout(() => Sound.speakSentence(w.ex), 250);
+            /* v38：整句读完再进下一题（朗读结束回调 + 至少停留 1.2s + 15s 兜底，
+             * 之前固定 1.4s 跳题会把长句拦腰打断） */
             e.currentTarget.classList.add('right');
-            setTimeout(() => { self.idx++; self.next(); }, 1400);
+            let advanced = false;
+            const t0 = Date.now();
+            const advance = () => {
+              if (advanced) return;
+              advanced = true;
+              self.idx++; self.next();
+            };
+            setTimeout(() => Sound.speakSentence(w.ex, 0.82, () => {
+              setTimeout(advance, Math.max(0, 1200 - (Date.now() - t0)));
+            }), 250);
+            setTimeout(advance, 15000);
           } else {
             if (!recordedWrong) { recordedWrong = true; if (self.bossMode) self.bossWrong++; Store.reviewWord(id, false); }
             Sound.wrong();
@@ -719,7 +727,6 @@ setQuestSub('var(--accent)');
 
   /* ---------- 完成 ---------- */
   finish() {
-    this.addMinutes();
     updateTop(); // 结算页立刻同步顶栏金币
     if (!this.freeMode && !this.drillMode && !this.bossMode && !this.dictMode) {
       Store.markEnglishDone();

@@ -74,11 +74,22 @@ const Phonics = {
   /* ---------- 规律小课堂（开场讲解） ---------- */
   famCard(fam, main) {
     const words = main ? fam.words : [];
+    const demo = fam.words.slice(0, 3);
+    /* 音标本身没法直接"读"，点一下连读本族三个范词，让孩子听出共同的结尾音（v38） */
+    const soundBtn = h('button', {
+      class: 'ph-fam-sound', title: '点我听这个音',
+      onclick: () => {
+        Sound.tap();
+        if (!demo.length) return;
+        Sound.speakWordSeq(demo, 0.9);
+        toast(`🔊 连读 ${demo.join('、')}，注意听结尾的 ${fam.sound}`);
+      }
+    }, fam.sound + ' 🔈');
     const card = h('div', { class: 'ph-fam' + (main ? ' ph-fam-main' : '') },
       h('div', { class: 'ph-fam-head' },
         h('span', { class: 'ph-fam-emoji' }, fam.emoji),
         h('span', { class: 'ph-fam-name' }, fam.name),
-        h('span', { class: 'ph-fam-sound' }, fam.sound)
+        soundBtn
       ),
       h('div', { class: 'ph-fam-rule' }, fam.rule)
     );
@@ -86,9 +97,12 @@ const Phonics = {
       const row = h('div', { class: 'ph-fam-words' });
       words.forEach(w => row.appendChild(h('button', {
         class: 'ph-word', onclick: () => { Sound.tap(); Sound.speakWord(w); }
-      }, w)));
+      },
+        h('span', { class: 'ph-w-en' }, w),
+        phZh(w) ? h('span', { class: 'ph-w-zh' }, phZh(w)) : null
+      )));
       card.appendChild(row);
-      card.appendChild(h('div', { class: 'tiny', style: 'margin-top:2px' }, '💡 点单词可以听发音，先跟着读一遍再出发！'));
+      card.appendChild(h('div', { class: 'tiny', style: 'margin-top:2px' }, '💡 点单词听发音（中文是它的意思）；点音标连读三个词，听共同的结尾音！'));
     }
     return card;
   },

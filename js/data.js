@@ -686,6 +686,78 @@ const WORD_FAMILIES = [
 ];
 
 /* ============================================================
+ * 拼读词族中文小词典（v38）：WORD_FAMILIES 里全部范词的中文释义，
+ * 拼读星系"规律小课堂"展示范词时同步显示中文，帮孩子知道读的是什么词。
+ * 只作展示用，不影响出题；查不到的词不显示中文。
+ * ============================================================ */
+const PHONICS_ZH = {
+  /* -at / -an / -ap */
+  cat: '猫', hat: '帽子', bat: '蝙蝠', mat: '垫子', rat: '老鼠', sat: '坐（过去式）',
+  man: '男人', fan: '风扇', pan: '平底锅', van: '厢式车', ran: '跑（过去式）',
+  cap: '鸭舌帽', map: '地图', nap: '小睡', lap: '膝上', tap: '水龙头',
+  /* -ip / -og / -ug */
+  lip: '嘴唇', rip: '撕开', sip: '小口喝', tip: '尖端', zip: '拉链',
+  dog: '狗', log: '原木', fog: '雾', jog: '慢跑', frog: '青蛙',
+  bug: '小虫子', hug: '抱一抱', mug: '大杯子', rug: '小地毯', jug: '水壶',
+  /* -et / -en / -op /-un */
+  get: '得到', net: '网', pet: '宠物', vet: '兽医', wet: '湿的', jet: '喷气式飞机',
+  hen: '母鸡', pen: '钢笔', ten: '十', men: '男人们',
+  top: '顶部', hop: '单脚跳', mop: '拖把', pop: '砰', cop: '警察',
+  sun: '太阳', run: '跑', fun: '乐趣', bun: '小圆面包',
+  /* -ell / -ill / -and / -est / -ump / -ush */
+  bell: '铃铛', well: '好；水井', tell: '告诉', sell: '卖', yell: '大喊',
+  bill: '账单', fill: '装满', hill: '小山', will: '将要', pill: '药丸',
+  hand: '手', sand: '沙子', land: '陆地', band: '乐队', stand: '站立',
+  best: '最好的', nest: '鸟巢', rest: '休息', test: '测验', west: '西方', chest: '胸口',
+  jump: '跳', bump: '碰撞', lump: '肿块', pump: '打气筒', dump: '倒掉',
+  brush: '刷子', rush: '冲', hush: '嘘', crush: '压碎',
+  /* 长元音 / 魔法 e */
+  cake: '蛋糕', lake: '湖', make: '制作', take: '拿', snake: '蛇', bake: '烤',
+  ride: '骑', hide: '躲', side: '边', wide: '宽的', tide: '潮水',
+  woke: '醒来（过去式）', coke: '可乐', joke: '笑话', broke: '坏了（过去式）', smoke: '烟',
+  tree: '树', bee: '蜜蜂', feet: '脚', green: '绿色', meet: '遇见',
+  sea: '大海', tea: '茶', read: '读', meat: '肉', beat: '节拍',
+  day: '天', say: '说', play: '玩', way: '路', may: '可以', hay: '干草', gray: '灰色',
+  rain: '雨', train: '火车', wait: '等待', paint: '颜料', mail: '邮件',
+  my: '我的', fly: '飞', try: '尝试', sky: '天空', cry: '哭', by: '通过', why: '为什么',
+  pie: '派', tie: '领带', lie: '躺', die: '死',
+  boat: '小船', coat: '外套', goat: '山羊', float: '漂浮', moat: '护城河',
+  cold: '冷', gold: '金子', old: '旧的', told: '告诉（过去式）', hold: '握住', fold: '折叠', sold: '卖出（过去式）',
+  find: '找到', kind: '友好的', mind: '介意', behind: '在后面',
+  /* 元音组合 / 双元音 */
+  light: '灯', night: '夜晚', right: '对的', bright: '明亮的', might: '可能', tight: '紧的',
+  cow: '奶牛', how: '怎么', now: '现在', bow: '鞠躬', wow: '哇',
+  snow: '雪', blow: '吹', grow: '生长', know: '知道', window: '窗户', yellow: '黄色',
+  zoo: '动物园', too: '也', food: '食物', moon: '月亮', room: '房间',
+  book: '书', look: '看', cook: '做饭', hook: '挂钩', foot: '脚',
+  house: '房子', mouse: '老鼠', out: '外面', shout: '喊叫', about: '关于', cloud: '云',
+  coin: '硬币', oil: '油', boil: '煮沸', soil: '土壤', point: '指',
+  saw: '看见（过去式）', draw: '画', law: '法律', paw: '爪子',
+  ear: '耳朵', near: '附近', hear: '听见', year: '年', bear: '熊',
+  new: '新的', few: '很少', dew: '露水', blew: '吹（过去式）', grew: '生长（过去式）',
+  blue: '蓝色', glue: '胶水', true: '真的', due: '到期', sue: '起诉',
+  /* 辅音组合 */
+  chair: '椅子', lunch: '午饭', much: '许多', rich: '富有的',
+  ship: '轮船', shop: '商店', sheep: '绵羊', shoe: '鞋', fish: '鱼', wash: '洗',
+  three: '三', thin: '瘦的', thick: '厚的', think: '想', thank: '谢谢',
+  this: '这个', that: '那个', them: '他们', then: '然后', those: '那些',
+  phone: '电话', photo: '照片', dolphin: '海豚', graph: '图表',
+  duck: '鸭子', sock: '袜子', black: '黑色', neck: '脖子', rock: '岩石', kick: '踢',
+  pink: '粉色', drink: '喝', bank: '银行', trunk: '树干',
+  sing: '唱歌', king: '国王', ring: '戒指', morning: '早晨', wing: '翅膀',
+  ball: '球', tall: '高的', wall: '墙', small: '小的', call: '打电话', fall: '落下', hall: '大厅',
+  car: '小汽车', star: '星星', far: '远', jar: '罐子', barn: '谷仓',
+  for: '为了', horse: '马', corn: '玉米', born: '出生', storm: '暴风雨',
+  water: '水', tiger: '老虎', dinner: '晚饭', letter: '信', her: '她的',
+  bird: '鸟', girl: '女孩', shirt: '衬衫', first: '第一', third: '第三',
+  turn: '转', burn: '燃烧', fur: '皮毛', nurse: '护士', hurt: '受伤'
+};
+/* 拼读范词查中文：查不到返回空串（界面不显示） */
+function phZh(word) {
+  return (typeof PHONICS_ZH !== 'undefined' && PHONICS_ZH[String(word).toLowerCase()]) || '';
+}
+
+/* ============================================================
  * 英语每日小短文（拔高加餐，不占每日任务）
  * 一天推荐一篇；r01~r06 同步四上教材话题，r07 起为五/六年级水平
  * 每篇 2 道判断（T/F）+ 2 道选词填空，全英文作答；gloss 为难词中文注释；
@@ -1168,6 +1240,21 @@ const SHIELD_MAX = 5;            // 护盾持有上限（每周自动补 2 张�
  * 发版时在这里补一条（items: [emoji, 标题, 一句话说明]）
  * ============================================================ */
 const RELEASE_NOTES = {
+  v38: {
+    emoji: '🏆',
+    title: '竞技场开张 + 写作星系 + 高年级知识启蒙 + 五项体验修复',
+    items: [
+      ['🏆', '竞技场开张', '四个竞赛玩法专项练：🥊拼字擂台(听音拼词3条命逐轮变难) · 🕵️线索猜诗(线索越早猜中分越高) · 🧧猜成语(看描述猜词) · 🦘袋鼠思维(3/4/5分阶梯+星际迷宫+小小数独)，各自有纪录、破纪录加奖'],
+      ['✍️', '写作星系', '58 题写作基本功(好词/扩句/病句/排句/开头结尾) + 小练笔工坊：素材卡引导三格微写作，打字/🎤说整段录音/📷手写拍照任选，爸妈打星点评+帮孩子誊写，作品墙可回看'],
+      ['🎓', '高年级知识启蒙', '物理/化学/生物/地理/历史五门 54 题，只讲现象概念不出公式，和课本同步的科学星系分开'],
+      ['👀', '护眼提醒修好', '改为任何模块学习都计时(切后台不算)，每满 25 分钟弹窗休息，之前只有英语冒险会计时所以总不弹'],
+      ['🔊', '句子朗读不再被打断', '选词填空答对后等整句读完才进下一题，之前 1.4 秒固定跳题把长句拦腰截断'],
+      ['🐾', '伙伴进度独立+重置', '新招募的伙伴从蛋壳期重新养起，各伙伴进度独立保留；家长面板新增「重置伙伴成长」按钮'],
+      ['🔤', '拼读星系升级', '范词带中文释义 · 点音标连读本族三个词听共同结尾音'],
+      ['📚', '默写句库 93→150', '新增 57 句覆盖家人/校园/运动/出行/天气/健康，新词全部配音标和中文'],
+      ['🛠️', '本地调试优化', 'localhost 下不启用离线缓存，改完刷新即生效（线上缓存不受影响）']
+    ]
+  },
   v37: {
     emoji: '🎨',
     title: '大版本：伙伴重设计 + 真人发音 + 三档界面升级 + 内容大扩充',
@@ -1258,6 +1345,10 @@ const ACHIEVEMENTS = [
     cond: s => s.pet.fed >= PET_STAGES[PET_STAGES.length - 1].need },
   { id: 'first-think',  emoji: '🧠', name: '思维启航',   desc: '完成第一组思维挑战',
     cond: s => s.stats && (s.stats.thinkDone || 0) >= 1 },
+  { id: 'first-write',  emoji: '✍️', name: '小小作家',   desc: '完成第一篇小练笔',
+    cond: s => s.writing && s.writing.entries.length >= 1 },
+  { id: 'writer-5',      emoji: '🖋️', name: '写作小达人', desc: '完成 5 篇小练笔',
+    cond: s => s.writing && s.writing.entries.length >= 5 },
   { id: 'think-10',     emoji: '🧩', name: '思维大师',   desc: '完成 10 组思维挑战',
     cond: s => s.stats && (s.stats.thinkDone || 0) >= 10 },
   { id: 'first-enread', emoji: '📚', name: '阅读启航',   desc: '读完第一篇英语小短文',

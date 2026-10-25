@@ -387,13 +387,17 @@ body {
   font-weight: 800; font-size: var(--fs-14); color: var(--gold-soft-text);
   background: var(--gold-fill); border: 1px solid var(--gold-line);
   border-radius: 999px; padding: 1px 9px;
+  cursor: pointer; font-family: inherit;
 }
+.ph-fam-sound:active { transform: scale(.94); }
 .ph-fam-rule { font-size: var(--fs-14); line-height: 1.7; color: var(--text-mid); margin-top: 4px; }
 .ph-fam-words { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .ph-word {
-  padding: 5px 12px; border-radius: 999px; font-size: var(--fs-16); font-weight: 700;
+  padding: 4px 12px; border-radius: 999px; font-size: var(--fs-16); font-weight: 700;
   background: var(--fill-3); border: 1px solid var(--line-2); color: var(--text-hi); cursor: pointer;
+  display: inline-flex; align-items: baseline; gap: 5px;
 }
+.ph-word .ph-w-zh { font-size: var(--fs-12); font-weight: 500; color: var(--text-mid); }
 .ph-word:active { transform: scale(.94); background: var(--accent-fill); }
 .ph-hint {
   display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; justify-content: center;
@@ -1262,4 +1266,161 @@ select.input.num { width: auto; min-width: 130px; }
   border-radius: var(--radius-m);
   padding: 8px 14px;
   margin-top: 10px;
+}
+
+/* ============================================================
+   小练笔工坊（v38 写作星系）：素材墙 / 三格写作 / 家长点评
+   ============================================================ */
+.wp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+@media (max-width: 480px) { .wp-grid { grid-template-columns: repeat(3, 1fr); } }
+.wp-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 4px; border-radius: var(--radius-m);
+  background: var(--fill-1); border: 1px solid var(--line-1); cursor: pointer;
+}
+.wp-card:active { transform: scale(.94); background: var(--accent-fill); }
+.wp-emoji { font-size: 26px; }
+.wp-title { font-size: var(--fs-12); font-weight: 700; color: var(--text-hi); text-align: center; }
+/* 三格写作 */
+.wp-slot { margin-top: 10px; text-align: left; }
+.wp-slot-label { font-size: var(--fs-14); font-weight: 800; color: var(--gold-strong, var(--gold)); }
+.wp-slot-bar { margin: 4px 0; }
+.wp-mic.rec-on {
+  background: #e5484d; border-color: #e5484d; color: #fff;
+  animation: wpPulse 1s infinite alternate;
+}
+@keyframes wpPulse { from { box-shadow: 0 0 2px #e5484d; } to { box-shadow: 0 0 10px #e5484d; } }
+.wp-ta { width: 100%; resize: vertical; min-height: 44px; line-height: 1.7; }
+/* 作品墙 */
+.wp-work {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px; margin-top: 8px; text-align: left;
+  background: var(--fill-1); border: 1px solid var(--line-1); border-radius: var(--radius-m); cursor: pointer;
+}
+.wp-work:active { transform: scale(.98); }
+.wp-work-emoji { font-size: 22px; }
+.wp-work-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.wp-work-title { font-weight: 800; color: var(--text-hi); }
+.wp-work-stars { font-size: var(--fs-12); color: var(--gold-strong, var(--gold)); white-space: nowrap; }
+/* 详情与点评 */
+.wp-photo {
+  display: block; width: 100%; max-width: 420px; margin: 8px auto;
+  border-radius: var(--radius-m); border: 1px solid var(--line-2);
+}
+.wp-read { text-align: left; margin-top: 8px; line-height: 1.9; color: var(--text-hi); }
+.wp-read-label { display: block; color: var(--text-low); }
+.wp-note {
+  margin-top: 10px; padding: 8px 12px; text-align: left; line-height: 1.8;
+  background: var(--gold-fill, rgba(255, 207, 92, .12));
+  border: 1px solid var(--gold-line, rgba(255, 207, 92, .4));
+  border-radius: var(--radius-m); color: var(--gold-strong, var(--gold));
+}
+.wp-pick { display: flex; justify-content: center; gap: 10px; margin: 8px 0; }
+.wp-star {
+  font-size: 34px; line-height: 1; background: none; border: none; cursor: pointer;
+  color: var(--text-low); padding: 2px;
+}
+.wp-star:active { transform: scale(.9); }
+.wp-review { margin-top: 12px; }
+/* 小练笔输入引导（v38.1：明确三种输入方式） */
+.wp-howto {
+  margin-top: 10px; text-align: left; line-height: 1.9;
+  font-size: var(--fs-14); color: var(--text-mid);
+  background: var(--fill-1); border: 1px dashed var(--line-2);
+  border-radius: var(--radius-m); padding: 8px 12px;
+}
+.wp-ta { min-height: 52px; }
+.wp-ta:focus {
+  outline: none; border-color: var(--accent-line, #4fd1ff);
+  box-shadow: 0 0 0 2px var(--accent-fill, rgba(79, 209, 255, .25));
+  background: var(--fill-3);
+}
+/* 录音按钮与音频回放（v38.2） */
+.wp-recbtn.rec-on { background: #e5484d; border-color: #e5484d; color: #fff; animation: wpPulse 1s infinite alternate; }
+.wp-audio { display: block; width: 100%; max-width: 420px; margin: 4px auto 8px; }
+.wp-audio-tag {
+  margin-top: 6px; font-weight: 700; color: var(--purple);
+  background: var(--fill-1); border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 12px;
+  display: inline-block;
+}
+.wp-trans-box {
+  margin-top: 8px; text-align: left; padding: 8px 12px;
+  background: var(--fill-1); border: 1px solid var(--line-1); border-radius: var(--radius-m);
+}
+.wp-trans-box summary { font-size: var(--fs-14); color: var(--text-mid); }
+.wp-trans input { margin-top: 2px; }
+
+/* ============================================================
+   竞技场（v38）：项目卡 / 拼字键盘 / 线索 / 数独 / 迷宫
+   ============================================================ */
+.ar-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.ar-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 14px 8px; border-radius: var(--radius-m);
+  background: var(--fill-1); border: 1px solid var(--line-1); cursor: pointer;
+}
+.ar-card:active { transform: scale(.95); }
+.ar-emoji { font-size: 34px; }
+.ar-name { font-weight: 900; font-size: var(--fs-16); color: var(--text-hi); }
+/* 拼字擂台 */
+.ar-lives { font-size: var(--fs-18); font-weight: 800; margin: 6px 0 2px; }
+.ar-slots { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+.ar-slot {
+  width: 34px; height: 42px; line-height: 42px; text-align: center;
+  font-size: var(--fs-20); font-weight: 900; color: var(--text-hi);
+  background: var(--fill-3); border: 1px solid var(--line-2); border-radius: 8px;
+}
+.ar-slot.cur { border-color: var(--accent-line, #4fd1ff); box-shadow: 0 0 0 2px var(--accent-fill, rgba(79,209,255,.25)); }
+.ar-slot.right { background: rgba(88,224,138,.2); border-color: #58e08a; color: #58e08a; }
+.ar-slot.wrong { background: rgba(229,72,77,.18); border-color: #e5484d; color: #e5484d; }
+.ar-keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+.ar-key {
+  min-width: 40px; padding: 8px 6px; border-radius: 10px; font-size: var(--fs-16); font-weight: 800;
+  background: var(--fill-3); border: 1px solid var(--line-2); color: var(--text-hi); cursor: pointer;
+}
+.ar-key:active { transform: scale(.92); background: var(--accent-fill); }
+/* 线索猜谜 */
+.ar-clues { text-align: left; margin: 6px 0; }
+.ar-clue {
+  padding: 8px 14px; margin: 5px 0; line-height: 1.9; font-size: var(--fs-18); font-weight: 600;
+  background: var(--fill-1); border-left: 3px solid var(--gold); border-radius: 6px;
+}
+/* 袋鼠：图示行 / 数独 / 迷宫 */
+.ar-fig { font-size: var(--fs-24); letter-spacing: 4px; margin: 8px 0; }
+.ar-sudoku {
+  display: grid; grid-template-columns: repeat(4, 52px); grid-template-rows: repeat(4, 52px);
+  gap: 3px; justify-content: center; margin: 10px auto;
+}
+.ar-cell {
+  font-size: var(--fs-20); font-weight: 900; color: var(--text-hi); cursor: pointer;
+  background: var(--fill-3); border: 1px solid var(--line-2); border-radius: 8px;
+}
+/* 2×2 宫边界用外框加重 */
+.ar-cell:nth-child(4n+2) { border-right: 2px solid var(--line-2); }
+.ar-cell:nth-child(-n+8) { border-bottom: 2px solid var(--line-2); }
+.ar-cell.given { color: var(--gold-strong, var(--gold)); background: var(--fill-1); cursor: default; }
+.ar-cell.sel { box-shadow: 0 0 0 2px var(--accent-line, #4fd1ff); }
+.ar-cell.bad { background: rgba(229,72,77,.2); border-color: #e5484d; color: #e5484d; }
+.ar-cell.right { background: rgba(88,224,138,.2); border-color: #58e08a; }
+.ar-maze {
+  display: grid; grid-template-columns: repeat(6, 44px); grid-template-rows: repeat(6, 44px);
+  gap: 2px; justify-content: center; margin: 10px auto;
+}
+.ar-mcell {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; border-radius: 6px;
+  background: var(--fill-3); border: 1px solid var(--line-1);
+}
+.ar-mcell.wall { background: #2b3350; border-color: #1c2238; }
+.ar-mcell.me { background: rgba(255,159,67,.25); border-color: var(--orange, #ff9f43); }
+.ar-dpad { display: flex; justify-content: center; gap: 10px; margin-top: 8px; }
+.ar-dpad .ar-key.big { min-width: 56px; padding: 12px; font-size: 20px; }
+.ar-donebar { margin-top: 10px; }
+/* 拼字擂台：中文提示/答案纠正（v38.4 加大加醒目） */
+.ar-zh { min-height: 28px; margin: 2px 0; }
+.ar-zh.show {
+  display: inline-block; font-size: var(--fs-18); font-weight: 800; color: var(--text-hi);
+  background: var(--gold-fill, rgba(255, 207, 92, .16));
+  border: 1px solid var(--gold-line, rgba(255, 207, 92, .5));
+  border-radius: 999px; padding: 4px 16px; margin: 6px 0 2px;
 }
