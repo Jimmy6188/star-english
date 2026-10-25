@@ -236,9 +236,19 @@ function init() {
     }
   });
 
-  /* PWA：仅在 http(s) 下注册（file:// 打开时自动跳过） */
+  /* PWA：仅在 http(s) 下注册（file:// 打开时自动跳过）。
+   * v38b 补丁自动生效机制：注册时 updateViaCache:'none' 让 sw.js 的更新检查永远绕过
+   * HTTP/CDN 缓存（GitHub Pages 有 10 分钟 CDN 缓存，Pad 上曾因此刷不出新补丁）；
+   * 页面若原本由旧 SW 控制，当新 SW 接管（controllerchange）时自动重载一次——
+   * 孩子端只需普通刷新一次就能看到新补丁，无需手动强刷或清数据 */
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    const hadController = !!navigator.serviceWorker.controller;
+    let swRefreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      /* 首次安装（之前无控制器）不重载，避免首次访问多刷一次 */
+      if (hadController && !swRefreshing) { swRefreshing = true; location.reload(); }
+    });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
   }
 }
 
