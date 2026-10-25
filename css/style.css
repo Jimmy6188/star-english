@@ -1424,3 +1424,5 @@ select.input.num { width: auto; min-width: 130px; }
   border: 1px solid var(--gold-line, rgba(255, 207, 92, .5));
   border-radius: 999px; padding: 4px 16px; margin: 6px 0 2px;
 }
+/* 拼字擂台键盘分行（v38.5：布局可切换 + ⌫ 归位行尾） */
+.ar-krow { display: flex; justify-content: center; gap: 6px; margin-top: 6px; }

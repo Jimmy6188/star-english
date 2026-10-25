@@ -141,28 +141,55 @@ const Arena = {
       }, `💡 首字母提示 ×${this.spHints}`)
     );
 
-    /* 字母键盘（ABC 顺序，照搬句子默写的布局习惯） */
+    /* 字母键盘（v38.5：布局跟随「英语句子默写」的设置，ABC/电脑排列可切；
+     * ⌫ 移到第三行末尾的标准位置，另补连字符和撇号——ping-pong / don't 这类词拼得了） */
     const keys = h('div', { class: 'ar-keys' });
     const press = k => {
       if (locked) return;
       if (k === 'del') { typed = typed.slice(0, -1); paint(); return; }
       if (k === 'ok' || typed.length >= word.length) { judge(); return; }
-      if (/^[a-z]$/.test(k)) { typed += k; paint(); if (typed.length === word.length) judge(); }
+      if (/^[a-z'-]$/.test(k)) { typed += k; paint(); if (typed.length === word.length) judge(); }
     };
-    [['a','b','c','d','e','f','g','h','i','j'],['k','l','m','n','o','p','q','r','s','t'],
-     ['⌫','u','v','w','x','y','z','✓']].flat().forEach(k => {
-      keys.appendChild(h('button', {
-        class: 'ar-key' + (k === '✓' ? ' ok' : ''),
-        onclick: () => { Sound.tap(); press(k === '⌫' ? 'del' : k === '✓' ? 'ok' : k); }
-      }, k));
-    });
+    const keyBtn = k => h('button', {
+      class: 'ar-key' + (k === '✓' ? ' ok' : ''),
+      onclick: () => { Sound.tap(); press(k === '⌫' ? 'del' : k === '✓' ? 'ok' : k); }
+    }, k);
+    const layoutName = () => (Store.state.sentence.layout === 'qwerty' ? '电脑排列' : 'ABC 排列');
+    const paintKeys = () => {
+      keys.innerHTML = '';
+      const rows = Store.state.sentence.layout === 'qwerty'
+        ? [['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'], ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'], ['z', 'x', 'c', 'v', 'b', 'n', 'm', "'", '-']]
+        : [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'], ['k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't'], ['u', 'v', 'w', 'x', 'y', 'z', "'", '-']];
+      rows.forEach(row => {
+        const line = h('div', { class: 'ar-krow' });
+        row.forEach(k => line.appendChild(keyBtn(k)));
+        keys.appendChild(line);
+      });
+      /* ⌫ 和 ✓ 放在最后一行末尾（标准位置） */
+      const last = keys.lastElementChild;
+      last.appendChild(keyBtn('⌫'));
+      last.appendChild(keyBtn('✓'));
+    };
+    paintKeys();
+    /* 布局切换按钮：与句子默写共用同一个设置（Store.setSentenceLayout），改一处两处生效 */
+    const layBtn = h('button', {
+      class: 'btn small', style: 'margin-top:8px',
+      onclick: e => {
+        Sound.tap();
+        const next = Store.state.sentence.layout === 'qwerty' ? 'abc' : 'qwerty';
+        Store.setSentenceLayout(next);
+        paintKeys();
+        e.currentTarget.textContent = `⌨️ 当前：${layoutName()}（点切换）`;
+        toast(next === 'abc' ? '键盘换成 ABC 排列了（句子默写也一起换）' : '键盘换成电脑排列了（句子默写也一起换）');
+      }
+    }, `⌨️ 当前：${layoutName()}（点切换）`);
 
     root.appendChild(h('div', { class: 'card drill-card' },
       h('div', { class: 'drill-tag' }, '🥊 拼字擂台'),
       status, zhLine,
       h('button', { class: 'speak-btn xl', onclick: () => Sound.speakWord(w.word) }, '🔊'),
       h('div', { class: 'tiny', style: 'margin:4px 0 8px' }, '仔细听，把它拼出来（🔊 可反复听）'),
-      board, tools, keys
+      board, tools, keys, layBtn
     ));
     setTimeout(() => Sound.speakWord(w.word), 500);
   },
