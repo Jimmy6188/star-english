@@ -122,7 +122,7 @@ setQuestSub('var(--purple)');
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
+      h('button', { class: 'quest-exit', onclick: () => { Sound.stopSpeak(); showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, '🔤 拼读星系')
     ));
     root.appendChild(h('div', { class: 'card quest-splash' },
@@ -136,6 +136,8 @@ setQuestSub('var(--purple)');
   },
 
   next() {
+    clearTimeout(this.playTimer); /* 上一题还没响的自动播词作废，避免和新题的声音叠在一起 */
+    Sound.stopSpeak();
     if (this.idx >= this.items.length) { this.finish(); return; }
     const q = this.items[this.idx];
     const root = $('#quest-root');
@@ -182,7 +184,7 @@ setQuestSub('var(--purple)');
             e.currentTarget.classList.add('right');
             const c = centerOf(e.currentTarget);
             burst(c.x, c.y, { count: 8, colors: ['#58e08a'], power: 45 });
-            if (q.kind === 'listen') setTimeout(() => Sound.speakWord(q.word), 200);
+            if (q.kind === 'listen') this.playTimer = setTimeout(() => Sound.speakWord(q.word), 200);
           } else {
             Sound.wrong();
             e.currentTarget.classList.add('wrong');
@@ -199,7 +201,7 @@ setQuestSub('var(--purple)');
     card.appendChild(tipEl);
     card.appendChild(nextBtn);
     root.appendChild(card);
-    if (q.kind === 'listen') setTimeout(() => Sound.speakWord(q.word), 400);
+    if (q.kind === 'listen') this.playTimer = setTimeout(() => Sound.speakWord(q.word), 400);
   },
 
   finish() {

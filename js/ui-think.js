@@ -489,6 +489,7 @@ const Sudoku = {
 
   start(n, diff) {
     Sound.stopSpeak();
+    this.solved = false; /* 新一局解锁（通关后锁住棋盘防重复刷币） */
     const lvl = n || this.lastLevel();
     try { localStorage.setItem('sdk-level', String(lvl)); } catch (e) { /* 忽略 */ }
     this.gen(lvl, diff);
@@ -529,6 +530,7 @@ setQuestSub('var(--accent)');
             class: 'sdk-cell' + (given ? ' given' : '') +
               (this.sel && this.sel[0] === r && this.sel[1] === c ? ' sel' : '') + (bad ? ' bad' : ''),
             onclick: () => {
+              if (this.solved) return; /* 已通关锁盘 */
               if (given) { toast('这是题目给出的数字，不能改哦'); return; }
               Sound.tap();
               this.sel = [r, c];
@@ -544,15 +546,16 @@ setQuestSub('var(--accent)');
     },
       Array.from({ length: this.n }, (_, i) => i + 1).map(v => h('button', {
         class: 'drill-key', onclick: e => {
+          if (this.solved) return; /* 已通关锁盘 */
           if (!this.sel) { toast('先点一个空格子'); return; }
           Sound.tap();
           Sound.speak(String(v), 1.1);
           this.kid[this.sel[0]][this.sel[1]] = v;
-          this.checkDone();
+          if (this.checkDone()) return; /* 通关：结算卡留在屏上，不再重绘棋盘盖掉它 */
           this.render();
         }
       }, v)),
-      h('button', { class: 'drill-key' + (this.n === 9 ? '' : ' wide'), onclick: () => { if (this.sel) { this.kid[this.sel[0]][this.sel[1]] = 0; this.render(); } } }, '⌫')
+      h('button', { class: 'drill-key' + (this.n === 9 ? '' : ' wide'), onclick: () => { if (!this.solved && this.sel) { this.kid[this.sel[0]][this.sel[1]] = 0; this.render(); } } }, '⌫')
     );
     root.appendChild(h('div', { class: 'card drill-card center' + (is9 ? ' sdk-wide' : '') },
       h('div', { class: 'drill-tag' }, '每行、每列、每个粗框里数字都不重复'),
@@ -577,10 +580,13 @@ setQuestSub('var(--accent)');
   },
 
   checkDone() {
-    if (!this.kid.every(row => row.every(v => v > 0))) return;
+    /* 返回 true 表示已通关（调用方据此停止重绘棋盘）；solved 锁存防重复结算刷币 */
+    if (this.solved) return true;
+    if (!this.kid.every(row => row.every(v => v > 0))) return false;
     const wrongN = this.kid.reduce((s, row, r) => s + row.filter((v, c) => v !== this.sol[r][c]).length, 0);
-    if (wrongN > 0) { toast(`有 ${wrongN} 个格子不对，红色的可以点开改`); Sound.wrong(); return; }
+    if (wrongN > 0) { toast(`有 ${wrongN} 个格子不对，红色的可以点开改`); Sound.wrong(); return false; }
     /* 全对结算：九宫按难度给币，难度越高越值钱 */
+    this.solved = true;
     const gain = Store.earnScaled('sudoku', this.n === 4 ? 20 : (this.n === 6 ? 30 : [40, 60, 100][this.diff]));
     Sound.gold();
     const root = $('#quest-root');
@@ -597,5 +603,6 @@ setQuestSub('var(--accent)');
     ));
     const c = centerOf($('.finish-stamp'));
     burst(c.x, c.y, { count: 26, emojis: ['🔢', '⭐', '✨'], power: 130 });
+    return true;
   }
 };

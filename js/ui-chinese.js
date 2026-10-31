@@ -39,7 +39,7 @@ const Chinese = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(hdr || h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => confirmModal('退出练习？', '进度将不保存，确定退出吗？', () => { showScreen('home'); renderHome(); }) }, icon('x')),
+      h('button', { class: 'quest-exit', onclick: () => confirmModal('退出练习？', '进度将不保存，确定退出吗？', () => { Sound.stopSpeak(); showScreen('home'); renderHome(); }) }, icon('x')),
       h('div', { class: 'quest-prog' }, `${idx + 1} / ${total}`)
     ));
     const optsEl = h('div', { class: 'cn-opts' });
@@ -242,7 +242,7 @@ setQuestSub('var(--gold-strong)');
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
+      h('button', { class: 'quest-exit', onclick: () => { clearTimeout(this.poemTimer); Sound.stopSpeak(); showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, '📜 诗词星图')
     ));
     root.appendChild(h('div', { class: 'card drill-card' },
@@ -268,7 +268,7 @@ setQuestSub('var(--gold-strong)');
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
+      h('button', { class: 'quest-exit', onclick: () => { clearTimeout(this.poemTimer); Sound.stopSpeak(); showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `📜 学古诗 · 《${p.title}》`)
     ));
     const poemText = h('div', { class: 'gw-text poem-learn-text' },
@@ -300,11 +300,13 @@ setQuestSub('var(--gold-strong)');
           if (!Store.state.chinese.learned) Store.state.chinese.learned = {};
           Store.state.chinese.learned[p.id] = Store.todayStr();
           Store.save();
+          clearTimeout(this.poemTimer);
           this.poemChallenge(p);
         }
       }, '我学会了，去挑战 →')
     ));
-    setTimeout(() => Sound.speak(this.readText(p.lines.join('，')) + '。', 0.8), 400);
+    clearTimeout(this.poemTimer);
+    this.poemTimer = setTimeout(() => Sound.speak(this.readText(p.lines.join('，')) + '。', 0.8), 400);
   },
 
   /* ---------- 名句填空出题（v32） ----------
@@ -329,6 +331,7 @@ setQuestSub('var(--gold-strong)');
   },
 
   poemChallenge(p) {
+    Sound.stopSpeak(); /* 学习页的自动朗读别延续到挑战页 */
     const qs = [];
     const i = Math.floor(Math.random() * (p.lines.length - 1));
     const correctLine = p.lines[i + 1];
@@ -384,7 +387,7 @@ setQuestSub('var(--gold-strong)');
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
+      h('button', { class: 'quest-exit', onclick: () => { clearTimeout(this.poemTimer); Sound.stopSpeak(); showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `📖 阅读训练营 ${done.length}/${CN_READINGS.length}`)
     ));
     root.appendChild(h('div', { class: 'card drill-card' },
@@ -425,7 +428,7 @@ setQuestSub('var(--gold-strong)');
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
-      h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
+      h('button', { class: 'quest-exit', onclick: () => { clearTimeout(this.poemTimer); Sound.stopSpeak(); showScreen('home'); renderHome(); } }, icon('x')),
       h('div', { class: 'quest-prog' }, `🧧 小古文 ${done.length}/${CN_GUWEN.length}`)
     ));
     root.appendChild(h('div', { class: 'card drill-card' },
@@ -480,7 +483,7 @@ setQuestSub('var(--gold-strong)');
 setQuestSub('var(--gold-strong)');
     showScreen('quest');
     const wrong = (Store.state.chinese.wrong || []).slice();
-    const qs = shuffle(wrong).slice(0, 2);
+    const qs = shuffle(wrong).slice(0, 2).map(q => Object.assign({ fromWrong: true }, q));
     while (qs.length < 5) {
       const roll = Math.random();
       const pool = roll < 0.4 ? CN_TRAPS : (roll < 0.75 ? CN_IDIOMS : CN_WORDFIT);
@@ -499,7 +502,15 @@ setQuestSub('var(--gold-strong)');
         renderHome();
         return;
       }
-      this.ask(qs[idx], idx, qs.length, ok => { idx++; if (ok) correct++; step(); });
+      this.ask(qs[idx], idx, qs.length, ok => {
+        /* 错题闭环（v40）：错题本里的题答对即出本 */
+        if (ok && qs[idx].fromWrong) {
+          Store.clearCnWrong(qs[idx].q);
+          Store.addCoins(1);
+          toast('🎉 老错题清零 +1 🪙');
+        }
+        idx++; if (ok) correct++; step();
+      });
     };
     step();
   }

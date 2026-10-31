@@ -81,10 +81,10 @@ const Sound = (() => {
         u.pitch = zh ? 1 : 1.05;
         const v = zh ? zhPreferred : preferred;
         if (v) u.voice = v;
-        if (onEnd) u.onend = onEnd;
+        if (onEnd) u.onend = () => { if (seq === speakSeq) onEnd(); };
         let started = false;
         u.onstart = () => { started = true; };
-        u.onerror = () => { if (onEnd) onEnd(); };
+        u.onerror = () => { if (onEnd && seq === speakSeq) onEnd(); };
         speechSynthesis.speak(u);
         /* 兜底：被浏览器吞掉时（400ms 后既没在读也没排队）自动补读一次 */
         if (tries++ === 0) {
@@ -93,7 +93,7 @@ const Sound = (() => {
             if (!speechSynthesis.speaking && !speechSynthesis.pending) fire();
           }, 400);
         }
-      } catch (e) { if (onEnd) onEnd(); }
+      } catch (e) { if (onEnd && seq === speakSeq) onEnd(); }
     };
     setTimeout(fire, busy ? 300 : 60);
   }
@@ -115,10 +115,10 @@ const Sound = (() => {
     if (wordAudio) {
       try { wordAudio.pause(); wordAudio.src = ''; } catch (e) { /* 忽略 */ }
       wordAudio = null;
+    }
     if (nextAudio) {
       try { nextAudio.src = ''; } catch (e) { /* 忽略 */ }
       nextAudio = null;
-    }
     }
   }
   /* onEnd：单词读完后回调（词典音播完或 TTS 读完都算；被新朗读取代则不回调），
@@ -169,7 +169,7 @@ const Sound = (() => {
     try { speechSynthesis.cancel(); } catch (e) { /* 忽略 */ }
     stopWordAudio();
     const list = words.map(w => String(w)).filter(Boolean);
-    const failAll = () => { if (my === clipSeq) speak(list.join(', '), rate); };
+    const failAll = () => { if (my === clipSeq) { stopWordAudio(); speak(list.join(', '), rate); } };
     const step = i => {
       if (i >= list.length || my !== clipSeq) return;
       let a;

@@ -5,7 +5,7 @@
 
 /* 应用版本号：顶栏标题旁显示，供家长一眼确认设备跑的是否最新版。
  * 发版时三处一起改：这里 / sw.js 的 CACHE / index.html 里脚本与 css 的 ?v= 参数 */
-const APP_VERSION = 'v38';
+const APP_VERSION = 'v39';
 
 function showScreen(name) {
   $$('#main .screen').forEach(el => el.classList.remove('active'));
@@ -26,17 +26,30 @@ function paintStars() {
   const ctx = cv.getContext('2d');
   function draw() {
     const dark = document.documentElement.dataset.theme !== 'light';
+    const hween = typeof Store !== 'undefined' && Store.isHalloween && Store.isHalloween();
     cv.width = innerWidth;
     cv.height = innerHeight;
     ctx.clearRect(0, 0, cv.width, cv.height);
+    /* 🎃 万圣节夜空：右上角一轮南瓜月（避开顶栏高度，留足右边距），星空里偶尔飘过小蝙蝠/落叶 */
+    if (hween) {
+      ctx.font = '46px serif';
+      ctx.fillText('🎃', Math.max(10, cv.width - 150), 150);
+    }
     const n = Math.floor(cv.width * cv.height / 9000);
     for (let i = 0; i < n; i++) {
       const x = Math.random() * cv.width;
       const y = Math.random() * cv.height;
+      if (hween && Math.random() < 0.045) {
+        ctx.font = '15px serif';
+        ctx.globalAlpha = 0.75;
+        ctx.fillText(Math.random() < 0.55 ? '🦇' : '🍂', x, y);
+        ctx.globalAlpha = 1;
+        continue;
+      }
       const r = Math.random() * 1.4 + 0.3;
       ctx.globalAlpha = dark ? 0.25 + Math.random() * 0.65 : 0.1 + Math.random() * 0.22;
       ctx.fillStyle = dark
-        ? (Math.random() < 0.12 ? '#ffd166' : Math.random() < 0.2 ? '#4fd1ff' : '#ffffff')
+        ? (Math.random() < 0.12 ? '#ffd166' : Math.random() < 0.2 ? (hween ? '#c9b2e8' : '#4fd1ff') : '#ffffff')
         : (Math.random() < 0.12 ? '#d9a520' : Math.random() < 0.2 ? '#4d9fd0' : '#7d97bd');
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -45,8 +58,12 @@ function paintStars() {
     ctx.globalAlpha = 1;
   }
   draw();
-  let t;
-  addEventListener('resize', () => { clearTimeout(t); t = setTimeout(draw, 300); });
+  /* resize 监听只挂一次（applyTheme 每次切主题都调 paintStars，重复挂会累积监听器） */
+  if (!paintStars._bound) {
+    paintStars._bound = true;
+    let t;
+    addEventListener('resize', () => { clearTimeout(t); t = setTimeout(draw, 300); });
+  }
 }
 
 /* ---------- 主题（跟随系统 / 日间 / 夜间） ---------- */
@@ -64,6 +81,8 @@ function applyTheme() {
   const mode = Store.state.settings.theme || 'auto';
   const eff = effectiveTheme();
   document.documentElement.dataset.theme = eff;
+  /* 🎃 万圣节活动期给 <html> 挂 hween 标记，CSS 换紫橙夜空、顶栏挂南瓜 */
+  document.documentElement.classList.toggle('hween', !!(Store.isHalloween && Store.isHalloween()));
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', THEME_META[eff]);
   const btn = $('#btn-theme');
@@ -140,6 +159,44 @@ function welcome() {
 /* ---------- 版本更新提示 ---------- */
 /* 刷新后发现版本号变了（且这个版本写了更新日志）就弹一次给孩子/家长看。
  * 新用户走欢迎引导不弹；徽章弹窗等可能占着弹窗层，稍等它关掉再弹，不叠加。 */
+/* 🎃 万圣节欢迎卡（v41）：活动期内首次打开 App 弹一次，领南瓜头套；
+ * 已领过（hweenGift）不再弹；和版本更新/徽章弹窗错峰，延后出现 */
+function maybeShowHalloween() {
+  if (!Store.isHalloween || !Store.isHalloween()) return;
+  if (Store.state.hweenGift) return;
+  setTimeout(() => {
+    if ($('#modal-root').classList.contains('show')) return; /* 被占着就下次启动再弹 */
+    showModal({
+      title: '🎃 万圣节到啦！',
+      build(el) {
+        el.appendChild(h('div', { class: 'center', style: 'line-height:2' },
+          h('div', { style: 'font-size:56px;margin:4px 0' }, '🎃'),
+          h('div', {}, 'Trick or Treat！不给糖就捣蛋～'),
+          h('div', { class: 'tiny', style: 'margin-top:8px;line-height:1.9' },
+            '万圣节期间（10/25 ~ 11/7）：' + String.fromCharCode(10) +
+            '· 神秘星盒变身「南瓜星盒」，装扮掉率翻倍' + String.fromCharCode(10) +
+            '· 六件万圣节限定装扮只能从南瓜星盒掉落，过期就绝版啦' + String.fromCharCode(10) +
+            '· 完成任务当天首次还能收到伙伴的糖果 🍬'),
+          h('div', { class: 'tiny', style: 'margin-top:6px;color:var(--gold)' }, '已获得的装扮永久保留哦')
+        ));
+      },
+      actions: [{
+        label: '🎁 领取南瓜头套！', cls: 'btn-main big',
+        onClick: close => {
+          const r = Store.claimHweenGift();
+          close();
+          if (r.ok) {
+            Sound.gold();
+            if (typeof candyRain === 'function') candyRain(20);
+            toast('🎃 南瓜头套已收入衣橱，快去给伙伴戴上！');
+            renderHome();
+          }
+        }
+      }]
+    });
+  }, 2600); /* 比版本更新弹窗更晚，不抢层 */
+}
+
 function maybeShowUpdateNotes() {
   if (Store.isFirstRun()) return;
   if (Store.seenVersion() === APP_VERSION) return;
@@ -215,8 +272,13 @@ function init() {
   const unlock = () => { Sound.unlock(); document.removeEventListener('pointerdown', unlock); };
   document.addEventListener('pointerdown', unlock);
 
-  /* 版本更新提示（同版本只弹一次） */
+  /* 版本更新提示（同版本只弹一次）+ 🎃 万圣节欢迎卡（活动期首日领南瓜头套） */
   maybeShowUpdateNotes();
+  maybeShowHalloween();
+  /* 🎃 活动期每次打开来一小阵糖果雨（只在开屏撒一次，动画自动清理不耗续航） */
+  if (Store.isHalloween && Store.isHalloween()) {
+    setTimeout(() => { if (typeof candyRain === 'function') candyRain(12); }, 3600);
+  }
 
   if (Store.isFirstRun()) welcome();
 

@@ -1,13 +1,17 @@
 /* ============================================================
  * 星际求知号 - 竞技场（v38，借鉴竞赛玩法的能力拔高专项）
- * 四个项目（独立入口、不计入每日打卡，纯加餐）：
+ * 六个项目（独立入口、不计入每日打卡，纯加餐）：
  *   🥊 拼字擂台  借鉴 Spelling Bee：听发音拼单词，3 条命，逐轮变难
  *   🕵️ 线索猜诗  借鉴诗词大会"线索猜诗"：线索一条条给，越早猜中分越高
  *   🧧 猜成语    借鉴成语大会"描述猜词"：两条线索猜成语
  *   🦘 袋鼠思维  借鉴袋鼠数学：3/4/5 分阶梯，含数独与迷宫画图题
+ *   🌸 飞花令    令字找句，只从已学/点亮的诗里出（v40）
+ *   🔊 听写大会  听词选形，形近/同音字大作战（v40）
  * 奖励统一走 earnScaled('arena')，破纪录另 +5；纪录存 state.arena
  * ============================================================ */
 const Arena = {
+
+  pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
 
   /* ==================== 主页 ==================== */
   open() {
@@ -18,6 +22,8 @@ const Arena = {
   },
 
   renderHub() {
+    clearTimeout(this.spTimer); /* 回大厅先清掉擂台的翻页定时器 */
+    Sound.stopSpeak();
     const root = $('#quest-root');
     root.innerHTML = '';
     const a = Store.state.arena;
@@ -31,6 +37,18 @@ const Arena = {
       h('div', { class: 'splash-sub' }, '挑战自己的纪录 · 破纪录有加奖 · 不计入每日打卡')
     ));
     const grid = h('div', { class: 'ar-grid' });
+    /* v40 新增：飞花令（只出已学诗）+ 听写大会（形近字听辨） */
+    [{
+      emoji: '🌸', name: '飞花令', sub: `令字找句 · 只考你学过的诗 · 纪录 ${a.flower ? a.flower.best : 0} 连`, go: () => this.flowerStart()
+    }, {
+      emoji: '🔊', name: '听写大会', sub: `听词选形 · 形近字大作战 · 纪录 ${a.hanzi ? a.hanzi.best : 0} 连`, go: () => this.hzStart()
+    }].forEach(it => {
+      grid.appendChild(h('button', { class: 'ar-card', onclick: () => { Sound.tap(); it.go(); } },
+        h('div', { class: 'ar-emoji' }, it.emoji),
+        h('div', { class: 'ar-name' }, it.name),
+        h('div', { class: 'tiny' }, it.sub)
+      ));
+    });
     [
       { emoji: '🥊', name: '拼字擂台', sub: `听发音拼单词 · 3条命 · 纪录 ${a.spell.best} 连胜`, go: () => this.spellStart() },
       { emoji: '🕵️', name: '线索猜诗', sub: `线索越早分越高 · 纪录 ${a.clue.best} 分`, go: () => this.clueStart('poem') },
@@ -55,6 +73,7 @@ const Arena = {
 
   /* ==================== 🥊 拼字擂台（Spelling Bee） ==================== */
   spellStart() {
+    clearTimeout(this.spTimer); /* 重开一局先清掉上局的翻页定时器 */
     /* 词队列：已学词优先（srs 有记录），再补未学的；同组内按难度排（越往后越难） */
     const learned = [], fresh = [];
     Store.allPacks().forEach(p => p.words.forEach(w => {
@@ -68,6 +87,7 @@ const Arena = {
   },
 
   spNext() {
+    clearTimeout(this.spTimer); /* 上一步的翻页定时器作废（退出/重开时不再回来抢屏） */
     if (this.spLives <= 0 || this.spIdx >= this.spQueue.length) { this.spFinish(); return; }
     const w = this.spQueue[this.spIdx];
     const root = $('#quest-root');
@@ -105,14 +125,14 @@ const Arena = {
         Sound.correct();
         this.spStreak++; this.spIdx++;
         slots.forEach(s => s.classList.add('right'));
-        setTimeout(() => self.spNext(), 700);
+        this.spTimer = setTimeout(() => self.spNext(), 700);
       } else {
         Sound.wrong();
         this.spLives--;
         slots.forEach((s, i) => { s.textContent = word[i]; s.className = 'ar-slot wrong'; });
         zhLine.textContent = `正确：${w.word}（${w.zh}）`;
         zhLine.classList.add('show');
-        setTimeout(() => { if (self.spLives <= 0) self.spFinish(); else { self.spIdx++; self.spNext(); } }, 1600);
+        this.spTimer = setTimeout(() => { if (self.spLives <= 0) self.spFinish(); else { self.spIdx++; self.spNext(); } }, 1600);
       }
       locked = true;
     };
@@ -131,6 +151,7 @@ const Arena = {
       }, '👀 看中文'),
       h('button', {
         class: 'btn small', onclick: e => {
+          if (locked) return; /* 已判定不再接受提示，防止重复触发 judge 刷分 */
           if (this.spHints <= 0) { toast('本局的首字母提示用完啦'); return; }
           this.spHints--;
           typed = word.slice(0, typed.length + 1);
@@ -272,8 +293,7 @@ const Arena = {
     }, '下一题 →');
 
     const showClue = () => {
-      clueList.appendChild(h('div', { class: 'ar-clue' }, `🔍 ${q.clues[ci]}`));
-      /* 线索全给完还没答对：公布答案 */
+      /* 线索全给完还没答对：公布答案（先判越界再渲染，避免出现"🔍 undefined"） */
       if (ci >= q.clues.length) {
         answered = true;
         tipEl.textContent = `答案是：${q.key}。${q.tip}`;
@@ -281,6 +301,7 @@ const Arena = {
         nextBtn.style.display = '';
         return;
       }
+      clueList.appendChild(h('div', { class: 'ar-clue' }, `🔍 ${q.clues[ci]}`));
       renderOpts(false);
     };
 
@@ -345,11 +366,12 @@ const Arena = {
 
   /* ==================== 🦘 袋鼠思维（3/4/5 分阶梯 + 数独 + 迷宫） ==================== */
   rooStart() {
-    /* 一组 5 题：3分×2 → 4分choice×1 → 迷宫(4分) → 数独(5分)，满分 19 */
+    /* 一组 6 题：3分×2 → 4分choice×1 → 5分choice×1 → 迷宫(4分) → 数独(5分)，满分 24 */
     const pickPts = pts => shuffle(KANGAROO_QS.filter(q => q.pts === pts));
     this.rooPlan = []
       .concat(pickPts(3).slice(0, 2).map(q => ({ type: 'choice', q })))
       .concat(pickPts(4).filter(q => !String(q.fig).includes('🕒')).slice(0, 1).map(q => ({ type: 'choice', q })))
+      .concat(pickPts(5).slice(0, 1).map(q => ({ type: 'choice', q })))
       .concat([{ type: 'maze', pts: 4 }, { type: 'sudoku', pts: 5 }]);
     this.rooIdx = 0; this.rooTotal = 0;
     this.rooNext();
@@ -532,6 +554,7 @@ const Arena = {
     }
     paint();
 
+    const stepsEl = h('div', { class: 'tiny' }, '已走 0 步');
     const move = dir => {
       if (done) return;
       const [dr, dc] = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] }[dir];
@@ -539,6 +562,7 @@ const Arena = {
       if (nr < 0 || nc < 0 || nr >= 6 || nc >= 6 || mz[nr][nc] === '#') { Sound.wrong(); return; }
       pos = [nr, nc];
       steps++;
+      stepsEl.textContent = `已走 ${steps} 步`; /* 步数实时刷新（原来在创建时取值恒为 0） */
       Sound.tap();
       paint();
       if (mz[nr][nc] === 'E') {
@@ -554,7 +578,7 @@ const Arena = {
     root.appendChild(h('div', { class: 'card drill-card' },
       h('div', { class: 'drill-tag' }, '🦘 4 分题 · 星际迷宫'),
       msg, board, pad,
-      h('div', { class: 'tiny' }, `已走 ${steps} 步`)
+      stepsEl
     ));
   },
 
@@ -564,10 +588,10 @@ const Arena = {
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(this.topBar('🦘 袋鼠结算', () => this.renderHub()));
-    const stamp = h('div', { class: 'finish-stamp' }, this.rooTotal >= 16 ? '🏆' : '🦘');
+    const stamp = h('div', { class: 'finish-stamp' }, this.rooTotal >= 20 ? '🏆' : '🦘');
     root.appendChild(h('div', { class: 'card finish-card' },
       stamp,
-      h('div', { class: 'finish-title' }, `袋鼠思维 ${this.rooTotal}/19 分！`),
+      h('div', { class: 'finish-title' }, `袋鼠思维 ${this.rooTotal}/24 分！`),
       h('div', { class: 'finish-sub' }, `获得 +${res.got} 🪙${res.isBest ? ' · 🎉 新纪录！' : ` · 纪录 ${Store.state.arena.roo.best}`}`),
       h('div', { class: 'row-gap' },
         h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.rooStart(); } }, '再来一组'),
@@ -576,5 +600,205 @@ const Arena = {
     ));
     const c = centerOf(stamp);
     burst(c.x, c.y, { count: 20, emojis: ['🦘', '⭐', '🔢'], power: 120 });
+  },
+
+  /* ==================== 🌸 飞花令（v40：只从已学的诗里取句） ====================
+   * 每轮给一个"令字"，四句诗里只有一句藏着它；3 条命，连对越多分越高 */
+  flowerPool() {
+    const all = (typeof CN_POEMS_NEXT !== 'undefined') ? CN_POEMS.concat(CN_POEMS_NEXT) : CN_POEMS;
+    const learned = all.filter(p => (Store.state.chinese.learned || {})[p.id] || Store.state.chinese.stars[p.id]);
+    return learned.flatMap(p => p.lines);
+  },
+
+  flowerStart() {
+    const lines = this.flowerPool();
+    if (lines.length < 4) { toast('先去「诗词星图」多学几首诗，再来接飞花令！'); return; }
+    this.flStreak = 0; this.flLives = 3;
+    this.flNext();
+  },
+
+  /* 组一轮：随机选一句做答案句，从它里面挑一个令字（另外三句都不能含这个字） */
+  flNext() {
+    const lines = this.flowerPool();
+    if (this.flLives <= 0 || this.flStreak >= 12) { this.flFinish(); return; }
+    let ch = '', correct = '', wrongs = [];
+    for (let t = 0; t < 40 && !ch; t++) {
+      const cand = this.pick(lines);
+      const chars = shuffle(cand.split('').filter(c => /[\u3400-\u9fff]/.test(c)));
+      for (const c of chars) {
+        const others = lines.filter(l => l !== cand && !l.includes(c));
+        if (others.length >= 3) { ch = c; correct = cand; wrongs = shuffle(others).slice(0, 3); break; }
+      }
+    }
+    if (!ch) { this.flFinish(); return; } /* 令字凑不出就收局 */
+    const root = $('#quest-root');
+    root.innerHTML = '';
+    const self = this;
+    const status = h('div', { class: 'ar-lives' },
+      '❤️'.repeat(this.flLives) + '🖤'.repeat(3 - this.flLives),
+      h('span', { style: 'margin-left:10px' }, `🔥 连对 ${this.flStreak}`));
+    const tipEl = h('div', { class: 'tiny cn-tip', style: 'min-height:20px' });
+    const next = ok => {
+      if (ok) {
+        self.flStreak++;
+        setTimeout(() => self.flNext(), 900);
+      } else {
+        self.flLives--;
+        if (self.flLives <= 0) setTimeout(() => self.flFinish(), 1800);
+        else setTimeout(() => self.flNext(), 1800);
+      }
+    };
+    root.appendChild(this.topBar(`🌸 飞花令 · 连对 ${this.flStreak}`, () => this.renderHub()));
+    const optsEl = h('div', { class: 'cn-opts' });
+    const answered = { v: false };
+    shuffle([{ t: correct, ok: true }, ...wrongs.map(t => ({ t, ok: false }))]).forEach(m => {
+      optsEl.appendChild(h('button', {
+        class: 'cn-opt', style: 'text-align:left',
+        onclick: e => {
+          if (answered.v) return;
+          answered.v = true;
+          if (m.ok) {
+            Sound.correct();
+            e.currentTarget.classList.add('right');
+            const c = centerOf(e.currentTarget);
+            burst(c.x, c.y, { count: 8, colors: ['#ff8fab'], power: 50 });
+            tipEl.textContent = `✅ “${correct}”里果然藏着“${ch}”！`;
+            Array.from(optsEl.children).forEach(b => { b.disabled = true; });
+            next(true);
+          } else {
+            Sound.wrong();
+            e.currentTarget.classList.add('wrong');
+            Array.from(optsEl.children).forEach(b => {
+              b.disabled = true;
+              if (b.textContent === correct) b.classList.add('right');
+            });
+            tipEl.textContent = `❌ 含“${ch}”的是：${correct}`;
+            next(false);
+          }
+        }
+      }, m.t));
+    });
+    root.appendChild(h('div', { class: 'card drill-card center' },
+      h('div', { class: 'drill-tag' }, '🌸 飞花令 · 令字找句'),
+      status,
+      h('div', { style: 'font-size:64px;font-weight:800;margin:6px 0;color:var(--gold)' }, ch),
+      h('div', { class: 'tiny', style: 'margin-bottom:8px' }, '哪一句诗里藏着这个字？'),
+      optsEl, tipEl
+    ));
+    Sound.tap();
+  },
+
+  flFinish() {
+    const res = Store.arenaFinish('flower', this.flStreak);
+    Sound.gold();
+    const root = $('#quest-root');
+    root.innerHTML = '';
+    root.appendChild(this.topBar('🌸 飞花令结算', () => this.renderHub()));
+    const stamp = h('div', { class: 'finish-stamp' }, this.flStreak >= 8 ? '🏆' : '🌸');
+    root.appendChild(h('div', { class: 'card finish-card' },
+      stamp,
+      h('div', { class: 'finish-title' }, `飞花令连对 ${this.flStreak} 句！`),
+      h('div', { class: 'finish-sub' }, `获得 +${res.got} 🪙${res.isBest ? ' · 🎉 新纪录！' : ` · 纪录 ${Store.state.arena.flower.best}`}`),
+      h('div', { class: 'tiny', style: 'margin-bottom:8px' }, '诗句全部来自你学过的诗——多学一首，令池就大一分'),
+      h('div', { class: 'row-gap' },
+        h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.flowerStart(); } }, '再战一局'),
+        h('button', { class: 'btn btn-main', style: 'flex:1', onclick: () => { Sound.tap(); this.renderHub(); } }, '回竞技场')
+      )
+    ));
+    const c = centerOf(stamp);
+    burst(c.x, c.y, { count: 20, emojis: ['🌸', '⭐', '✨'], power: 120 });
+  },
+
+  /* ==================== 🔊 听写大会（v40：听词选形，形近字大作战） ==================== */
+  hzStart() {
+    this.hzStreak = 0; this.hzLives = 3; this.hzLast = '';
+    this.hzNext();
+  },
+
+  hzNext() {
+    clearTimeout(this.hzTimer);
+    if (this.hzLives <= 0 || this.hzStreak >= 15) { this.hzFinish(); return; }
+    let q = this.pick(HANZI_DICT);
+    let guard = 0;
+    while (q.w === this.hzLast && guard++ < 10) q = this.pick(HANZI_DICT);
+    this.hzLast = q.w;
+    const root = $('#quest-root');
+    root.innerHTML = '';
+    const self = this;
+    const status = h('div', { class: 'ar-lives' },
+      '❤️'.repeat(this.hzLives) + '🖤'.repeat(3 - this.hzLives),
+      h('span', { style: 'margin-left:10px' }, `🔥 连对 ${this.hzStreak}`));
+    const tipEl = h('div', { class: 'tiny cn-tip', style: 'min-height:20px' });
+    const next = ok => {
+      if (ok) {
+        self.hzStreak++;
+        self.hzTimer = setTimeout(() => self.hzNext(), 900);
+      } else {
+        self.hzLives--;
+        self.hzTimer = setTimeout(() => { if (self.hzLives <= 0) self.hzFinish(); else self.hzNext(); }, 2000);
+      }
+    };
+    root.appendChild(this.topBar(`🔊 听写大会 · 连对 ${this.hzStreak}`, () => this.renderHub()));
+    const optsEl = h('div', { class: 'cn-opts' });
+    const answered = { v: false };
+    shuffle(q.opts.map(t => ({ t, ok: t === q.w }))).forEach(m => {
+      optsEl.appendChild(h('button', {
+        class: 'cn-opt', style: 'font-size:22px;font-weight:800;letter-spacing:2px',
+        onclick: e => {
+          if (answered.v) return;
+          answered.v = true;
+          if (m.ok) {
+            Sound.correct();
+            e.currentTarget.classList.add('right');
+            const c = centerOf(e.currentTarget);
+            burst(c.x, c.y, { count: 8, colors: ['#58e08a'], power: 50 });
+            tipEl.textContent = `✅ ${q.w} · 写对了！`;
+            next(true);
+          } else {
+            Sound.wrong();
+            e.currentTarget.classList.add('wrong');
+            Array.from(optsEl.children).forEach(b => {
+              b.disabled = true;
+              if (b.textContent === q.w) b.classList.add('right');
+            });
+            tipEl.textContent = `❌ 正确写法：${q.w} · 别被形近字骗到`;
+            next(false);
+          }
+        }
+      }, m.t));
+    });
+    const speakBtn = h('button', { class: 'speak-btn xl', onclick: () => Sound.speak(q.w, 0.8) }, icon('sound'));
+    root.appendChild(h('div', { class: 'card drill-card center' },
+      h('div', { class: 'drill-tag' }, '🔊 听写大会 · 听词选形'),
+      status,
+      speakBtn,
+      h('div', { class: 'tiny', style: 'margin:4px 0' }, `听发音选写法 · 语境提示：${q.hint}`),
+      optsEl, tipEl
+    ));
+    /* 进题自动读词（读两遍，间隔 1.2s），点喇叭可重听 */
+    this.hzTimer = setTimeout(() => Sound.speak(q.w, 0.8, () => {
+      this.hzTimer = setTimeout(() => Sound.speak(q.w, 0.8), 1200);
+    }), 400);
+  },
+
+  hzFinish() {
+    clearTimeout(this.hzTimer);
+    const res = Store.arenaFinish('hanzi', this.hzStreak);
+    Sound.gold();
+    const root = $('#quest-root');
+    root.innerHTML = '';
+    root.appendChild(this.topBar('🔊 听写大会结算', () => this.renderHub()));
+    const stamp = h('div', { class: 'finish-stamp' }, this.hzStreak >= 10 ? '🏆' : '🔊');
+    root.appendChild(h('div', { class: 'card finish-card' },
+      stamp,
+      h('div', { class: 'finish-title' }, `听写大会连对 ${this.hzStreak} 词！`),
+      h('div', { class: 'finish-sub' }, `获得 +${res.got} 🪙${res.isBest ? ' · 🎉 新纪录！' : ` · 纪录 ${Store.state.arena.hanzi.best}`}`),
+      h('div', { class: 'row-gap' },
+        h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.hzStart(); } }, '再战一局'),
+        h('button', { class: 'btn btn-main', style: 'flex:1', onclick: () => { Sound.tap(); this.renderHub(); } }, '回竞技场')
+      )
+    ));
+    const c = centerOf(stamp);
+    burst(c.x, c.y, { count: 20, emojis: ['🔊', '✍️', '⭐'], power: 120 });
   }
 };

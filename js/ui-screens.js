@@ -502,13 +502,31 @@ function robotSVG(stage, kindId, mood = 'idle') {
     /* v36 新伙伴配套装扮 */
     fish: '<g><path d="M90 136 Q100 127 110 136 Q100 145 90 136" fill="#4fd1ff" stroke="#2b9fd8" stroke-width="1.5"/><polygon points="110,136 119,129 119,143" fill="#4fd1ff" stroke="#2b9fd8" stroke-width="1.5"/><circle cx="95" cy="134.5" r="1.6" fill="#0b1226"/></g>',
     leaf: '<g><path d="M70 36 Q100 14 130 36" stroke="#58e08a" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="82" cy="28" rx="7" ry="3.5" fill="#58e08a" transform="rotate(-38 82 28)"/><ellipse cx="100" cy="20" rx="7" ry="3.5" fill="#6be89a"/><ellipse cx="118" cy="28" rx="7" ry="3.5" fill="#58e08a" transform="rotate(38 118 28)"/></g>',
-    ray: '<g><rect x="68" y="54" width="27" height="17" rx="8" fill="url(#rb)" opacity=".92"/><rect x="105" y="54" width="27" height="17" rx="8" fill="url(#rb)" opacity=".92"/><line x1="95" y1="62" x2="105" y2="62" stroke="#2b3f6e" stroke-width="3"/><path d="M73 61 L85 53" stroke="rgba(255,255,255,.65)" stroke-width="2"/><path d="M110 61 L122 53" stroke="rgba(255,255,255,.65)" stroke-width="2"/></g>'
+    ray: '<g><rect x="68" y="54" width="27" height="17" rx="8" fill="url(#rb)" opacity=".92"/><rect x="105" y="54" width="27" height="17" rx="8" fill="url(#rb)" opacity=".92"/><line x1="95" y1="62" x2="105" y2="62" stroke="#2b3f6e" stroke-width="3"/><path d="M73 61 L85 53" stroke="rgba(255,255,255,.65)" stroke-width="2"/><path d="M110 61 L122 53" stroke="rgba(255,255,255,.65)" stroke-width="2"/></g>',
+    /* v39 新一批装扮 */
+    santa: '<g><path d="M64,28 Q68,2 100,4 Q134,6 136,24 Z" fill="#e0455c" stroke="#b03048" stroke-width="1.5" stroke-linejoin="round"/><circle cx="138" cy="25" r="7.5" fill="#fff" stroke="#d8dee8" stroke-width="1.5"/><rect x="56" y="26" width="66" height="13" rx="6.5" fill="#fff" stroke="#d8dee8" stroke-width="1.5"/></g>',
+    flower: '<g><path d="M62,36 Q100,14 138,36" stroke="#6BBF8A" stroke-width="4" fill="none" stroke-linecap="round"/><g fill="#FF8FAB"><circle cx="70" cy="29" r="3.6"/><circle cx="63.5" cy="33.5" r="3.6"/><circle cx="70" cy="39" r="3.6"/><circle cx="76.5" cy="33.5" r="3.6"/></g><circle cx="70" cy="33.5" r="2.8" fill="#FFD166"/><g fill="#FF9DD6"><circle cx="100" cy="16" r="3.6"/><circle cx="93.5" cy="20.5" r="3.6"/><circle cx="100" cy="26" r="3.6"/><circle cx="106.5" cy="20.5" r="3.6"/></g><circle cx="100" cy="20.5" r="2.8" fill="#FFD166"/><g fill="#FF8FAB"><circle cx="130" cy="29" r="3.6"/><circle cx="123.5" cy="33.5" r="3.6"/><circle cx="130" cy="39" r="3.6"/><circle cx="136.5" cy="33.5" r="3.6"/></g><circle cx="130" cy="33.5" r="2.8" fill="#FFD166"/></g>',
+    grad: '<g><polygon points="100,4 148,20 100,36 52,20" fill="#2b3f6e" stroke="#4fd1ff" stroke-width="1.5"/><polygon points="100,10 134,20 100,30 66,20" fill="#1d2c50"/><rect x="90" y="32" width="20" height="11" rx="2.5" fill="#2b3f6e"/><line x1="100" y1="20" x2="128" y2="38" stroke="#ffd166" stroke-width="2.2"/><circle cx="128" cy="40" r="4" fill="#ffd166"/></g>',
+    halo: '<g><ellipse cx="100" cy="8" rx="27" ry="7.5" fill="none" stroke="#ffd166" stroke-width="4.5"/><ellipse cx="100" cy="8" rx="27" ry="7.5" fill="none" stroke="#fff3c4" stroke-width="1.6"/><path d="M138,16 l1.9,4.2 4.2,1.9 -4.2,1.9 -1.9,4.2 -1.9 -4.2 -4.2 -1.9 4.2 -1.9 Z" fill="#fff7e0" opacity=".9"/></g>',
+    heart: '<g><path d="M83,52 C80,48.5 73.5,48.5 71.5,53 C69.5,57.5 74,63 83,69.5 C92,63 96.5,57.5 94.5,53 C92.5,48.5 86,48.5 83,52 Z" fill="#ff5d73" stroke="#e0455c" stroke-width="1.5"/><path d="M117,52 C114,48.5 107.5,48.5 105.5,53 C103.5,57.5 108,63 117,69.5 C126,63 130.5,57.5 128.5,53 C126.5,48.5 120,48.5 117,52 Z" fill="#ff5d73" stroke="#e0455c" stroke-width="1.5"/><line x1="94" y1="57" x2="106" y2="57" stroke="#e0455c" stroke-width="3"/></g>',
+    sticker: '<g><path d="M66,72 L68.3,78 L74.5,78.9 L70,83.3 L71.2,89.5 L66,86.4 L60.8,89.5 L62,83.3 L57.5,78.9 L63.7,78 Z" fill="#FFD166" stroke="#E0A63C" stroke-width="1.3"/></g>',
+    bowtie: '<g><polygon points="100,100 83,91 83,111" fill="#4fd1ff" stroke="#2b9fd8" stroke-width="1.5" stroke-linejoin="round"/><polygon points="100,100 117,91 117,111" fill="#4fd1ff" stroke="#2b9fd8" stroke-width="1.5" stroke-linejoin="round"/><circle cx="100" cy="101" r="4.5" fill="#2b9fd8"/></g>',
+    boa: '<g><circle cx="62" cy="100" r="8" fill="#FF8FAB"/><circle cx="78" cy="106" r="8" fill="#FFD166"/><circle cx="100" cy="108" r="8" fill="#7EE8FF"/><circle cx="122" cy="106" r="8" fill="#A78BEB"/><circle cx="138" cy="100" r="8" fill="#9ADBC8"/><circle cx="88" cy="99" r="7" fill="#FFB3C8"/><circle cx="112" cy="99" r="7" fill="#C9E8A8"/></g>',
+    medal: '<g><polygon points="87,94 100,114 100,100" fill="#e0455c"/><polygon points="113,94 100,114 100,100" fill="#c73a50"/><circle cx="100" cy="123" r="11.5" fill="#ffd166" stroke="#e0a63c" stroke-width="2"/><path d="M100,116.5 L102.1,121.6 L107.6,122.1 L103.5,125.7 L104.8,131.1 L100,128.2 L95.2,131.1 L96.5,125.7 L92.4,122.1 L97.9,121.6 Z" fill="#e0a63c"/></g>',
+    /* v41 万圣节限定装扮 */
+    pumpkin: '<g><path d="M100,20 L100,12" stroke="#5e8c4a" stroke-width="5" stroke-linecap="round"/><path d="M100,14 Q108,6 116,10" stroke="#5e8c4a" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="100" cy="58" rx="46" ry="42" fill="#ff9a3c" stroke="#d97b22" stroke-width="2.5"/><ellipse cx="78" cy="58" rx="14" ry="38" fill="none" stroke="#d97b22" stroke-width="2" opacity=".7"/><ellipse cx="122" cy="58" rx="14" ry="38" fill="none" stroke="#d97b22" stroke-width="2" opacity=".7"/><polygon points="84,52 92,60 84,66" fill="#5e3a12"/><polygon points="116,52 108,60 116,66" fill="#5e3a12"/><path d="M86,74 Q92,82 100,82 Q108,82 114,74 Q108,88 100,88 Q92,88 86,74 Z" fill="#5e3a12"/></g>',
+    witch: '<g><path d="M70,26 Q100,-14 128,22 L122,28 Q100,0 76,28 Z" fill="#7b4dbb" stroke="#5e3a99" stroke-width="1.5"/><ellipse cx="100" cy="27" rx="42" ry="9" fill="#7b4dbb" stroke="#5e3a99" stroke-width="1.5"/><rect x="88" y="20" width="24" height="7" rx="3.5" fill="#ffd166"/><circle cx="112" cy="18" r="3.5" fill="#ffd166"/></g>',
+    bat: '<g><path d="M60,22 Q68,10 76,20 Q72,26 66,27 Q62,27 60,22 Z" fill="#4a3a6e" stroke="#2e2450" stroke-width="1.2"/><path d="M140,22 Q132,10 124,20 Q128,26 134,27 Q138,27 140,22 Z" fill="#4a3a6e" stroke="#2e2450" stroke-width="1.2"/><circle cx="68" cy="21" r="1.6" fill="#ffd166"/><circle cx="132" cy="21" r="1.6" fill="#ffd166"/></g>',
+    horns: '<g><path d="M72,30 Q66,12 78,6 Q82,18 82,28 Z" fill="#e0455c" stroke="#b03048" stroke-width="1.5"/><path d="M128,30 Q134,12 122,6 Q118,18 118,28 Z" fill="#e0455c" stroke="#b03048" stroke-width="1.5"/></g>',
+    ghost: '<g opacity=".92"><path d="M46,102 Q40,92 52,88 L148,88 Q160,92 154,102 Q162,112 150,120 Q158,130 146,136 Q152,146 138,148 Q142,158 128,156 Q100,164 72,156 Q58,158 62,148 Q48,146 54,136 Q42,130 50,120 Q38,112 46,102 Z" fill="#eef2ff" stroke="#b8c4e8" stroke-width="2.5"/><circle cx="82" cy="108" r="4.5" fill="#2e2450"/><circle cx="118" cy="108" r="4.5" fill="#2e2450"/><path d="M92,120 Q100,127 108,120" stroke="#2e2450" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>',
+    basket: '<g><path d="M84,124 Q100,118 116,124 L112,142 Q100,148 88,142 Z" fill="#ff9a3c" stroke="#d97b22" stroke-width="2"/><path d="M86,126 Q100,112 114,126" fill="none" stroke="#d97b22" stroke-width="2.5"/><circle cx="93" cy="118" r="5" fill="#ff8fab"/><circle cx="103" cy="114" r="5" fill="#7ee8ff"/><circle cx="110" cy="119" r="5" fill="#ffd166"/></g>'
   };
-  const back = worn.neck === 'cape' ? ACC.cape : '';
+  const back = worn.neck === 'cape' ? ACC.cape : (worn.neck === 'ghost' ? ACC.ghost : '');
   const front =
-    ['hat', 'crown', 'bow', 'party', 'bunny', 'helmet', 'phones', 'leaf'].filter(k => worn.head === k).map(k => ACC[k]).join('') +
-    ['shades', 'starg', 'nose', 'blush', 'ray'].filter(k => worn.face === k).map(k => ACC[k]).join('') +
-    (worn.neck === 'scarf' ? ACC.scarf : '') + (worn.neck === 'tie' ? ACC.tie : '') + (worn.neck === 'bell' ? ACC.bell : '') + (worn.neck === 'fish' ? ACC.fish : '');
+    ['hat', 'crown', 'bow', 'party', 'bunny', 'helmet', 'phones', 'leaf', 'santa', 'flower', 'grad', 'halo', 'pumpkin', 'witch', 'bat', 'horns'].filter(k => worn.head === k).map(k => ACC[k]).join('') +
+    ['shades', 'starg', 'nose', 'blush', 'ray', 'heart', 'sticker'].filter(k => worn.face === k).map(k => ACC[k]).join('') +
+    (worn.neck === 'scarf' ? ACC.scarf : '') + (worn.neck === 'tie' ? ACC.tie : '') + (worn.neck === 'bell' ? ACC.bell : '') + (worn.neck === 'fish' ? ACC.fish : '') +
+    (worn.neck === 'bowtie' ? ACC.bowtie : '') + (worn.neck === 'boa' ? ACC.boa : '') + (worn.neck === 'medal' ? ACC.medal : '') + (worn.neck === 'basket' ? ACC.basket : '');
   return `
   <svg viewBox="0 0 200 190" class="robot  mood-${mood}">
     <defs>
@@ -719,6 +737,23 @@ function renderHome() {
           h('div', { class: 'tiny' }, `看中文拼英文 · 已默写 ${swDone}/${SENTENCE_BANK.length} 句 · 拼错不能跳过${swNew ? ` · 生词 ${swNew}` : ''}`)
         ),
         h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); SentWrite.start(); } }, '去默写')
+      )
+    ));
+  }
+
+  /* KET 补全对话（v40：A2 题型启蒙，四选一把话接上） */
+  const ketSlot = $('#ket-slot');
+  if (ketSlot && typeof KET_DIALOGUES !== 'undefined') {
+    const ketDone = ((s.ket && s.ket.done) || []).length;
+    ketSlot.innerHTML = '';
+    ketSlot.appendChild(h('div', { class: 'card math-card subj', style: '--sub:var(--accent)' },
+      h('div', { class: 'math-head' },
+        h('span', { class: 'math-emoji' }, '💬'),
+        h('div', { class: 'math-info' },
+          h('div', { style: 'font-weight:800' }, 'KET 补全对话'),
+          h('div', { class: 'tiny' }, `剑桥 A2 题型启蒙 · 已练 ${ketDone}/${KET_DIALOGUES.length} 段 · 每段 +4 🪙`)
+        ),
+        h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); KETUI.start(); } }, '去练')
       )
     ));
   }
@@ -945,6 +980,10 @@ function openMathHub() {
         class: 'btn big', style: 'margin-top:10px',
         onclick: () => { close(); MathDrill.start(); }
       }, '📐 练习场（笔算 · 应用 · 换算 · 图形）'));
+      el.appendChild(h('button', {
+        class: 'btn big', style: 'margin-top:10px',
+        onclick: () => { close(); MathDrill.start('app'); }
+      }, '🧮 应用题专项（两步计算 · 生活情境 · 6 题）'));
       el.appendChild(h('button', {
         class: 'btn big', style: 'margin-top:10px',
         onclick: () => { close(); Sudoku.start(); }
@@ -1797,11 +1836,20 @@ function showWeeklyReport() {
   const mWrong = (s.math.wrong || []).length + (s.math.wrongP || []).length;
 
   const tips = [];
+  /* 💬 亮点话术（v40）：先说这周做成了什么，给家长一个"聊内容不聊分数"的切入点 */
+  const starsThisWeek = Object.values(s.chinese.stars || {}).filter(d => d >= weekStr).length;
+  const learnedThisWeek = Object.values(s.chinese.learned || {}).filter(d => d >= weekStr).length;
+  const ketThisWeek = ((s.ket && s.ket.done) || []).length;
+  const shine = [];
+  if (news > 0) shine.push(`学了 ${news} 个新词`);
+  if (starsThisWeek + learnedThisWeek > 0) shine.push(`背了 ${starsThisWeek + learnedThisWeek} 首诗`);
+  if (ketThisWeek > 0) shine.push(`练了 ${ketThisWeek} 段英语对话`);
+  if (shine.length) tips.push(`本周 ${shine.join('、')}——找个轻松的时候，让 ta 当小老师讲给你听听看，比问"考了多少分"更养劲头。`);
   if (missN > 0) tips.push(`本周有 ${missN} 天没打卡（护盾会自动保住连续记录），每天 10 分钟比一次学很久更有效。`);
   if (weakN > 5) tips.push(`英语错词攒到 ${weakN} 个，建议今天点首页「错词来袭」专项清理。`);
-  if (cnWrong > 5) tips.push(`语文错题 ${cnWrong} 道，「词语实战」会优先安排它们复习。`);
-  if (mWrong > 8) tips.push(`数学错题 ${mWrong} 道，下次口算冲刺会先重练这些错题。`);
-  if (runs.length >= 3 && avg < 8) tips.push(`口算平均 ${avg} 题/轮偏低，若吃力可把难度调回「核心」档。`);
+  if (cnWrong > 5) tips.push(`语文错题 ${cnWrong} 道，「词语实战」会优先安排它们复习，答对一道当场清零一道。`);
+  if (mWrong > 8) tips.push(`数学错题 ${mWrong} 道，冲刺和练习场会先重练它们，答对即清零。`);
+  if (runs.length >= 3 && avg < 8) tips.push(`口算平均 ${avg} 题/轮偏低，若吃力可把难度调回「核心」档；也可以试试新的「应用题专项」。`);
   if (mins > 0 && mins < 60) tips.push(`本周学习共 ${mins} 分钟，每天两个 10 分钟刚刚好。`);
   if (!tips.length) tips.push('各项节奏都很稳，保持就好！');
 

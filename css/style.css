@@ -1426,3 +1426,44 @@ select.input.num { width: auto; min-width: 130px; }
 }
 /* 拼字擂台键盘分行（v38.5：布局可切换 + ⌫ 归位行尾） */
 .ar-krow { display: flex; justify-content: center; gap: 6px; margin-top: 6px; }
+
+/* ---------- v40：KET 补全对话 ---------- */
+.ket-box {
+  background: rgba(127, 178, 255, .07);
+  border: 1.5px dashed rgba(127, 178, 255, .4);
+  border-radius: var(--radius-m);
+  padding: 10px 14px;
+  margin-bottom: 6px;
+}
+.ket-line { line-height: 2; font-size: var(--fs-16); text-align: left; word-break: break-word; }
+.ket-line b { color: var(--accent); font-weight: 800; }
+.ket-line.miss { color: var(--gold); font-weight: 800; letter-spacing: 1px; }
+.ket-line.filled { background: rgba(88, 224, 138, .14); border-radius: 8px; padding: 0 8px; }
+
+/* ---------- v41：万圣节活动主题（html.hween 期间生效） ---------- */
+html.hween {
+  --bg-grad: radial-gradient(1200px 800px at 70% -10%, #43306e 0%, #241747 45%, #140d2b 100%);
+  --bg-topbar: rgba(28, 18, 54, 0.78);
+  --bg-nav: rgba(26, 17, 50, 0.94);
+  --bg-modal: linear-gradient(180deg, #34255e, #1e1440);
+}
+html.hween .logo::before { content: '🎃 '; }
+html.hween #greet-title::after { content: ' 👻'; }
+/* 万圣节限定徽章（衣橱里的限定款标牌） */
+.wf-item .wfp.hween-tag { color: #ff9a3c; font-weight: 800; }
+.wf-item.gold-item .wfp.hween-tag::before { content: '🎃 '; }
+
+/* ---------- v41：糖果雨（万圣节动效） ---------- */
+.candy-rain { position: fixed; inset: 0; z-index: 60; pointer-events: none; overflow: hidden; }
+.candy-drop {
+  position: absolute; top: 0; will-change: transform, opacity;
+  animation-name: candy-fall; animation-timing-function: linear; animation-fill-mode: both;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.25));
+}
+@keyframes candy-fall {
+  0%   { transform: translate3d(0, -8vh, 0) rotate(0deg); opacity: 0; }
+  7%   { opacity: 1; }
+  50%  { transform: translate3d(var(--sway, 30px), 52vh, 0) rotate(190deg); }
+  90%  { opacity: 1; }
+  100% { transform: translate3d(calc(var(--sway, 30px) * -0.5), 110vh, 0) rotate(330deg); opacity: 0; }
+}

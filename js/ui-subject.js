@@ -119,7 +119,15 @@ const SubjectUI = {
     const grade = ok => {
       if (wasOk !== null) return;
       wasOk = ok;
-      if (ok) Sound.correct();
+      if (ok) {
+        Sound.correct();
+        /* 错题闭环（v40）：这道题在错题本里就当场清零（原来只进不出，永远清不掉） */
+        if (Store.subjectWrong(def.id).some(x => x.q === q.q)) {
+          Store.subjectClearWrong(def.id, q);
+          Store.addCoins(1);
+          toast('🎉 老错题清零 +1 🪙');
+        }
+      }
       else { Sound.wrong(); Store.subjectAddWrong(def.id, q); }
     };
     const tipEl = h('div', { class: 'tiny cn-tip', style: 'margin-top:10px;min-height:20px' });

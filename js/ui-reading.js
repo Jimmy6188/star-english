@@ -42,6 +42,7 @@ setQuestSub('var(--accent)');
     const hearBtn = h('button', { class: 'btn big', style: 'margin:10px 0 2px', onclick: () => {
       Sound.tap();
       if (hearBtn.dataset.speaking === '1') {
+        clearTimeout(this.autoTimer); /* 停止时连还没响的自动朗读一并取消 */
         Sound.stopSpeak();
         hearBtn.dataset.speaking = '0';
         hearBtn.textContent = '🔊 听一遍';
@@ -64,13 +65,16 @@ setQuestSub('var(--accent)');
     ));
     hearBtn.dataset.speaking = '1';
     hearBtn.textContent = '⏹️ 停止';
-    setTimeout(() => Sound.speakSentence(p.text, 0.78, () => {
+    clearTimeout(this.autoTimer);
+    this.autoTimer = setTimeout(() => Sound.speakSentence(p.text, 0.78, () => {
       hearBtn.dataset.speaking = '0';
       hearBtn.textContent = '🔊 听一遍';
     }), 400);
   },
 
   next() {
+    clearTimeout(this.autoTimer); /* 进答题页先掐掉还没响的自动朗读 */
+    Sound.stopSpeak(); /* 别让短文朗读延续到答题页 */
     if (this.idx >= this.passage.qs.length) { this.finish(); return; }
     const q = this.passage.qs[this.idx];
     const root = $('#quest-root');

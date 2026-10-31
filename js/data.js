@@ -339,7 +339,25 @@ const PET_OUTFITS = [
   /* v36 新伙伴配套装扮（所有物种通用） */
   { id: 'fish',    cat: 'neck', name: '小鱼胸章',   emoji: '🐟', price: 150 },
   { id: 'leaf',    cat: 'head', name: '嫩叶头环',   emoji: '🌿', price: 160 },
-  { id: 'ray',     cat: 'face', name: '彩虹镜片',   emoji: '🌈', price: 240, gold: true }
+  { id: 'ray',     cat: 'face', name: '彩虹镜片',   emoji: '🌈', price: 240, gold: true },
+  /* v39 新一批装扮（四季/庆典主题，普通款继续用金币买，稀有款走星盒） */
+  { id: 'santa',   cat: 'head', name: '圣诞红帽',   emoji: '🎅', price: 130 },
+  { id: 'flower',  cat: 'head', name: '春日花环',   emoji: '🌸', price: 150 },
+  { id: 'grad',    cat: 'head', name: '智慧博士帽', emoji: '🎓', price: 190 },
+  { id: 'halo',    cat: 'head', name: '天使光环',   emoji: '😇', price: 220, gold: true },
+  { id: 'heart',   cat: 'face', name: '爱心墨镜',   emoji: '💗', price: 170 },
+  { id: 'sticker', cat: 'face', name: '星星贴纸',   emoji: '⭐', price: 60 },
+  { id: 'bowtie',  cat: 'neck', name: '精神小领结', emoji: '💠', price: 90 },
+  { id: 'boa',     cat: 'neck', name: '彩羽围脖',   emoji: '🪶', price: 180 },
+  { id: 'medal',   cat: 'neck', name: '冠军奖牌',   emoji: '🥇', price: 210, gold: true },
+  /* v41 万圣节限定（10/25~11/7 南瓜星盒掉落，过期绝版但永久保留；不可金币购买）
+   * hween:true 标记限定池；首日打开 App 另白送南瓜头套 */
+  { id: 'pumpkin', cat: 'head', name: '南瓜头套',   emoji: '🎃', price: 999, gold: true, hween: true },
+  { id: 'witch',   cat: 'head', name: '女巫尖帽',   emoji: '🧙', price: 999, gold: true, hween: true },
+  { id: 'bat',     cat: 'head', name: '蝙蝠发夹',   emoji: '🦇', price: 999, gold: true, hween: true },
+  { id: 'horns',   cat: 'head', name: '小恶魔角',   emoji: '😈', price: 999, gold: true, hween: true },
+  { id: 'ghost',   cat: 'neck', name: '幽灵小披风', emoji: '👻', price: 999, gold: true, hween: true },
+  { id: 'basket',  cat: 'neck', name: '南瓜糖果篮', emoji: '🍬', price: 999, gold: true, hween: true }
 ];
 
 /* 特权券预设：一键加入兑换商店（孩子用金币换家庭特权，零成本高激励） */
@@ -1219,6 +1237,235 @@ const ENGLISH_READINGS = [
       { kind: 'cloze', q: 'Dot can clean the ____ and water the flowers.', opts: ['floor', 'window', 'car'], ans: 0 },
       { kind: 'cloze', q: 'It can also tell me ____ in English.', opts: ['stories', 'news', 'secrets'], ans: 0 }
     ]
+  },
+  /* ===== v40 扩容：短文 24 → 36 篇（r25~r36，主题贴近课本与生活） ===== */
+  {
+    id: 'r25', title: 'The Lost Umbrella', emoji: '☂️', level: '四上同步',
+    text: 'It is raining after school. Amy cannot find her umbrella. She looks in the classroom, but it is not there. Then Ben comes to her. "Is this your umbrella? I found it near the gate," he says. "Yes! Thank you so much!" says Amy. Good friends always help each other.',
+    gloss: 'umbrella 雨伞 · found 找到（find 的过去式）',
+    zh: '放学后下起了雨。艾米找不到她的雨伞了。她看了看教室里，伞不在那儿。这时本走过来。"这是你的伞吗？我在校门口附近捡到的，"他说。"是的！太谢谢你了！"艾米说。好朋友总是互相帮助。',
+    notes: [
+      { w: 'umbrella', zh: '雨伞' },
+      { w: 'looks in the classroom', zh: '在教室里找找看' },
+      { w: 'found it near the gate', zh: '在校门口附近捡到它（find-found 找到）' },
+      { w: 'Thank you so much!', zh: '太谢谢你了！' },
+      { w: 'help each other', zh: '互相帮助' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'It is raining after school.', ans: true },
+      { kind: 'judge', q: 'Ben found the umbrella in the library.', ans: false },
+      { kind: 'cloze', q: 'Amy cannot find her ____.', opts: ['umbrella', 'schoolbag', 'bottle'], ans: 0 },
+      { kind: 'cloze', q: 'Ben found it near the ____.', opts: ['gate', 'river', 'park'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r26', title: 'Making Fruit Salad', emoji: '🍓', level: '四上同步',
+    text: 'Today Mum teaches Lily to make fruit salad. First, they wash apples, bananas and strawberries. Next, Lily cuts the fruit into small pieces. Then Mum puts in some yogurt. Lily mixes everything together. The salad looks nice and smells sweet. "Let\'s make it for Dad tonight!" says Lily.',
+    gloss: 'salad 沙拉 · yogurt 酸奶 · mixes 搅拌',
+    zh: '今天妈妈教莉莉做水果沙拉。首先，她们洗苹果、香蕉和草莓。接着，莉莉把水果切成小块。然后妈妈倒进一些酸奶。莉莉把它们拌在一起。沙拉看起来很漂亮，闻起来很香甜。"今晚我们做给爸爸吃吧！"莉莉说。',
+    notes: [
+      { w: 'make fruit salad', zh: '做水果沙拉' },
+      { w: 'cuts...into small pieces', zh: '切成小块' },
+      { w: 'puts in some yogurt', zh: '加进一些酸奶' },
+      { w: 'mixes everything together', zh: '把它们拌在一起' },
+      { w: 'smells sweet', zh: '闻起来很香甜（smell 闻起来）' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Mum teaches Lily to make fruit salad.', ans: true },
+      { kind: 'judge', q: 'Lily cuts the fruit into big pieces.', ans: false },
+      { kind: 'cloze', q: 'Mum puts in some ____.', opts: ['yogurt', 'rice', 'eggs'], ans: 0 },
+      { kind: 'cloze', q: 'The salad looks nice and smells ____.', opts: ['sweet', 'cold', 'hard'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r27', title: 'A Windy Day', emoji: '🪁', level: '四上同步',
+    text: 'It is a windy day. Tom and his sister go to the hill to fly a kite. The kite flies high in the sky, like a little bird. Suddenly, the wind stops. The kite falls into a tall tree. Tom is sad. Then a strong wind comes again, and the kite jumps out of the tree. What a lucky day!',
+    gloss: 'windy 有风的 · suddenly 突然 · lucky 幸运的',
+    zh: '这是个大风天。汤姆和妹妹去山坡上放风筝。风筝飞得高高的，像一只小鸟。突然，风停了。风筝掉进了一棵大树里。汤姆很伤心。这时又刮来一阵大风，风筝从树上"跳"了出来。多么幸运的一天！',
+    notes: [
+      { w: 'fly a kite', zh: '放风筝' },
+      { w: 'flies high in the sky', zh: '在天上飞得很高（fly 飞）' },
+      { w: 'falls into a tall tree', zh: '掉进一棵大树里' },
+      { w: 'jumps out of the tree', zh: '从树上跳出来' },
+      { w: 'What a lucky day!', zh: '多么幸运的一天！' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Tom flies a kite with his sister.', ans: true },
+      { kind: 'judge', q: 'The kite falls into the river.', ans: false },
+      { kind: 'cloze', q: 'The kite flies high in the ____.', opts: ['sky', 'sea', 'box'], ans: 0 },
+      { kind: 'cloze', q: 'A strong wind comes again and the kite ____ out of the tree.', opts: ['jumps', 'walks', 'sleeps'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r28', title: 'Helping Grandpa', emoji: '🧑‍🌾', level: '四上同步',
+    text: 'On Sunday, Kate visits her grandpa in the countryside. Grandpa is busy in the vegetable garden. Kate helps him pick tomatoes and carry water. The sun is hot, and Kate\'s face is red. Grandpa gives her a big sweet watermelon. "Thank you, my little helper!" he says. Kate feels very happy.',
+    gloss: 'countryside 乡下 · pick 摘 · helper 帮手',
+    zh: '星期天，凯特去乡下看望爷爷。爷爷正在菜园里忙碌。凯特帮他摘西红柿、提水。太阳很晒，凯特的脸都红了。爷爷给了她一大块甜甜的西瓜。"谢谢我的小帮手！"他说。凯特感到非常开心。',
+    notes: [
+      { w: 'the countryside', zh: '乡下、农村' },
+      { w: 'vegetable garden', zh: '菜园' },
+      { w: 'pick tomatoes', zh: '摘西红柿（pick 采摘）' },
+      { w: 'carry water', zh: '提水、运水' },
+      { w: 'my little helper', zh: '我的小帮手' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Kate visits her grandpa on Sunday.', ans: true },
+      { kind: 'judge', q: 'Kate helps grandpa pick apples.', ans: false },
+      { kind: 'cloze', q: 'Kate helps him pick ____ and carry water.', opts: ['tomatoes', 'books', 'flowers'], ans: 0 },
+      { kind: 'cloze', q: 'Grandpa gives her a big sweet ____.', opts: ['watermelon', 'potato', 'carrot'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r29', title: 'The Night Sky', emoji: '🌙', level: '五年级',
+    text: 'Amy looks at the night sky with her dad. She sees the moon and many stars. "The moon goes around the earth," Dad says. "And our earth is a planet. It goes around the sun." Amy counts the stars, but there are too many. "The sky is like a big book. You can read it every night," Dad says with a smile.',
+    gloss: 'planet 行星 · earth 地球 · smile 微笑',
+    zh: '艾米和爸爸一起看夜空。她看到了月亮和许多星星。"月亮绕着地球转，"爸爸说，"我们的地球是一颗行星，它绕着太阳转。"艾米数星星，可是星星太多了。"天空就像一本大书，你每晚都能读它，"爸爸笑着说。',
+    notes: [
+      { w: 'the night sky', zh: '夜空' },
+      { w: 'goes around the earth', zh: '绕着地球转（go around 绕着……转）' },
+      { w: 'planet', zh: '行星' },
+      { w: 'counts the stars', zh: '数星星' },
+      { w: 'with a smile', zh: '微笑着' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'The moon goes around the earth.', ans: true },
+      { kind: 'judge', q: 'The earth goes around the moon.', ans: false },
+      { kind: 'cloze', q: 'Our earth is a ____.', opts: ['planet', 'star', 'moon'], ans: 0 },
+      { kind: 'cloze', q: 'The sky is like a big ____, Dad says.', opts: ['book', 'boat', 'ball'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r30', title: 'An Email to a Pen Friend', emoji: '✉️', level: '五年级',
+    text: 'Dear Lucy,\nMy name is Mingming. I am ten years old. I live in Beijing with my parents. I like reading and playing ping-pong. My favourite food is dumplings. What about you? What do you like doing? Please write to me soon. I want to be your pen friend.\nYours,\nMingming',
+    gloss: 'pen friend 笔友 · favourite 最喜爱的 · write back 回信',
+    zh: '亲爱的露西：我叫明明，今年十岁。我和爸爸妈妈住在北京。我喜欢读书和打乒乓球。我最喜欢的食物是饺子。你呢？你喜欢做什么？请快点给我回信吧，我想成为你的笔友。明明白',
+    notes: [
+      { w: 'pen friend', zh: '笔友（pen pal 也常见）' },
+      { w: 'live in Beijing', zh: '住在北京（live in 住在）' },
+      { w: 'favourite food', zh: '最喜欢的食物' },
+      { w: 'What about you?', zh: '你呢？（用于反问同样的问题）' },
+      { w: 'write to me soon', zh: '快点给我写信' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Mingming is ten years old.', ans: true },
+      { kind: 'judge', q: 'Mingming lives in Shanghai.', ans: false },
+      { kind: 'cloze', q: 'I like reading and playing ____.', opts: ['ping-pong', 'the drum', 'the snake'], ans: 0 },
+      { kind: 'cloze', q: 'My favourite food is ____.', opts: ['dumplings', 'chips', 'ice cream'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r31', title: 'A Test of Patience', emoji: '🌱', level: '五年级',
+    text: 'Leo plants a bean in a pot and puts it near the window. He waters it every day, but nothing happens for three days. "Be patient," Mum says. On the fifth day, Leo sees a small green head in the soil! The bean sprout grows taller and taller. Now Leo checks his little plant first every morning.',
+    gloss: 'pot 花盆 · patient 有耐心的 · sprout 幼芽',
+    zh: '里奥在花盆里种下一颗豆子，把它放在窗边。他每天浇水，可是三天过去了什么动静都没有。"要有耐心，"妈妈说。第五天，里奥看见土里冒出一个绿色的小脑袋！豆芽越长越高。现在里奥每天早上第一件事就是去看他的小植物。',
+    notes: [
+      { w: 'plants a bean', zh: '种下一颗豆子（plant 种植）' },
+      { w: 'waters it every day', zh: '每天给它浇水（water 浇水）' },
+      { w: 'Be patient', zh: '要有耐心（patient 耐心的）' },
+      { w: 'bean sprout', zh: '豆芽' },
+      { w: 'taller and taller', zh: '越来越高（比较级+and+比较级）' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Leo waters the bean every day.', ans: true },
+      { kind: 'judge', q: 'The bean sprout comes out on the third day.', ans: false },
+      { kind: 'cloze', q: 'On the fifth day, Leo sees a small green ____ in the soil.', opts: ['head', 'stone', 'bird'], ans: 0 },
+      { kind: 'cloze', q: 'The bean sprout grows ____ and taller.', opts: ['taller', 'smaller', 'slower'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r32', title: 'The Class Newspaper', emoji: '📰', level: '五年级',
+    text: 'Class 4 makes a newspaper together. Amy draws the pictures. Ben writes about the sports day. Lily interviews the head teacher and asks five questions. Sam prints the newspaper on A4 paper. Everyone reads it at break time. "Our newspaper is the best!" they say. Next month, they want to make an English one.',
+    gloss: 'interview 采访 · print 打印 · break time 课间',
+    zh: '四班一起办了一张报纸。艾米画插图。本写运动会报道。莉莉采访校长，问了五个问题。萨姆用 A4 纸把报纸打印出来。课间大家都来读。"我们的报纸最棒！"他们说。下个月，他们想办一份英文的。',
+    notes: [
+      { w: 'newspaper', zh: '报纸' },
+      { w: 'interviews the head teacher', zh: '采访校长（interview 采访）' },
+      { w: 'prints the newspaper', zh: '打印报纸（print 打印）' },
+      { w: 'at break time', zh: '在课间' },
+      { w: 'make an English one', zh: '办一份英文的（one 代替 newspaper）' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Lily interviews the head teacher.', ans: true },
+      { kind: 'judge', q: 'Ben draws the pictures for the newspaper.', ans: false },
+      { kind: 'cloze', q: 'Amy ____ the pictures.', opts: ['draws', 'eats', 'washes'], ans: 0 },
+      { kind: 'cloze', q: 'Everyone reads it at ____ time.', opts: ['break', 'bed', 'lunch box'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r33', title: 'Rain in the Mountain', emoji: '⛰️', level: '五年级 · 科学',
+    text: 'Last summer, Jack climbs a mountain with his uncle. At the foot of the mountain, the sun is bright. But when they get to the top, it begins to rain! "The higher we go, the colder it gets. Clouds often hang around the top," Uncle says. Jack puts on his coat and watches the clouds float below them, like a white sea.',
+    gloss: 'at the foot of 在……脚下 · hang around 盘绕 · float 飘浮',
+    zh: '去年夏天，杰克和叔叔去爬山。山脚下阳光灿烂。可当他们到达山顶时，天开始下雨了！"山越高越冷，云常常绕在山顶，"叔叔说。杰克穿上外套，看云在他们脚下飘浮，像一片白色的海。',
+    notes: [
+      { w: 'at the foot of the mountain', zh: '在山脚下' },
+      { w: 'the higher...the colder', zh: '越高越冷（the+比较级, the+比较级）' },
+      { w: 'hang around the top', zh: '盘绕在山顶' },
+      { w: 'puts on his coat', zh: '穿上外套（put on 穿上）' },
+      { w: 'float below them', zh: '在他们脚下飘浮' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'It begins to rain at the foot of the mountain.', ans: false },
+      { kind: 'judge', q: 'The higher they go, the colder it gets.', ans: true },
+      { kind: 'cloze', q: 'When they get to the top, it begins to ____.', opts: ['rain', 'snow', 'shine'], ans: 0 },
+      { kind: 'cloze', q: 'Jack watches the clouds float below them, like a white ____.', opts: ['sea', 'bird', 'horse'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r34', title: 'The School Trip', emoji: '🚌', level: '六年级',
+    text: 'Class 6 goes on a trip to the science museum. On the bus, the children sing songs together. At the museum, they see a real rocket and a robot that can talk. "Do not touch the exhibits," the guide says. The robot answers all the questions and even tells a joke. On the way back, everyone sleeps on the bus. What a wonderful day!',
+    gloss: 'museum 博物馆 · exhibit 展品 · guide 讲解员',
+    zh: '六班去科学博物馆研学。在大巴上，孩子们一起唱歌。在博物馆里，他们看到了真正的火箭和会说话的机器人。"不要触摸展品，"讲解员说。机器回答了所有问题，还讲了个笑话。回程路上，大家都在车上睡着了。多么美妙的一天！',
+    notes: [
+      { w: 'goes on a trip', zh: '去研学、去旅行' },
+      { w: 'a real rocket', zh: '真正的火箭（real 真实的）' },
+      { w: 'Do not touch...', zh: '不要触摸……（touch 触摸）' },
+      { w: 'tells a joke', zh: '讲了个笑话' },
+      { w: 'What a wonderful day!', zh: '多么美妙的一天！（感叹句）' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Class 6 visits a science museum.', ans: true },
+      { kind: 'judge', q: 'The children touch the exhibits.', ans: false },
+      { kind: 'cloze', q: 'They see a real ____ and a talking robot.', opts: ['rocket', 'train', 'horse'], ans: 0 },
+      { kind: 'cloze', q: 'On the way back, everyone ____ on the bus.', opts: ['sleeps', 'cries', 'sings'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r35', title: 'Grandma\'s Recipe', emoji: '🍲', level: '六年级',
+    text: 'Every winter, Emma\'s grandma makes chicken soup. Emma asks, "Why does your soup taste so good?" Grandma smiles, "There is no secret. I cook it slowly and wait." The soup cooks for three hours. Emma learns that good things take time. Now she helps Grandma in the kitchen and writes the recipe in her notebook.',
+    gloss: 'recipe 食谱 · slowly 慢慢地 · take time 花时间',
+    zh: '每年冬天，艾玛的奶奶都会炖鸡汤。艾玛问："为什么您的汤这么好喝？"奶奶笑了："没有秘诀，我只是慢慢地炖、耐心地等。"汤要炖三个小时。艾米明白了：好东西需要时间。现在她会在厨房帮奶奶，并把食谱记在本子上。',
+    notes: [
+      { w: 'makes chicken soup', zh: '炖鸡汤' },
+      { w: 'taste so good', zh: '尝起来这么好喝（taste 尝起来）' },
+      { w: 'I cook it slowly', zh: '我慢慢地炖（slowly 慢慢地）' },
+      { w: 'good things take time', zh: '好东西需要时间' },
+      { w: 'writes the recipe', zh: '把食谱记下来' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Grandma cooks the chicken soup slowly.', ans: true },
+      { kind: 'judge', q: 'The soup cooks for thirty minutes.', ans: false },
+      { kind: 'cloze', q: "Why does your soup ____ so good?", opts: ['taste', 'look', 'sound'], ans: 0 },
+      { kind: 'cloze', q: 'Emma learns that good things ____ time.', opts: ['take', 'make', 'play'], ans: 0 }
+    ]
+  },
+  {
+    id: 'r36', title: 'Stars in the School Pool', emoji: '🏅', level: '六年级',
+    text: 'Nina is afraid of water, but she wants to swim like her big brother. Every Saturday, she practises in the school pool. At first, she can only blow bubbles. Then she learns to float, and then to kick. Today is the small test. Nina swims from one end to the other! Her coach gives her a star sticker. "You are a star now," he says.',
+    gloss: 'practise 练习 · float 漂浮 · coach 教练',
+    zh: '妮娜怕水，但她想像哥哥一样游泳。每周六她都在学校泳池练习。一开始她只会吐泡泡。然后她学会了漂浮，接着学会了打腿。今天是小型测验，妮娜从泳池的一端游到了另一端！教练给了她一颗星星贴纸。"你现在就是一颗星，"他说。',
+    notes: [
+      { w: 'is afraid of water', zh: '怕水（be afraid of 害怕）' },
+      { w: 'practises in the pool', zh: '在泳池里练习（practise 练习）' },
+      { w: 'blow bubbles', zh: '吐泡泡' },
+      { w: 'from one end to the other', zh: '从一端到另一端' },
+      { w: 'star sticker', zh: '星星贴纸' }
+    ],
+    qs: [
+      { kind: 'judge', q: 'Nina practises every Saturday.', ans: true },
+      { kind: 'judge', q: 'Nina can swim better than her brother at first.', ans: false },
+      { kind: 'cloze', q: 'At first, she can only blow ____.', opts: ['bubbles', 'balloons', 'fires'], ans: 0 },
+      { kind: 'cloze', q: 'Her coach gives her a ____ sticker.', opts: ['star', 'moon', 'cat'], ans: 0 }
+    ]
   }
 ];
 
@@ -1240,6 +1487,22 @@ const SHIELD_MAX = 5;            // 护盾持有上限（每周自动补 2 张�
  * 发版时在这里补一条（items: [emoji, 标题, 一句话说明]）
  * ============================================================ */
 const RELEASE_NOTES = {
+  v39: {
+    emoji: '🎃',
+    title: '只出已学 + Boss拔高 + 新玩法 + 万圣节活动',
+    items: [
+      ['🎓', '只出已学', 'BOSS挑战和全科自由练只考学过的内容：没开的学科自动少出几题，绝不超纲'],
+      ['⚡', 'BOSS拔高题', '基础卷之上追加3道拔高：英语句子拼词 · 语文诗句排序 · 数学两步应用——学过的知识换个考法'],
+      ['🧮', '应用题专项', '数学星系新入口：两步计算 · 生活情境 · 6题（归一/租船进一法/返程速度/付钱找零…）'],
+      ['💬', 'KET补全对话', '剑桥A2题型启蒙：24段小对话四选一补全，朗读会跳过挖空句防泄题，每日加餐里练'],
+      ['🔄', '错题清零闭环', '数学/科学道法/语文的错题答对当场清零 +1🪙——错题本终于能清空啦'],
+      ['🏆', '竞技场扩到6项', '新增🌸飞花令（只考你学过的诗）和🔊听写大会（形近字听辨），袋鼠思维满分上调到24'],
+      ['📚', '短文24→36篇', '英语每日小短文大扩容，四上同步到六年级梯度'],
+      ['🎩', '衣橱27件', '新增9件常驻装扮，再上6件万圣节限定：南瓜头套/幽灵披风/女巫尖帽/蝙蝠发夹/小恶魔角/糖果篮'],
+      ['🎃', '万圣节活动', '10/25~11/7：南瓜星盒掉率翻倍、紫橙夜空+南瓜月+糖果雨、完成任务Trick or Treat +10🪙；限定款过期绝版但永久保留'],
+      ['🛠️', '一批修复', '口算倒计时退出泄漏、数独多解误判、拼字擂台刷分、多处朗读竞态等十余处隐藏bug']
+    ]
+  },
   v38: {
     emoji: '🏆',
     title: '竞技场开张 + 写作星系 + 高年级知识启蒙 + 五项体验修复',

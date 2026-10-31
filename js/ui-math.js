@@ -5,7 +5,7 @@
  * ============================================================ */
 
 const MathSprint = {
-  running: false, timer: null, tickTimer: null,
+  running: false, timer: null, tickTimer: null, cdTimer: null, ansLock: false,
   correct: 0, wrong: 0, streakNow: 0, streakBest: 0,
   level: 2, seconds: 60, t0: 0, total: 0, endAt: 0,
   warm: [], wrongThisRun: [],
@@ -103,7 +103,7 @@ const MathSprint = {
 
   abort() {
     this.running = false;
-    clearInterval(this.timer); clearInterval(this.tickTimer);
+    clearInterval(this.timer); clearInterval(this.tickTimer); clearInterval(this.cdTimer);
     showScreen('home'); renderHome();
   },
 
@@ -119,9 +119,10 @@ const MathSprint = {
       ));
     };
     show();
-    const iv = setInterval(() => {
+    clearInterval(this.cdTimer);
+    this.cdTimer = setInterval(() => {
       n--;
-      if (n < 0) { clearInterval(iv); this.run(); return; }
+      if (n < 0) { clearInterval(this.cdTimer); if (this.running) this.run(); return; }
       show();
       Sound.tap();
     }, 900);
@@ -137,7 +138,9 @@ const MathSprint = {
   },
 
   run() {
+    if (!this.running) return; /* 已退出/已结算就不再开跑（防止倒计时残留回调在后台开考） */
     if (this.endAt && Date.now() >= this.endAt) { this.finish(); return; }
+    this.ansLock = false;
     const root = $('#quest-root');
     root.innerHTML = '';
     this.q = this.nextQuestion();
@@ -171,7 +174,8 @@ const MathSprint = {
   },
 
   answer(v, el) {
-    if (!this.running) return;
+    if (!this.running || this.ansLock) return; /* 锁答：判错后的 220ms 里再点不重复计分 */
+    this.ansLock = true;
     this.total++;
     if (v === this.q.a) {
       this.correct++; this.streakNow++;
@@ -179,7 +183,12 @@ const MathSprint = {
       Sound.tap();
       const c = centerOf(el);
       burst(c.x, c.y, { count: 5, colors: ['#58e08a', '#ffd166'], power: 40 });
-      if (this.q.fromWrong) Store.clearMathWrong(this.q.q);
+      /* 错题闭环（v40）：冲刺里打掉的老错题当场清零并给个小奖励 */
+      if (this.q.fromWrong) {
+        Store.clearMathWrong(this.q.q);
+        Store.addCoins(1);
+        toast('🎉 老错题清零 +1 🪙');
+      }
     } else {
       this.wrong++; this.streakNow = 0;
       Store.addMistake();
@@ -253,7 +262,7 @@ const MathDrill = {
   r(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); },
 
   gen() {
-    const r = this.r.bind(this), type = this.pick(['mul', 'div', 'app-price', 'app-qty', 'app-speed', 'app-times', 'unit', 'peri', 'area']);
+    const r = this.r.bind(this), type = this.pick(['mul', 'div', 'app-price', 'app-qty', 'app-speed', 'app-times', 'unit', 'peri', 'area', 'app2']);
     if (type === 'mul') {
       const a = r(102, 989), b = r(11, 29);
       return { kind: 'calc', text: `用竖式算：${a} × ${b}`, ans: a * b, tip: `${a} × ${b} = ${a * b}` };
@@ -262,6 +271,8 @@ const MathDrill = {
       const b = r(12, 49), c = r(11, 89);
       return { kind: 'calc', text: `用竖式算：${b * c} ÷ ${b}`, ans: c, tip: `${b * c} ÷ ${b} = ${c}` };
     }
+    /* v40：两步应用题也混进普通练习场（1/10 概率） */
+    if (type === 'app2') return this.genApp2();
     /* v36：单位换算（长度/质量/面积，正反两个方向） */
     if (type === 'unit') {
       const pairs = [['千米', '米', 1000], ['米', '分米', 10], ['米', '厘米', 100], ['厘米', '毫米', 10],
@@ -308,11 +319,58 @@ const MathDrill = {
     return { kind: 'app', text: `果园里有 ${a} 棵苹果树，梨树的棵数是苹果树的 ${k} 倍，梨树有多少棵？`, ans: a * k, tip: `${a} × ${k} = ${a * k}（棵）` };
   },
 
-  start() {
+  /* v40 两步应用题出题器（应用题专项 + BOSS 拔高共用）：
+   * 全部是已学计算的"变式与迁移"——归一 / 进一法 / 连乘 / 返程速度 / 付钱找零 / 倍数比多比一共 */
+  genApp2() {
+    const r = this.r.bind(this), name = this.pick(this.names), g = this.pick(this.goods);
+    const type = this.pick(['guiyi', 'rent', 'liancheng', 'return', 'change', 'beibi']);
+    if (type === 'guiyi') { /* 归一问题：先除后乘 */
+      const per = r(3, 9), n1 = r(3, 6), n2 = r(4, 9);
+      return { kind: 'app', text: `${n1} ${g.unit}${g.g}一共 ${per * n1} 元，照这样算，${g.per} ${per} 元，买 ${n2} ${g.unit}要多少元？`,
+        ans: per * n2, tip: `先算${g.per}多少元：${per * n1} ÷ ${n1} = ${per}（元）；再算 ${per} × ${n2} = ${per * n2}（元）` };
+    }
+    if (type === 'rent') { /* 租船问题：进一法 */
+      const per = r(4, 8), boats = r(6, 12), people = per * boats + r(1, per - 1);
+      return { kind: 'app', text: `${people} 名同学去春游，每条船最多坐 ${per} 人，至少要租多少条船？`,
+        ans: Math.ceil(people / per), tip: `${people} ÷ ${per} = ${Math.floor(people / per)}（条）余 ${people % per}，剩下 ${people % per} 人也要坐一条船，所以要 ${Math.ceil(people / per)} 条（进一法）` };
+    }
+    if (type === 'liancheng') { /* 连乘应用 */
+      const a = r(2, 5), b = r(3, 6), c = r(4, 9);
+      return { kind: 'app', text: `每箱橘子有 ${b} 袋，每袋有 ${c} 个，${a} 箱橘子一共有多少个？`,
+        ans: a * b * c, tip: `先算一箱多少个：${b} × ${c} = ${b * c}（个）；再算 ${b * c} × ${a} = ${a * b * c}（个）` };
+    }
+    if (type === 'return') { /* 返程速度：路程不变，t2 整除 t1 保证整数解 */
+      const t1 = this.pick([4, 6, 8]), t2 = t1 === 6 ? this.pick([2, 3]) : t1 / 2;
+      const v = r(6, 15) * 10;
+      const dist = v * t1, v2 = dist / t2;
+      return { kind: 'app', text: `一列火车去时每小时行 ${v} 千米，${t1} 小时到达。沿原路返回只用了 ${t2} 小时，返回时平均每小时行多少千米？`,
+        ans: v2, tip: `总路程不变：${v} × ${t1} = ${dist}（千米）；返回速度 = ${dist} ÷ ${t2} = ${v2}（千米/时）` };
+    }
+    if (type === 'change') { /* 付钱找零：先乘后减 */
+      const n = r(3, 6), p = r(6, 18), change = r(2, 30), pay = n * p + change;
+      return { kind: 'app', text: `${name}买了 ${n} 支钢笔，每支 ${p} 元，付了 ${pay} 元，应找回多少元？`,
+        ans: change, tip: `先算一共多少元：${n} × ${p} = ${n * p}（元）；再算找回：${pay} − ${n * p} = ${change}（元）` };
+    }
+    /* 倍数比多 / 比一共 */
+    const a = r(12, 40), k = r(2, 5);
+    if (Math.random() < 0.5) {
+      return { kind: 'app', text: `果园里有 ${a} 棵苹果树，梨树的棵数是苹果树的 ${k} 倍，梨树比苹果树多多少棵？`,
+        ans: a * k - a, tip: `梨树：${a} × ${k} = ${a * k}（棵）；比苹果树多：${a * k} − ${a} = ${a * k - a}（棵）` };
+    }
+    return { kind: 'app', text: `果园里有 ${a} 棵苹果树，梨树的棵数是苹果树的 ${k} 倍，梨树和苹果树一共有多少棵？`,
+      ans: a * k + a, tip: `梨树：${a} × ${k} = ${a * k}（棵）；一共：${a * k} + ${a} = ${a * k + a}（棵）` };
+  },
+
+  start(mode) {
     Sound.stopSpeak();
+    this.appMode = mode === 'app'; /* 应用题专项：全应用题，两步为主 */
     const wrongP = (Store.state.math.wrongP || []).slice();
     const items = shuffle(wrongP).slice(0, 2).map(x => ({ kind: 'app', text: x.q, ans: x.a, tip: x.tip, fromWrong: true }));
-    while (items.length < 5) items.push(Object.assign(this.gen(), { fromWrong: false }));
+    const target = this.appMode ? 6 : 5;
+    while (items.length < target) {
+      if (this.appMode) items.push(Object.assign(this.genApp2(), { fromWrong: false }));
+      else items.push(Object.assign(this.gen(), { fromWrong: false }));
+    }
     this.items = items;
     this.idx = 0;
     this.correct = 0;
@@ -327,12 +385,14 @@ const MathDrill = {
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'quest-top' },
       h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
-      h('div', { class: 'quest-prog' }, '📐 练习场')
+      h('div', { class: 'quest-prog' }, this.appMode ? '🧮 应用题专项' : '📐 练习场')
     ));
     root.appendChild(h('div', { class: 'card quest-splash' },
-      h('div', { class: 'splash-rocket' }, '📐'),
-      h('div', { class: 'splash-title' }, '数学练习场'),
-      h('div', { class: 'splash-sub' }, `5 道题 · 笔算 · 应用 · 单位换算 · 图形周长面积 · 不计时 · 首刷全额，当天重刷减半${this.items.some(i => i.fromWrong) ? ' · 含之前的错题' : ''}`),
+      h('div', { class: 'splash-rocket' }, this.appMode ? '🧮' : '📐'),
+      h('div', { class: 'splash-title' }, this.appMode ? '应用题专项' : '数学练习场'),
+      h('div', { class: 'splash-sub' }, this.appMode
+        ? `${this.items.length} 道应用题 · 两步计算 · 生活情境 · 不计时 · 答对的老错题当场清零`
+        : `${this.items.length} 道题 · 笔算 · 应用 · 单位换算 · 图形周长面积 · 不计时 · 首刷全额，当天重刷减半${this.items.some(i => i.fromWrong) ? ' · 含之前的错题' : ''}`),
       h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); this.next(); } }, '开始 →')
     ));
   },
@@ -380,6 +440,12 @@ const MathDrill = {
     if (ok) {
       this.correct++;
       Sound.correct();
+      /* 错题闭环（v40）：练习场老错题答对即出本 */
+      if (item.fromWrong) {
+        Store.clearPracticeWrong(item.text);
+        Store.addCoins(1);
+        toast('🎉 老错题清零 +1 🪙');
+      }
     } else {
       Store.addPracticeWrong(item);
       Sound.wrong();

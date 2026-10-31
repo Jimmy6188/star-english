@@ -184,3 +184,27 @@ function centerOf(el) {
   const r = el.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }
+
+/* 🎃 糖果雨（v41 万圣节）：从屏幕顶随机位置撒下糖果 emoji，
+ * transform 动画（下落+摆动+旋转）结束后自动移除，pointer-events 不挡操作。
+ * candyRain(数量, 额外emoji)；默认糖果/南瓜/小幽灵混撒，轻量不伤续航 */
+function candyRain(n = 14, extraEmojis = []) {
+  const pool = ['🍬', '🎃', '👻', '🦇'].concat(extraEmojis || []);
+  const drop = document.createElement('div');
+  drop.className = 'candy-rain';
+  document.body.appendChild(drop);
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement('span');
+    c.className = 'candy-drop';
+    c.textContent = pool[Math.floor(Math.random() * pool.length)];
+    c.style.left = (Math.random() * 96 + 2) + 'vw';
+    c.style.fontSize = (16 + Math.random() * 12) + 'px';
+    c.style.setProperty('--sway', (Math.random() * 90 - 45).toFixed(0) + 'px');
+    c.style.animationDuration = (5.5 + Math.random() * 4.5).toFixed(2) + 's';
+    c.style.animationDelay = (Math.random() * 2.2).toFixed(2) + 's';
+    c.addEventListener('animationend', () => c.remove());
+    drop.appendChild(c);
+  }
+  /* 兜底清理：所有糖落完（最迟约 12s）把容器也摘掉 */
+  setTimeout(() => drop.remove(), 12500);
+}

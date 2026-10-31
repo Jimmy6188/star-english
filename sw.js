@@ -1,8 +1,9 @@
 /* 星际求知号 - 离线缓存（仅在 http(s) 环境生效）
  * 发版时三处版本一起改：这里 / js/app.js 的 APP_VERSION / index.html 的 ?v= 参数
  * v38a：并入拼字擂台键盘布局切换/删除键归位修正（版本号不变，靠本行字节变化触发 SW 重装刷新预缓存）
- * v38b：app.js 注册加 updateViaCache:'none'（绕过 Pages CDN 缓存，修 Pad 上补丁刷不出）+ 新 SW 接管时页面自动重载一次（版本号仍不变） */
-const CACHE = 'star-english-v38';
+ * v38b：app.js 注册加 updateViaCache:'none'（绕过 Pages CDN 缓存，修 Pad 上补丁刷不出）+ 新 SW 接管时页面自动重载一次（版本号仍不变）
+ * v39：只出已学出题策略 + Boss⚡拔高 + KET对话/应用题专项/飞花令/听写大会 + 错题闭环 + 衣橱27件 + 万圣节活动（全量重预缓存，新增 data-ket/ui-ket） */
+const CACHE = 'star-english-v39';
 const ASSETS = [
   './',
   './index.html',
@@ -28,6 +29,8 @@ const ASSETS = [
   './js/ui-reading.js',
   './js/data-sentence.js',
   './js/ui-sentence.js',
+  './js/data-ket.js',
+  './js/ui-ket.js',
   './js/data-junior-prep.js',
   './js/data-writing.js',
   './js/ui-writing.js',

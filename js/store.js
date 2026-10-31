@@ -23,6 +23,15 @@ const Store = (() => {
     return `${d.getFullYear()}-${Math.floor((day + start.getDay()) / 7)}`;
   }
 
+  /* 万圣节活动窗口（v41）：每年 10/25 ~ 11/7 自动生效，过期自动消失。
+   * 期间：限定装扮从南瓜星盒掉落（掉率翻倍）、主题皮肤、糖果彩蛋；
+   * 已获得的限定装扮永久保留（学宝可梦：限时限得，绝不绝版都收得安心） */
+  function isHalloween() {
+    const d = todayStr();
+    const mm = d.slice(5, 7), dd = d.slice(8, 10);
+    return (mm === '10' && dd >= '25') || (mm === '11' && dd <= '07');
+  }
+
   function freshState() {
     return {
       v: 1,
@@ -51,7 +60,8 @@ const Store = (() => {
       sentence: { runs: 0, done: [], best: 0, layout: 'abc', hard: {} }, // 句子默写：轮数/已默写句子 id/最好成绩/键盘排列(abc|qwerty)/难词复现计数
       junior: { seen: {} },  // 每日一星：已收下的初中知识卡 id -> 日期
       writing: { entries: [] }, // 小练笔工坊（v38）：作品 {at,id,title,emoji,open,mid,end,photo,stars,note,reviewed}
-      arena: { spell: { best: 0, plays: 0 }, clue: { best: 0, plays: 0 }, idiom: { best: 0, plays: 0 }, roo: { best: 0, plays: 0 } }, // 竞技场纪录（v38）
+      arena: { spell: { best: 0, plays: 0 }, clue: { best: 0, plays: 0 }, idiom: { best: 0, plays: 0 }, roo: { best: 0, plays: 0 }, flower: { best: 0, plays: 0 }, hanzi: { best: 0, plays: 0 } }, // 竞技场纪录（v38+v40）
+      ket: { done: [] },   // KET补全对话（v40）：已练过的对话 id
       stats: { drillsDone: 0, thinkDone: 0, boxesOpened: 0 }
     };
   }
@@ -86,11 +96,13 @@ const Store = (() => {
     if (state.today && state.today.enReadDone === undefined) state.today.enReadDone = false;
     if (state.today && state.today.eyeRemindedAt === undefined) state.today.eyeRemindedAt = 0; /* v36 护眼提醒 */
     if (state.settings.eyeRestMin === undefined) state.settings.eyeRestMin = 25;
+    if (state.hweenGift === undefined) state.hweenGift = false; /* v41：万圣节礼包（南瓜头套）是否已领 */
     if (!state.enRead) state.enRead = { reads: [] };
     if (!state.junior) state.junior = { seen: {} }; /* v26：每日一星知识卡 */
     if (!state.writing) state.writing = { entries: [] }; /* v38：小练笔工坊 */
     if (!state.arena) state.arena = { spell: { best: 0, plays: 0 }, clue: { best: 0, plays: 0 }, idiom: { best: 0, plays: 0 }, roo: { best: 0, plays: 0 } }; /* v38：竞技场 */
-    ['spell', 'clue', 'idiom', 'roo'].forEach(k => { if (!state.arena[k]) state.arena[k] = { best: 0, plays: 0 }; });
+    ['spell', 'clue', 'idiom', 'roo', 'flower', 'hanzi'].forEach(k => { if (!state.arena[k]) state.arena[k] = { best: 0, plays: 0 }; });
+    if (!state.ket) state.ket = { done: [] }; /* v40：KET补全对话 */
     if (!state.sentence) state.sentence = { runs: 0, done: [], best: 0 }; /* v30：句子默写 */
     if (state.sentence.layout === undefined) state.sentence.layout = 'abc'; /* v31：键盘排列，默认字母序 */
     if (!state.sentence.hard) state.sentence.hard = {}; /* v31：句中难词复现计数 */
@@ -465,6 +477,19 @@ const Store = (() => {
     st.best = Math.max(st.best || 0, st.count);
     st.lastDone = t;
     state.history[t] = { done: true, minutes: state.today.minutes, news: state.today.newDone, revs: state.today.revDone, coins: state.today.coinsEarned || 0 };
+    /* 🎃 万圣节糖果彩蛋（v41）：当天首次完成任务 → 南瓜灯爆糖果 + 一整阵糖果雨 + 加餐金币 */
+    if (isHalloween()) {
+      try {
+        const el = document.querySelector('.finish-stamp');
+        if (el && typeof burst === 'function') {
+          const c = centerOf(el);
+          burst(c.x, c.y, { count: 26, emojis: ['🍬', '🎃', '🪙', '👻'], power: 150 });
+          floatText(c.x, c.y + 70, '🎃 Trick or Treat! +10 🪙', '#ffb347');
+        }
+        if (typeof candyRain === 'function') candyRain(24);
+      } catch (e) { /* 动画失败不影响入账 */ }
+      earn(10);
+    }
     checkBadges();
     save();
   }
@@ -583,6 +608,23 @@ const Store = (() => {
     if (w.length > 20) state.chinese.wrong = w.slice(-20);
     save();
   }
+  /* 错题闭环（v40）：语文错题在练习里答对即出本 */
+  function clearCnWrong(qText) {
+    state.chinese.wrong = (state.chinese.wrong || []).filter(x => x.q !== qText);
+    save();
+  }
+  /* ---------- KET补全对话（v40） ---------- */
+  function markKetDone(id) {
+    if (!state.ket) state.ket = { done: [] };
+    if (!state.ket.done.includes(id)) state.ket.done.push(id);
+    save();
+  }
+  function finishKet(correct, total) {
+    const got = earnScaled('ket', correct * 4 + (correct === total ? 6 : 0));
+    checkBadges();
+    save();
+    return got;
+  }
   function checkBadges() {
     const t = todayStr();
     ACHIEVEMENTS.forEach(a => {
@@ -700,27 +742,40 @@ const Store = (() => {
     } else delete o.worn[cat];
     save();
   }
-  /* ---------- 神秘星盒（每天限 2 个，概率掉落装扮/金币） ---------- */
+  /* ---------- 神秘星盒（每天限 2 个，概率掉落装扮/金币） ----------
+   * 万圣节期间变「南瓜星盒」（v41）：装扮掉率 12% → 25%（普通18%/稀有7%），
+   * 限定装扮（hween）只能在此掉落，且掉中装扮时优先 50% 出限定款；过期后限定款绝版 */
   function openStarBox() {
     if ((state.today.boxOpened || 0) >= 2) return { ok: false, msg: '今天已经开过 2 个星盒啦，明天再来！' };
     if (!spend(STAR_BOX_COST)) return { ok: false, msg: '金币还不够' };
     ensureToday();
     state.today.boxOpened = (state.today.boxOpened || 0) + 1;
     state.stats.boxesOpened = (state.stats.boxesOpened || 0) + 1;
+    const hw = isHalloween();
     const o = outfitState();
-    const unowned = tier => PET_OUTFITS.filter(x => (tier === 'gold' ? !!x.gold : !x.gold) && !o.owned.includes(x.id));
+    /* 限定款只在活动期进掉落池；过期后已拥有的保留、未拥有的绝版 */
+    const unowned = tier => PET_OUTFITS.filter(x => (tier === 'gold' ? !!x.gold : !x.gold) && !o.owned.includes(x.id) && (!x.hween || hw));
     const roll = Math.random();
     let drop;
     const anyLeft = unowned('normal').length || unowned('gold').length;
     /* v35：装扮掉率 45% → 12%（家长反馈"很快就集齐"）。
-     * 普通款 9% / 稀有款 3%，其余 88% 掉金币；装扮池同步扩到 15 件放慢收集节奏 */
-    if (!anyLeft || roll < 0.88) {
+     * 普通款 9% / 稀有款 3%，其余 88% 掉金币；装扮池同步扩到 15 件放慢收集节奏。
+     * v41：南瓜星盒期间掉率翻倍到 25%（普通18% / 稀有7%） */
+    const outfitRate = hw ? 0.25 : 0.12;
+    if (!anyLeft || roll < 1 - outfitRate) {
       const c = Math.floor(Math.random() * 36) + 5;
       earn(c, { ignoreCap: true });
       drop = { kind: 'coins', n: c };
     } else {
-      const tier = roll < 0.97 ? 'normal' : 'gold';
-      let pool = unowned(tier);
+      const rareN = hw ? 0.07 : 0.03;
+      const tier = roll < 1 - outfitRate + rareN ? 'normal' : 'gold';
+      let pool = null;
+      /* 限定款加权：活动期掉中装扮时一半概率从限定池出 */
+      if (hw) {
+        const hweenLeft = PET_OUTFITS.filter(x => x.hween && !o.owned.includes(x.id));
+        if (hweenLeft.length && Math.random() < 0.5) pool = hweenLeft;
+      }
+      if (!pool) pool = unowned(tier);
       if (!pool.length) pool = unowned(tier === 'gold' ? 'normal' : 'gold');
       if (pool.length) {
         const item = pool[Math.floor(Math.random() * pool.length)];
@@ -733,7 +788,17 @@ const Store = (() => {
     }
     checkBadges();
     save();
-    return { ok: true, drop };
+    return { ok: true, drop, hween: hw };
+  }
+  /* 万圣节礼包（v41）：活动期内首次打开 App 弹卡领取南瓜头套；只送一次 */
+  function claimHweenGift() {
+    if (state.hweenGift) return { ok: false };
+    state.hweenGift = true;
+    const o = outfitState();
+    if (!o.owned.includes('pumpkin')) o.owned.push('pumpkin');
+    checkBadges();
+    save();
+    return { ok: true };
   }
   /* ---------- 英语每日短文 ---------- */
   function markEnRead(pid) {
@@ -1134,11 +1199,12 @@ const Store = (() => {
     addMistake, markEnglishDone, checkBadges, popPendingBadge, noteDictation, markDrillDone, markSpoken,
     addMathWrong, clearMathWrong, finishMathRun, setMath, addPracticeWrong, clearPracticeWrong,
     finishPracticeRun, finishSubjectRound, finishThinkRun,
-    markCnStar, markCnRead, addCnWrong, finishCnRead, finishCnWords, finishCnGuwen, markPhonicsRound,
+    markCnStar, markCnRead, addCnWrong, clearCnWrong, finishCnRead, finishCnWords, finishCnGuwen, markPhonicsRound,
+    markKetDone, finishKet,
     subjectWeek, subjectAddRound, subjectMarkDone, subjectWrong, subjectAddWrong, subjectClearWrong,
     addShopReward, removeShopReward, redeemReward, approveRedeem, rejectRedeem, tomorrowDueCount,
     petStage, petStageInfo, petKind, petFedOf, petStageOf, buyPetKind, setPetKind, feedPet, resetPetProgress, setSetting,
-    buyOutfit, wearOutfit, openStarBox, markEnRead,
+    buyOutfit, wearOutfit, openStarBox, claimHweenGift, isHalloween, markEnRead,
     markSentence, bumpSentenceRun, setSentenceLayout, setSentenceShowIpa, bumpSentenceHard,
     sentenceNewAdd, sentenceNewList, sentenceNewOk, sentenceNewRemove, finishSentenceBook,
     writingList, saveWriting, reviewWriting,
