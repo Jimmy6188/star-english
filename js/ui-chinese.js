@@ -194,6 +194,8 @@ const Chinese = {
     if (q.kind === 'tiles') qText.style.display = 'none'; /* 填空题自带句子展示 */
     root.appendChild(h('div', { class: 'card drill-card' },
       qText,
+      q.fromWrong && q.kp && typeof KP !== 'undefined' && KP.name(q.kp)
+        ? h('div', { class: 'tiny kp-tag' }, `📌 这题考的是：${KP.name(q.kp)}`) : '',
       optsEl,
       h('div', { class: 'cn-tip tiny', style: 'margin-top:10px;min-height:20px' }),
       h('button', {
@@ -358,6 +360,9 @@ setQuestSub('var(--gold-strong)');
 
     qs.push(Object.assign({}, p.understand));
 
+    /* v42：这一组题都挂上这首诗的知识点 id（家长端「知识地图」按它归类） */
+    if (p.kp) qs.forEach(q => { q.kp = p.kp; });
+
     let idx = 0, correct = 0;
     const step = () => {
       if (idx >= qs.length) {
@@ -441,8 +446,9 @@ setQuestSub('var(--gold-strong)');
   },
 
   guwenQuiz(p) {
-    /* v36：题目顺序打乱，重读同一篇时不再是固定套路 */
-    const qs = shuffle(p.qs.slice());
+    /* v36：题目顺序打乱，重读同一篇时不再是固定套路
+     * v42：题目挂上这篇古文的知识点 id */
+    const qs = shuffle(p.qs.slice()).map(q => Object.assign({ kp: p.kp || '' }, q));
     let idx = 0, correct = 0;
     const step = () => {
       if (idx >= qs.length) {

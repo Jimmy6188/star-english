@@ -19,31 +19,31 @@ const MathSprint = {
    * 两位×两位只出 11/12/15/21/25 这类有巧算空间的因数 */
   gen() {
     const lv = this.level, r = this.r, pick = this.pick;
-    let q, a;
+    let q, a, kp = '';
     if (lv === 1) {
       const t = pick(['add', 'sub', 'mul', 'div']);
-      if (t === 'add') { const x = r(12, 89), y = r(12, 89); q = `${x} + ${y}`; a = x + y; }
-      else if (t === 'sub') { const x = r(30, 99), y = r(11, x - 5); q = `${x} − ${y}`; a = x - y; }
-      else if (t === 'mul') { const x = r(3, 9), y = r(3, 9); q = `${x} × ${y}`; a = x * y; }
-      else { const b = r(3, 9), c = r(3, 9); q = `${b * c} ÷ ${b}`; a = c; }
+      if (t === 'add') { const x = r(12, 89), y = r(12, 89); q = `${x} + ${y}`; a = x + y; kp = 'cnm_p031'; }
+      else if (t === 'sub') { const x = r(30, 99), y = r(11, x - 5); q = `${x} − ${y}`; a = x - y; kp = 'cnm_p032'; }
+      else if (t === 'mul') { const x = r(3, 9), y = r(3, 9); q = `${x} × ${y}`; a = x * y; kp = Math.max(x, y) <= 6 ? 'cnm_p039' : 'cnm_p042'; }
+      else { const b = r(3, 9), c = r(3, 9); q = `${b * c} ÷ ${b}`; a = c; kp = b <= 6 ? 'cnm_p046' : 'cnm_p044'; }
     } else if (lv === 2) {
       const t = pick(['mul1', 'mulT', 'divT', 'div2', 'add', 'sub', 'add4']);
-      if (t === 'mul1') { const x = r(102, 899), y = r(3, 9); q = `${x} × ${y}`; a = x * y; }
+      if (t === 'mul1') { const x = r(102, 899), y = r(3, 9); q = `${x} × ${y}`; a = x * y; kp = 'cnm_p074'; }
       else if (t === 'mulT') { const x = r(21, 89), y = pick([20, 30, 40, 50]); q = `${x} × ${y}`; a = x * y; }
-      else if (t === 'divT') { const y = pick([20, 30, 40, 60, 80]), c = r(3, 19); q = `${y * c} ÷ ${y}`; a = c; }
-      else if (t === 'div2') { const y = r(3, 9), c = r(15, Math.min(99, Math.floor(999 / y))); q = `${y * c} ÷ ${y}`; a = c; }
-      else if (t === 'add') { const x = r(150, 850), y = r(120, 780); q = `${x} + ${y}`; a = x + y; }
-      else if (t === 'sub') { const x = r(300, 950), y = r(110, x - 60); q = `${x} − ${y}`; a = x - y; }
-      else { const x = r(1200, 8999), y = r(1100, 7800); q = `${x} + ${y}`; a = x + y; }
+      else if (t === 'divT') { const y = pick([20, 30, 40, 60, 80]), c = r(3, 19); q = `${y * c} ÷ ${y}`; a = c; kp = 'cnm_p106'; }
+      else if (t === 'div2') { const y = r(3, 9), c = r(15, Math.min(99, Math.floor(999 / y))); q = `${y * c} ÷ ${y}`; a = c; kp = 'cnm_p083'; }
+      else if (t === 'add') { const x = r(150, 850), y = r(120, 780); q = `${x} + ${y}`; a = x + y; kp = 'cnm_p071'; }
+      else if (t === 'sub') { const x = r(300, 950), y = r(110, x - 60); q = `${x} − ${y}`; a = x - y; kp = 'cnm_p072'; }
+      else { const x = r(1200, 8999), y = r(1100, 7800); q = `${x} + ${y}`; a = x + y; kp = 'cnm_p071'; }
     } else {
       const t = pick(['mix', 'mix2', 'mul22', 'mix3', 'mul11']);
-      if (t === 'mix') { const x = r(12, 25), y = r(3, 6), z = r(10, 90); q = `${x} × ${y} + ${z}`; a = x * y + z; }
-      else if (t === 'mix2') { const y = r(2, 9), c = r(12, 40), z = r(5, Math.min(30, c - 2)); q = `${y * c} ÷ ${y} − ${z}`; a = c - z; }
-      else if (t === 'mul22') { const x = r(21, 89), y = pick([11, 12, 15, 21, 25]); q = `${x} × ${y}`; a = x * y; }
-      else if (t === 'mix3') { const x = r(120, 860), y = r(110, 780), z = r(100, Math.max(110, Math.min(690, x + y - 20))); q = `${x} + ${y} − ${z}`; a = x + y - z; }
-      else { const x = r(23, 89); q = `${x} × 11`; a = x * 11; }
+      if (t === 'mix') { const x = r(12, 25), y = r(3, 6), z = r(10, 90); q = `${x} × ${y} + ${z}`; a = x * y + z; kp = 'cnm_p112'; }
+      else if (t === 'mix2') { const y = r(2, 9), c = r(12, 40), z = r(5, Math.min(30, c - 2)); q = `${y * c} ÷ ${y} − ${z}`; a = c - z; kp = 'cnm_p112'; }
+      else if (t === 'mul22') { const x = r(21, 89), y = pick([11, 12, 15, 21, 25]); q = `${x} × ${y}`; a = x * y; kp = 'cnm_p086'; }
+      else if (t === 'mix3') { const x = r(120, 860), y = r(110, 780), z = r(100, Math.max(110, Math.min(690, x + y - 20))); q = `${x} + ${y} − ${z}`; a = x + y - z; kp = 'cnm_p112'; }
+      else { const x = r(23, 89); q = `${x} × 11`; a = x * 11; kp = 'cnm_p086'; }
     }
-    return { q, a };
+    return { q, a, kp };
   },
 
   /* 生成四个选项（含正确答案） */
@@ -73,7 +73,7 @@ const MathSprint = {
     this.correct = 0; this.wrong = 0; this.streakNow = 0; this.streakBest = 0; this.total = 0;
     this.endAt = 0;
     this.wrongThisRun = [];
-    this.warm = shuffle((Store.state.math && Store.state.math.wrong) || []).slice(0, 5).map(x => ({ q: x.q, a: x.a, fromWrong: true }));
+    this.warm = shuffle((Store.state.math && Store.state.math.wrong) || []).slice(0, 5).map(x => ({ q: x.q, a: x.a, kp: x.kp || '', fromWrong: true }));
     this.running = true;
     setQuestSub('var(--accent)');
     showScreen('quest');
@@ -131,10 +131,10 @@ const MathSprint = {
   nextQuestion() {
     if (this.warm.length) {
       const w = this.warm.shift();
-      return { q: w.q, a: w.a, fromWrong: true };
+      return { q: w.q, a: w.a, kp: w.kp || '', fromWrong: true };
     }
     const g = this.gen();
-    return { q: g.q, a: g.a, fromWrong: false };
+    return { q: g.q, a: g.a, kp: g.kp || '', fromWrong: false };
   },
 
   run() {
@@ -161,7 +161,9 @@ const MathSprint = {
           onclick: e => this.answer(o, e.currentTarget)
         }, o))
       ),
-      this.q.fromWrong ? h('div', { class: 'tiny center', style: 'margin-top:6px' }, '⚡ 之前的错题，消灭它！') : ''
+      this.q.fromWrong ? h('div', { class: 'tiny center', style: 'margin-top:6px' }, '⚡ 之前的错题，消灭它！') : '',
+      this.q.fromWrong && this.q.kp && typeof KP !== 'undefined' && KP.name(this.q.kp)
+        ? h('div', { class: 'tiny center kp-tag', style: 'margin-top:4px' }, `📌 这题考的是：${KP.name(this.q.kp)}`) : ''
     );
     root.appendChild(card);
     clearInterval(this.timer);
@@ -193,7 +195,7 @@ const MathSprint = {
       this.wrong++; this.streakNow = 0;
       Store.addMistake();
       this.wrongThisRun.push({ q: this.q.q, a: this.q.a });
-      Store.addMathWrong(this.q.q, this.q.a);
+      Store.addMathWrong(this.q.q, this.q.a, this.q.kp);
       Sound.wrong();
       el.classList.add('wrong');
       setTimeout(() => { if (this.running) this.run(); }, 220);
@@ -265,63 +267,69 @@ const MathDrill = {
     const r = this.r.bind(this), type = this.pick(['mul', 'div', 'app-price', 'app-qty', 'app-speed', 'app-times', 'unit', 'peri', 'area', 'app2']);
     if (type === 'mul') {
       const a = r(102, 989), b = r(11, 29);
-      return { kind: 'calc', text: `用竖式算：${a} × ${b}`, ans: a * b, tip: `${a} × ${b} = ${a * b}` };
+      return { kind: 'calc', text: `用竖式算：${a} × ${b}`, ans: a * b, tip: `${a} × ${b} = ${a * b}`, kp: 'cnm_p102' };
     }
     if (type === 'div') {
       const b = r(12, 49), c = r(11, 89);
-      return { kind: 'calc', text: `用竖式算：${b * c} ÷ ${b}`, ans: c, tip: `${b * c} ÷ ${b} = ${c}` };
+      return { kind: 'calc', text: `用竖式算：${b * c} ÷ ${b}`, ans: c, tip: `${b * c} ÷ ${b} = ${c}`, kp: 'cnm_p106' };
     }
     /* v40：两步应用题也混进普通练习场（1/10 概率） */
     if (type === 'app2') return this.genApp2();
     /* v36：单位换算（长度/质量/面积，正反两个方向） */
     if (type === 'unit') {
-      const pairs = [['千米', '米', 1000], ['米', '分米', 10], ['米', '厘米', 100], ['厘米', '毫米', 10],
-        ['千克', '克', 1000], ['吨', '千克', 1000], ['平方米', '平方分米', 100], ['平方分米', '平方厘米', 100]];
-      const [big, small, k] = this.pick(pairs);
+      /* v42：每组带知识点 id（长度→毫米分米千米、质量→认识质量单位、面积→面积单位间的进率） */
+      const pairs = [['千米', '米', 1000, 'cnm_p069'], ['米', '分米', 10, 'cnm_p068'], ['米', '厘米', 100, 'cnm_p068'], ['厘米', '毫米', 10, 'cnm_p068'],
+        ['千克', '克', 1000, 'cnm_p056'], ['吨', '千克', 1000, 'cnm_p056'], ['平方米', '平方分米', 100, 'cnm_p090'], ['平方分米', '平方厘米', 100, 'cnm_p090']];
+      const [big, small, k, kp] = this.pick(pairs);
       const n = k >= 1000 ? r(2, 9) : r(2, 40);
       if (Math.random() < 0.5) {
-        return { kind: 'calc', text: `单位换算：${n} ${big} = ＿ ${small}`, ans: n * k, tip: `1 ${big} = ${k} ${small}，${n} × ${k} = ${n * k}（${small}）` };
+        return { kind: 'calc', text: `单位换算：${n} ${big} = ＿ ${small}`, ans: n * k, tip: `1 ${big} = ${k} ${small}，${n} × ${k} = ${n * k}（${small}）`, kp };
       }
-      return { kind: 'calc', text: `单位换算：${n * k} ${small} = ＿ ${big}`, ans: n, tip: `${k} ${small} = 1 ${big}，${n * k} ÷ ${k} = ${n}（${big}）` };
+      return { kind: 'calc', text: `单位换算：${n * k} ${small} = ＿ ${big}`, ans: n, tip: `${k} ${small} = 1 ${big}，${n * k} ÷ ${k} = ${n}（${big}）`, kp };
     }
     /* v36：图形周长（长方形/正方形） */
     if (type === 'peri') {
       if (Math.random() < 0.5) {
         const a = r(4, 25), b = r(3, 20);
-        return { kind: 'app', text: `一个长方形长 ${a} 厘米、宽 ${b} 厘米，周长是多少厘米？`, ans: 2 * (a + b), tip: `长方形周长 =（长＋宽）× 2 =（${a}＋${b}）× 2 = ${2 * (a + b)}（厘米）` };
+        return { kind: 'app', text: `一个长方形长 ${a} 厘米、宽 ${b} 厘米，周长是多少厘米？`, ans: 2 * (a + b), tip: `长方形周长 =（长＋宽）× 2 =（${a}＋${b}）× 2 = ${2 * (a + b)}（厘米）`, kp: 'cnm_p078' };
       }
       const s2 = r(3, 15);
-      return { kind: 'app', text: `一个正方形的边长是 ${s2} 米，周长是多少米？`, ans: 4 * s2, tip: `正方形周长 = 边长 × 4 = ${s2} × 4 = ${4 * s2}（米）` };
+      return { kind: 'app', text: `一个正方形的边长是 ${s2} 米，周长是多少米？`, ans: 4 * s2, tip: `正方形周长 = 边长 × 4 = ${s2} × 4 = ${4 * s2}（米）`, kp: 'cnm_p078' };
     }
     /* v36：图形面积（长方形/正方形） */
     if (type === 'area') {
       if (Math.random() < 0.5) {
         const a = r(4, 15), b = r(3, 12);
-        return { kind: 'app', text: `一块长方形菜地长 ${a} 米、宽 ${b} 米，面积是多少平方米？`, ans: a * b, tip: `长方形面积 = 长 × 宽 = ${a} × ${b} = ${a * b}（平方米）` };
+        return { kind: 'app', text: `一块长方形菜地长 ${a} 米、宽 ${b} 米，面积是多少平方米？`, ans: a * b, tip: `长方形面积 = 长 × 宽 = ${a} × ${b} = ${a * b}（平方米）`, kp: 'cnm_p089' };
       }
       const s3 = r(3, 12);
-      return { kind: 'app', text: `一个正方形手帕边长 ${s3} 分米，面积是多少平方分米？`, ans: s3 * s3, tip: `正方形面积 = 边长 × 边长 = ${s3} × ${s3} = ${s3 * s3}（平方分米）` };
+      return { kind: 'app', text: `一个正方形手帕边长 ${s3} 分米，面积是多少平方分米？`, ans: s3 * s3, tip: `正方形面积 = 边长 × 边长 = ${s3} × ${s3} = ${s3 * s3}（平方分米）`, kp: 'cnm_p089' };
     }
     const name = this.pick(this.names);
     if (type === 'app-price') {
       const n = r(3, 12), p = r(3, 15), g = this.pick(this.goods);
-      return { kind: 'app', text: `${name}买了 ${n} ${g.unit}${g.g}，${g.per} ${p} 元，一共要付多少元？`, ans: n * p, tip: `${n} × ${p} = ${n * p}（元）` };
+      return { kind: 'app', text: `${name}买了 ${n} ${g.unit}${g.g}，${g.per} ${p} 元，一共要付多少元？`, ans: n * p, tip: `${n} × ${p} = ${n * p}（元）`, kp: 'cnm_p111' };
     }
     if (type === 'app-qty') {
       const p = r(4, 15), c = r(3, 12), g = this.pick(this.goods);
-      return { kind: 'app', text: `${name}有 ${p * c} 元，${g.g}${g.per} ${p} 元，最多能买多少 ${g.unit}？`, ans: c, tip: `${p * c} ÷ ${p} = ${c}（${g.unit}）` };
+      return { kind: 'app', text: `${name}有 ${p * c} 元，${g.g}${g.per} ${p} 元，最多能买多少 ${g.unit}？`, ans: c, tip: `${p * c} ÷ ${p} = ${c}（${g.unit}）`, kp: 'cnm_p111' };
     }
     if (type === 'app-speed') {
       const v = r(6, 40) * 5, t = r(4, 12);
-      return { kind: 'app', text: `${name}骑自行车每分钟行 ${v} 米，照这样的速度，${t} 分钟能行多少米？`, ans: v * t, tip: `${v} × ${t} = ${v * t}（米）` };
+      return { kind: 'app', text: `${name}骑自行车每分钟行 ${v} 米，照这样的速度，${t} 分钟能行多少米？`, ans: v * t, tip: `${v} × ${t} = ${v * t}（米）`, kp: 'cnm_p111' };
     }
     const a = r(12, 60), k = r(2, 5);
-    return { kind: 'app', text: `果园里有 ${a} 棵苹果树，梨树的棵数是苹果树的 ${k} 倍，梨树有多少棵？`, ans: a * k, tip: `${a} × ${k} = ${a * k}（棵）` };
+    return { kind: 'app', text: `果园里有 ${a} 棵苹果树，梨树的棵数是苹果树的 ${k} 倍，梨树有多少棵？`, ans: a * k, tip: `${a} × ${k} = ${a * k}（棵）`, kp: 'cnm_p073' };
   },
 
   /* v40 两步应用题出题器（应用题专项 + BOSS 拔高共用）：
-   * 全部是已学计算的"变式与迁移"——归一 / 进一法 / 连乘 / 返程速度 / 付钱找零 / 倍数比多比一共 */
+   * 全部是已学计算的"变式与迁移"——归一 / 进一法 / 连乘 / 返程速度 / 付钱找零 / 倍数比多比一共
+   * v42：统一挂「常见数量关系」（cnm_p111），家长端按它归类 */
   genApp2() {
+    return Object.assign({ kp: 'cnm_p111' }, this.genApp2Body());
+  },
+
+  genApp2Body() {
     const r = this.r.bind(this), name = this.pick(this.names), g = this.pick(this.goods);
     const type = this.pick(['guiyi', 'rent', 'liancheng', 'return', 'change', 'beibi']);
     if (type === 'guiyi') { /* 归一问题：先除后乘 */
@@ -365,7 +373,7 @@ const MathDrill = {
     Sound.stopSpeak();
     this.appMode = mode === 'app'; /* 应用题专项：全应用题，两步为主 */
     const wrongP = (Store.state.math.wrongP || []).slice();
-    const items = shuffle(wrongP).slice(0, 2).map(x => ({ kind: 'app', text: x.q, ans: x.a, tip: x.tip, fromWrong: true }));
+    const items = shuffle(wrongP).slice(0, 2).map(x => ({ kind: 'app', text: x.q, ans: x.a, tip: x.tip, kp: x.kp || '', fromWrong: true }));
     const target = this.appMode ? 6 : 5;
     while (items.length < target) {
       if (this.appMode) items.push(Object.assign(this.genApp2(), { fromWrong: false }));
@@ -429,6 +437,8 @@ const MathDrill = {
       h('div', { class: 'drill-tag' }, item.kind === 'app' ? '应用题' : '笔算题'),
       h('div', { class: 'drill-text' }, item.text),
       item.fromWrong ? h('div', { class: 'tiny center', style: 'margin-top:4px' }, '⚡ 之前的错题，消灭它！') : '',
+      item.fromWrong && item.kp && typeof KP !== 'undefined' && KP.name(item.kp)
+        ? h('div', { class: 'tiny center kp-tag', style: 'margin-top:4px' }, `📌 这题考的是：${KP.name(item.kp)}`) : '',
       inputEl,
       pad
     ));

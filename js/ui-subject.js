@@ -10,15 +10,19 @@ const SubjectUI = {
     def.units.forEach(u => u.lessons.forEach(l => l.qs.forEach(q => {
       q.lesson = l.id;
       q.unit = u.id;
+      /* v42：知识点挂点——先查课 id 对照表（道法），再用课自带的 l.kp（数学知识点闯关） */
+      const kp = (typeof KP_LESSON !== 'undefined' && KP_LESSON[l.id]) || l.kp;
+      if (kp) q.kp = kp;
     })));
     this.defs.push(def);
   },
 
   byId(id) { return this.defs.find(d => d.id === id); },
 
-  /* 首页学科宫格的磁贴（由 ui-screens.js 的 renderSubjects 调用） */
+  /* 首页学科宫格的磁贴（由 ui-screens.js 的 renderSubjects 调用）
+   * hidden 的定义（数学知识点闯关）不出磁贴，入口在数学星系里 */
   tiles() {
-    return this.defs.map(def => subjectTile(def.emoji, def.name, this.tileSub(def), () => this.openHub(def),
+    return this.defs.filter(def => !def.hidden).map(def => subjectTile(def.emoji, def.name, this.tileSub(def), () => this.openHub(def),
       def.color || (def.id === 'science' ? 'var(--green)' : 'var(--pink)')));
   },
 
@@ -63,11 +67,11 @@ const SubjectUI = {
     const wrong = Store.subjectWrong(def.id);
     let qs = [];
     if (wrongOnly) {
-      qs = shuffle(wrong).slice(0, 8);
+      qs = shuffle(wrong).slice(0, 8).map(w => Object.assign({ fromWrong: true }, w));
     } else if (unit) {
       const has = q => qs.some(x => x.q === q.q);
       shuffle(wrong.filter(w => w.unit === unit.id)).slice(0, 2)
-        .forEach(w => { if (!has(w)) qs.push(w); });
+        .forEach(w => { if (!has(w)) qs.push(Object.assign({ fromWrong: true }, w)); });
       const rest = shuffle(unit.lessons.flatMap(l => l.qs)).filter(q => !has(q));
       const take = (kinds, n) => rest.filter(q => kinds.includes(q.kind)).slice(0, n)
         .forEach(q => { if (qs.length < 8 && !has(q)) qs.push(q); });
@@ -143,6 +147,10 @@ const SubjectUI = {
     const card = h('div', { class: 'card drill-card' });
     card.appendChild(h('div', { class: 'drill-tag' },
       q.kind === 'judge' ? '⚖️ 判断对错' : q.kind === 'cloze' ? '✏️ 选词填空' : q.kind === 'steps' ? '🧪 实验探究' : '📋 选一选'));
+    /* v42：复习老错题时，告诉孩子这题考的是哪个知识点（家长端「知识地图」按同一个 id 汇总） */
+    if (q.fromWrong && q.kp && typeof KP !== 'undefined' && KP.name(q.kp)) {
+      card.appendChild(h('div', { class: 'tiny kp-tag' }, `📌 这题考的是：${KP.name(q.kp)}`));
+    }
 
     if (q.kind === 'choice' || q.kind === 'cloze') {
       card.appendChild(h('div', { class: 'drill-text' },

@@ -62,6 +62,7 @@ const Store = (() => {
       writing: { entries: [] }, // 小练笔工坊（v38）：作品 {at,id,title,emoji,open,mid,end,photo,stars,note,reviewed}
       arena: { spell: { best: 0, plays: 0 }, clue: { best: 0, plays: 0 }, idiom: { best: 0, plays: 0 }, roo: { best: 0, plays: 0 }, flower: { best: 0, plays: 0 }, hanzi: { best: 0, plays: 0 } }, // 竞技场纪录（v38+v40）
       ket: { done: [] },   // KET补全对话（v40）：已练过的对话 id
+      kpCheck: {},         // 知识点小测结果（v42）：id -> {at, ok, total, verdict}
       stats: { drillsDone: 0, thinkDone: 0, boxesOpened: 0 }
     };
   }
@@ -107,6 +108,7 @@ const Store = (() => {
     if (state.sentence.layout === undefined) state.sentence.layout = 'abc'; /* v31：键盘排列，默认字母序 */
     if (!state.sentence.hard) state.sentence.hard = {}; /* v31：句中难词复现计数 */
     if (!state.sentence.newWords) state.sentence.newWords = {}; /* v32：句子默写生词本 */
+    if (!state.kpCheck) state.kpCheck = {}; /* v42：知识点小测结果 */
     if (!state.pet.outfits) state.pet.outfits = { owned: [], worn: {} };
     if (!Array.isArray(state.pet.kinds)) state.pet.kinds = ['bot']; /* v36：多物种伙伴 */
     if (!state.pet.kind || !state.pet.kinds.includes(state.pet.kind)) state.pet.kind = 'bot';
@@ -603,8 +605,9 @@ const Store = (() => {
   function addCnWrong(q) {
     const w = state.chinese.wrong;
     if (w.some(x => x.q === q.q)) return;
-    /* kind/line 一并存档：诗词填空（kind:'tiles'）复习时仍是字块界面 */
-    w.push({ q: q.q, opts: q.opts, ans: q.ans, tip: q.tip || '', kind: q.kind || '', line: q.line || '' });
+    /* kind/line 一并存档：诗词填空（kind:'tiles'）复习时仍是字块界面
+     * kp（v42）：知识点 id，家长端「知识地图」按它归类；老存档没有这个字段也不影响 */
+    w.push({ q: q.q, opts: q.opts, ans: q.ans, tip: q.tip || '', kind: q.kind || '', line: q.line || '', kp: q.kp || '' });
     if (w.length > 20) state.chinese.wrong = w.slice(-20);
     save();
   }
@@ -619,6 +622,13 @@ const Store = (() => {
     if (!state.ket.done.includes(id)) state.ket.done.push(id);
     save();
   }
+  /* ---------- 知识点小测（v42 C 期） ---------- */
+  function kpCheckSave(id, ok, total, verdict) {
+    if (!state.kpCheck) state.kpCheck = {};
+    state.kpCheck[id] = { at: todayStr(), ok, total, verdict };
+    save();
+  }
+  function kpCheckGet(id) { return (state.kpCheck && state.kpCheck[id]) || null; }
   function finishKet(correct, total) {
     const got = earnScaled('ket', correct * 4 + (correct === total ? 6 : 0));
     checkBadges();
@@ -647,10 +657,11 @@ const Store = (() => {
     save();
   }
   /* ---------- 数学星系 ---------- */
-  function addMathWrong(q, a) {
+  function addMathWrong(q, a, kp) {
     const m = state.math;
     if (m.wrong.some(x => x.q === q)) return;
-    m.wrong.push({ q, a });
+    /* kp（v42）：知识点 id，家长端「知识地图」按它归类 */
+    m.wrong.push({ q, a, kp: kp || '' });
     if (m.wrong.length > 20) m.wrong = m.wrong.slice(-20);
     save();
   }
@@ -686,7 +697,7 @@ const Store = (() => {
   function addPracticeWrong(item) {
     const m = state.math;
     if (m.wrongP.some(x => x.q === item.q)) return;
-    m.wrongP.push({ q: item.text, a: item.ans, tip: item.tip || '' });
+    m.wrongP.push({ q: item.text, a: item.ans, tip: item.tip || '', kp: item.kp || '' });
     if (m.wrongP.length > 20) m.wrongP = m.wrongP.slice(-20);
     save();
   }
@@ -1201,6 +1212,7 @@ const Store = (() => {
     finishPracticeRun, finishSubjectRound, finishThinkRun,
     markCnStar, markCnRead, addCnWrong, clearCnWrong, finishCnRead, finishCnWords, finishCnGuwen, markPhonicsRound,
     markKetDone, finishKet,
+    kpCheckSave, kpCheckGet,
     subjectWeek, subjectAddRound, subjectMarkDone, subjectWrong, subjectAddWrong, subjectClearWrong,
     addShopReward, removeShopReward, redeemReward, approveRedeem, rejectRedeem, tomorrowDueCount,
     petStage, petStageInfo, petKind, petFedOf, petStageOf, buyPetKind, setPetKind, feedPet, resetPetProgress, setSetting,

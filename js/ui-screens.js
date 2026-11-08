@@ -986,8 +986,17 @@ function openMathHub() {
       }, '🧮 应用题专项（两步计算 · 生活情境 · 6 题）'));
       el.appendChild(h('button', {
         class: 'btn big', style: 'margin-top:10px',
+        onclick: () => {
+          close();
+          const def = (typeof SubjectUI !== 'undefined') && SubjectUI.byId('math-kp');
+          if (def) SubjectUI.openHub(def);
+          else toast('知识点闯关正在准备中');
+        }
+      }, '🧭 知识点闯关（大数 · 角 · 垂直平行 · 统计…）'));
+      el.appendChild(h('button', {
+        class: 'btn big', style: 'margin-top:10px',
         onclick: () => { close(); Sudoku.start(); }
-      }, '🔢 数独挑战（四宫 +20 / 六宫 +30 / 九宫 40~100 🪙）'));
+      }, '🔢 数独挑战（四宫 15~30 / 六宫 25~40 / 九宫 40~100 🪙，每种都有三档难度）'));
       el.appendChild(h('div', { class: 'tiny center', style: 'margin-top:10px' },
         `思维场答对每题 +5 🪙 · 数独唯一解程序生成 · 首刷全额，当天重刷递减${Store.state.settings.dailyCoinCap ? ` · 每日上限 ${Store.state.settings.dailyCoinCap} 🪙` : ''}`));
     }
@@ -1336,6 +1345,29 @@ function calDetail(ds, today) {
 }
 
 /* ---------------- 家长面板 ---------------- */
+/* v42 知识地图：把各科错题池按知识点汇总（数学/道法/语文已挂点；科学、英语因教材版本不同暂不挂） */
+function kpWeakList(limit) {
+  if (typeof KP === 'undefined') return [];
+  const s = Store.state;
+  const pools = [
+    ['数学', s.math.wrong || []],
+    ['数学', s.math.wrongP || []],
+    ['数学', ((s.subjects || {})['math-kp'] || {}).wrong || []],
+    ['语文', (s.chinese && s.chinese.wrong) || []],
+    ['道法', ((s.subjects || {}).daofa || {}).wrong || []]
+  ];
+  const cnt = {};
+  pools.forEach(([src, list]) => list.forEach(x => {
+    if (!x || !x.kp || !KP.get(x.kp)) return;
+    const rec = cnt[x.kp] || (cnt[x.kp] = { id: x.kp, n: 0, src: {} });
+    rec.n++;
+    rec.src[src] = (rec.src[src] || 0) + 1;
+  }));
+  return Object.keys(cnt).map(k => cnt[k])
+    .sort((a, b) => b.n - a.n || KP.get(a.id).grade - KP.get(b.id).grade)
+    .slice(0, limit || 99);
+}
+
 function renderParent() {
   updateTop();
   const root = $('#parent-root');
@@ -1389,6 +1421,54 @@ function renderParent() {
       onclick: () => { Sound.tap(); showWeeklyReport(); }
     }, '📋 本周学习周报（打卡 / 用时 / 薄弱项 / 建议）')
   ));
+
+  /* 知识地图（v42）：错题 → 知识点 → 需要先会什么 */
+  if (typeof KP !== 'undefined') {
+    const weak = kpWeakList(6);
+    const kpCard = h('div', { class: 'card' },
+      h('div', { class: 'sec-title' }, '🎯 知识地图'),
+      h('div', { class: 'tiny', style: 'margin-bottom:6px' },
+        '把错题按知识点归类，并提示"需要先会"的更早知识点。每条可以「🎯 测一测」（3 道选择题：全对=会 / 对 2=不稳 / ≤1=不会），也可以用「🗺 期末复习路线」排出先复习的顺序。已挂点：数学（口算/练习场/应用题）、道法、语文诗词与小古文；科学、英语因教材版本不同暂不挂点。'),
+      weak.length ? weak.map(w => {
+        const k = KP.get(w.id);
+        const src = Object.keys(w.src).join('·');
+        /* 只显示 hard 先修：道法/语文的 soft 边其实是教材顺序，拿来当"先复习"会误导 */
+        const hard = KP.prereqs(w.id, true).slice(0, 3);
+        /* 数学只显示年级+领域：孩子用北师大版，图谱的"第几单元"是人教顺序，写出来会误导 */
+        const where = k.id.startsWith('cnm_')
+          ? (k.domain || '')
+          : String(k.chapter || '').replace(/^[一二三四五六]年级[上下]册\s*/, '');
+        const chk = Store.kpCheckGet(w.id);
+        const canQuiz = (typeof KPQuiz !== 'undefined') && KPQuiz.has(w.id);
+        const verdictCls = chk ? (chk.verdict === '会' ? 'ok' : chk.verdict === '不稳' ? 'warn' : 'bad') : '';
+        return h('div', { class: 'kp-row' },
+          h('div', { class: 'kp-row-top' },
+            h('b', {}, k.name),
+            h('span', { class: 'tiny' }, `${src} · 错 ${w.n} 题`)
+          ),
+          h('div', { class: 'tiny' }, `${k.grade} 年级${k.semester}${where ? ' · ' + where : ''}`),
+          hard.length ? h('div', { class: 'tiny kp-pre' }, '先复习：' + hard.map(p => `${p.name}（${p.grade}年级）`).join(' → ')) : '',
+          (chk || canQuiz) ? h('div', { class: 'kp-row-act' },
+            chk ? h('span', { class: 'kp-verdict ' + verdictCls },
+              `自测 ${chk.verdict} · ${chk.ok}/${chk.total} · ${String(chk.at || '').slice(5)}`) : '',
+            canQuiz ? h('button', {
+              class: 'btn small',
+              onclick: () => { Sound.tap(); KPQuiz.start(w.id); }
+            }, '🎯 测一测') : ''
+          ) : ''
+        );
+      }) : h('div', { class: 'tiny' }, '还没有可归类的知识点错题。去练一轮数学、道法，或在语文里挑战一首诗，这里就会自动统计；答对后错题出本，这里也会同步消失。'),
+      weak.length ? h('div', { class: 'row-gap wrap', style: 'margin-top:10px' },
+        h('button', {
+          class: 'btn small',
+          onclick: () => { Sound.tap(); KPReview.open(); }
+        }, '🗺 期末复习路线')
+      ) : '',
+      h('div', { class: 'tiny', style: 'margin-top:8px;opacity:.72' },
+        `知识点编号与先修关系参考 cn-math-taxonomy（CC BY-NC 4.0，快照 ${(KP.meta && KP.meta.commit) || ''}）；题目均为本站自写。`)
+    );
+    root.appendChild(kpCard);
+  }
 
   /* 错题本 */
   const weakIds = Store.weakList(10);
@@ -1833,7 +1913,9 @@ function showWeeklyReport() {
   const dictW = (s.dictations || []).filter(d => d.at >= weekStr);
   const weakN = Store.weakList(99).length;
   const cnWrong = (s.chinese.wrong || []).length;
-  const mWrong = (s.math.wrong || []).length + (s.math.wrongP || []).length;
+  const mWrong = (s.math.wrong || []).length + (s.math.wrongP || []).length + (((s.subjects || {})['math-kp'] || {}).wrong || []).length;
+  /* v42：最薄弱的知识点（没有挂点的错题不参与） */
+  const kpTop = (typeof kpWeakList === 'function') ? kpWeakList(1)[0] : null;
 
   const tips = [];
   /* 💬 亮点话术（v40）：先说这周做成了什么，给家长一个"聊内容不聊分数"的切入点 */
@@ -1850,6 +1932,7 @@ function showWeeklyReport() {
   if (cnWrong > 5) tips.push(`语文错题 ${cnWrong} 道，「词语实战」会优先安排它们复习，答对一道当场清零一道。`);
   if (mWrong > 8) tips.push(`数学错题 ${mWrong} 道，冲刺和练习场会先重练它们，答对即清零。`);
   if (runs.length >= 3 && avg < 8) tips.push(`口算平均 ${avg} 题/轮偏低，若吃力可把难度调回「核心」档；也可以试试新的「应用题专项」。`);
+  if (kpTop && kpTop.n >= 2) tips.push(`最薄弱的知识点是「${KP.name(kpTop.id)}」，下方「知识地图」里有它需要先会的知识点。`);
   if (mins > 0 && mins < 60) tips.push(`本周学习共 ${mins} 分钟，每天两个 10 分钟刚刚好。`);
   if (!tips.length) tips.push('各项节奏都很稳，保持就好！');
 
@@ -1865,6 +1948,7 @@ function showWeeklyReport() {
         h('div', { class: 'receipt-row' }, h('b', {}, '📝 听写'), h('span', {}, dictW.length ? `${dictW.length} 次 · 共对 ${dictW.reduce((n, d) => n + d.correct, 0)}/${dictW.reduce((n, d) => n + d.total, 0)} 个` : '本周没有听写')),
         h('div', { class: 'receipt-row' }, h('b', {}, '🪙 进账'), h('span', {}, `${coins} 枚金币`)),
         h('div', { class: 'receipt-row' }, h('b', {}, '📕 待消灭'), h('span', {}, `英语错词 ${weakN} · 语文错题 ${cnWrong} · 数学错题 ${mWrong}`)),
+        kpTop ? h('div', { class: 'receipt-row' }, h('b', {}, '🎯 薄弱点'), h('span', {}, `${KP.name(kpTop.id)}（错 ${kpTop.n} 题）`)) : '',
         h('div', { class: 'receipt-div' }),
         tips.map(t => h('div', { class: 'receipt-row' }, h('b', {}, '💡'), h('span', {}, t)))
       ));

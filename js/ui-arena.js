@@ -370,7 +370,8 @@ const Arena = {
     const pickPts = pts => shuffle(KANGAROO_QS.filter(q => q.pts === pts));
     this.rooPlan = []
       .concat(pickPts(3).slice(0, 2).map(q => ({ type: 'choice', q })))
-      .concat(pickPts(4).filter(q => !String(q.fig).includes('🕒')).slice(0, 1).map(q => ({ type: 'choice', q })))
+      /* v42：原来这里把时钟题过滤掉了，导致它永远不会出现（题库里 1 道死题）；恢复进轮换 */
+      .concat(pickPts(4).slice(0, 1).map(q => ({ type: 'choice', q })))
       .concat(pickPts(5).slice(0, 1).map(q => ({ type: 'choice', q })))
       .concat([{ type: 'maze', pts: 4 }, { type: 'sudoku', pts: 5 }]);
     this.rooIdx = 0; this.rooTotal = 0;

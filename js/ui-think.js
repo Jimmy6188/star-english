@@ -379,16 +379,32 @@ setQuestSub('var(--accent)');
 /* ============================================================
  * 数独挑战（四宫 2×2 / 六宫 2×3 / 九宫 3×3）：程序生成唯一解数独
  * 宫用粗框明确圈出；点击格子选中 → 点数字填入
- * 九宫格分简单/中等/困难三档（挖洞数不同）：40 / 60 / 100 🪙
- * 四宫 +20、六宫 +30；填错满盘时错误格标红可改
- * 首刷全额、当天重刷递减；记住上次玩的宫格和难度
+ * 三种宫格都有简单/中等/困难三档（挖洞数不同）
+ * 奖励：四宫 15/20/30、六宫 25/30/40、九宫 40/60/100 🪙；填错满盘时错误格标红可改
+ * 首刷全额、当天重刷递减；每个宫格分别记住上次选的难度
+ * v43：4 宫、6 宫也加了三档难度（原来只有九宫有）
+ * v42 候选数（小草稿）：✏️候选模式手动标小数字 / ✨一键候选铺满 / 🧽清空；
+ *   正式落数后本格候选清空，同行列宫同数字候选自动擦掉；只剩 1 个候选的格子虚线提示（唯一候选法）
  * ============================================================ */
 const Sudoku = {
   n: 4, boxR: 2, boxC: 2, sol: [], kid: [], given: [], sel: null, diff: 2,
+  marks: [], candMode: false,
 
-  /* 九宫格三档难度对应的挖洞数：简单留 43 个提示数，困难只留 29 个 */
-  DIFF_HOLES: { 1: 38, 2: 45, 3: 52 },
+  /* v43：三档挖洞数，按宫格分开（4 宫 16 格、6 宫 36 格、9 宫 81 格）
+   * 4 宫 6/8/10 → 留 10/8/6 个提示数；6 宫 12/17/23 → 留 24/19/13 个；
+   * 9 宫沿用 38/45/52 → 留 43/36/29 个 */
+  DIFF_HOLES: {
+    4: { 1: 6, 2: 8, 3: 10 },
+    6: { 1: 12, 2: 17, 3: 23 },
+    9: { 1: 38, 2: 45, 3: 52 }
+  },
   DIFF_NAME: { 1: '简单', 2: '中等', 3: '困难' },
+  /* 三档奖励：中间档等于原来的固定奖励（4 宫 20 / 6 宫 30 / 9 宫 60） */
+  DIFF_COINS: {
+    4: [15, 20, 30],
+    6: [25, 30, 40],
+    9: [40, 60, 100]
+  },
 
   ok(grid, r, c, v) {
     for (let i = 0; i < this.n; i++) {
@@ -399,6 +415,49 @@ const Sudoku = {
       for (let j = c0; j < c0 + this.boxC; j++)
         if (grid[i][j] === v) return false;
     return true;
+  },
+
+  /* ---------- v42 候选数（小草稿） ---------- */
+  /* 候选只存在 this.marks[r][c] 里（数字数组），不进 kid；重绘 DOM 不丢 */
+  toggleMark(r, c, v) {
+    if (!this.marks[r]) this.marks[r] = [];
+    const list = this.marks[r][c] || (this.marks[r][c] = []);
+    const i = list.indexOf(v);
+    if (i >= 0) list.splice(i, 1);
+    else { list.push(v); list.sort((a, b) => a - b); }
+  },
+
+  /* 落正式数字后：本格候选清空 + 同行/同列/同宫里的同一个数字候选自动擦掉 */
+  cleanPeerMarks(r, c, v) {
+    if (!this.marks[r]) return;
+    this.marks[r][c] = [];
+    const r0 = Math.floor(r / this.boxR) * this.boxR, c0 = Math.floor(c / this.boxC) * this.boxC;
+    for (let i = 0; i < this.n; i++) {
+      const peers = [[r, i], [i, c], [r0 + Math.floor(i / this.boxC), c0 + (i % this.boxC)]];
+      for (const [rr, cc] of peers) {
+        const list = this.marks[rr] && this.marks[rr][cc];
+        if (!list || !list.length) continue;
+        const j = list.indexOf(v);
+        if (j >= 0) list.splice(j, 1);
+      }
+    }
+  },
+
+  /* 一键候选：每个空格标上当前还可能填的数字；返回标好的格数和"一个候选都没有"的格数 */
+  autoMarks() {
+    let marked = 0, dead = 0;
+    for (let r = 0; r < this.n; r++) for (let c = 0; c < this.n; c++) {
+      if (this.kid[r][c]) { this.marks[r][c] = []; continue; }
+      const list = [];
+      for (let v = 1; v <= this.n; v++) if (this.ok(this.kid, r, c, v)) list.push(v);
+      this.marks[r][c] = list;
+      if (list.length) marked++; else dead++;
+    }
+    return { marked, dead };
+  },
+
+  clearMarks() {
+    for (let r = 0; r < this.n; r++) for (let c = 0; c < this.n; c++) this.marks[r][c] = [];
   },
 
   /* 随机回溯生成完整解 */
@@ -456,10 +515,12 @@ const Sudoku = {
     this.n = n;
     this.boxR = n === 9 ? 3 : 2;
     this.boxC = n === 4 ? 2 : 3;
-    if (n === 9) this.diff = diff || this.lastDiff();
+    /* v43：4/6/9 宫都有三档；没传就取这一宫格上次选过的档 */
+    this.diff = diff || this.lastDiff(n);
+    if (!(this.diff >= 1 && this.diff <= 3)) this.diff = 2;
     const full = Array.from({ length: n }, () => Array(n).fill(0));
     this.fill(full);
-    const holes = n === 4 ? 8 : (n === 6 ? 16 : this.DIFF_HOLES[this.diff]);
+    const holes = this.DIFF_HOLES[n][this.diff];
     const kid = full.map(row => row.slice());
     const order = shuffle(Array.from({ length: n }, (_, r) => r).flatMap(r =>
       Array.from({ length: n }, (_, c) => [r, c])));
@@ -474,6 +535,7 @@ const Sudoku = {
     this.sol = full;
     this.kid = kid;
     this.given = kid.map(row => row.map(v => v > 0));
+    this.marks = Array.from({ length: n }, () => Array.from({ length: n }, () => []));
     this.sel = null;
   },
 
@@ -482,8 +544,15 @@ const Sudoku = {
     return 4;
   },
 
-  lastDiff() {
-    try { const v = parseInt(localStorage.getItem('sdk-diff'), 10); if (v === 1 || v === 2 || v === 3) return v; } catch (e) { /* 隐私模式忽略 */ }
+  /* 每宫格各记各的难度：sdk-diff-4 / sdk-diff-6 / sdk-diff-9
+   * 旧存档只有 9 宫的 sdk-diff，读不到新键时回退到它 */
+  lastDiff(n) {
+    const size = n || 9;
+    try {
+      let v = parseInt(localStorage.getItem('sdk-diff-' + size), 10);
+      if (!(v === 1 || v === 2 || v === 3) && size === 9) v = parseInt(localStorage.getItem('sdk-diff'), 10);
+      if (v === 1 || v === 2 || v === 3) return v;
+    } catch (e) { /* 隐私模式忽略 */ }
     return 2;
   },
 
@@ -493,7 +562,9 @@ const Sudoku = {
     const lvl = n || this.lastLevel();
     try { localStorage.setItem('sdk-level', String(lvl)); } catch (e) { /* 忽略 */ }
     this.gen(lvl, diff);
-    if (lvl === 9) { try { localStorage.setItem('sdk-diff', String(this.diff)); } catch (e) { /* 忽略 */ } }
+    /* v43：每个宫格分别记住自己上次的难度 */
+    try { localStorage.setItem('sdk-diff-' + lvl, String(this.diff)); } catch (e) { /* 忽略 */ }
+    if (lvl === 9) { try { localStorage.setItem('sdk-diff', String(this.diff)); } catch (e) { /* 兼容旧档 */ } }
 setQuestSub('var(--accent)');
     showScreen('quest');
     this.render();
@@ -505,7 +576,7 @@ setQuestSub('var(--accent)');
     const solved = this.kid.every((row, r) => row.every((v, c) => v === this.sol[r][c]));
     root.appendChild(h('div', { class: 'quest-top' },
       h('button', { class: 'quest-exit', onclick: () => { showScreen('home'); renderHome(); } }, icon('x')),
-      h('div', { class: 'quest-prog' }, this.n === 9 ? `🔢 数独九宫 · ${this.DIFF_NAME[this.diff]}` : `🔢 数独 ${this.n} 宫`)
+      h('div', { class: 'quest-prog' }, `🔢 数独${this.n === 9 ? '九宫' : ' ' + this.n + ' 宫'} · ${this.DIFF_NAME[this.diff]}`)
     ));
     /* 四宫/六宫用固定格子；九宫格用弹性布局自适应屏宽，整盘不溢出 */
     const is9 = this.n === 9;
@@ -525,10 +596,24 @@ setQuestSub('var(--accent)');
       for (let r = br * this.boxR; r < br * this.boxR + this.boxR; r++)
         for (let c = bc * this.boxC; c < bc * this.boxC + this.boxC; c++) {
           const given = this.given[r][c];
-          const bad = !given && this.kid[r][c] !== 0 && this.kid[r][c] !== this.sol[r][c];
+          const val = this.kid[r][c];
+          const bad = !given && val !== 0 && val !== this.sol[r][c];
+          /* 空格子显示候选小数字（有正式数字时不显示草稿） */
+          const mk = val ? null : (this.marks[r] && this.marks[r][c]) || [];
+          const cellKids = [];
+          if (val) cellKids.push(String(val));
+          else if (mk.length) {
+            const cols = this.n === 4 ? 2 : 3;
+            const fs = this.n === 4 ? '15px' : (this.n === 6 ? '11px' : '');
+            cellKids.push(h('span', {
+              class: 'sdk-marks',
+              style: `grid-template-columns:repeat(${cols},1fr)` + (fs ? `;font-size:${fs}` : '')
+            }, Array.from({ length: this.n }, (_, i) => h('span', {}, mk.includes(i + 1) ? String(i + 1) : ''))));
+          }
           box.appendChild(h('button', {
             class: 'sdk-cell' + (given ? ' given' : '') +
-              (this.sel && this.sel[0] === r && this.sel[1] === c ? ' sel' : '') + (bad ? ' bad' : ''),
+              (this.sel && this.sel[0] === r && this.sel[1] === c ? ' sel' : '') + (bad ? ' bad' : '') +
+              (!val && mk.length === 1 ? ' one' : ''),
             onclick: () => {
               if (this.solved) return; /* 已通关锁盘 */
               if (given) { toast('这是题目给出的数字，不能改哦'); return; }
@@ -536,7 +621,7 @@ setQuestSub('var(--accent)');
               this.sel = [r, c];
               this.render();
             }
-          }, this.kid[r][c] || ''));
+          }, cellKids));
         }
       grid.appendChild(box);
     }
@@ -548,27 +633,73 @@ setQuestSub('var(--accent)');
         class: 'drill-key', onclick: e => {
           if (this.solved) return; /* 已通关锁盘 */
           if (!this.sel) { toast('先点一个空格子'); return; }
+          const [sr, sc] = this.sel;
           Sound.tap();
+          /* 候选模式：数字键只在选中的空格里打小草稿，不落正式数字 */
+          if (this.candMode) {
+            if (this.kid[sr][sc]) { toast('这格已经有数字了，先擦掉再标候选'); return; }
+            this.toggleMark(sr, sc, v);
+            this.render();
+            return;
+          }
           Sound.speak(String(v), 1.1);
-          this.kid[this.sel[0]][this.sel[1]] = v;
+          this.kid[sr][sc] = v;
+          this.cleanPeerMarks(sr, sc, v); /* 落数后自动擦掉相关候选，免得过时候选误导 */
           if (this.checkDone()) return; /* 通关：结算卡留在屏上，不再重绘棋盘盖掉它 */
           this.render();
         }
       }, v)),
-      h('button', { class: 'drill-key' + (this.n === 9 ? '' : ' wide'), onclick: () => { if (!this.solved && this.sel) { this.kid[this.sel[0]][this.sel[1]] = 0; this.render(); } } }, '⌫')
+      h('button', {
+        class: 'drill-key' + (this.n === 9 ? '' : ' wide'),
+        onclick: () => {
+          if (this.solved || !this.sel) return;
+          const [sr, sc] = this.sel;
+          Sound.tap();
+          /* 候选模式下只擦小草稿；普通模式连正式数字一起擦 */
+          if (this.candMode && !this.kid[sr][sc]) this.marks[sr][sc] = [];
+          else { this.kid[sr][sc] = 0; this.marks[sr][sc] = []; }
+          this.render();
+        }
+      }, '⌫')
     );
     root.appendChild(h('div', { class: 'card drill-card center' + (is9 ? ' sdk-wide' : '') },
       h('div', { class: 'drill-tag' }, '每行、每列、每个粗框里数字都不重复'),
       grid,
-      h('div', { class: 'tiny', style: 'margin-top:8px' }, solved ? '✅ 全部正确！' : (this.sel ? `已选中第 ${this.sel[0] + 1} 行第 ${this.sel[1] + 1} 列` : '点一个空格子，再点数字')),
+      h('div', { class: 'tiny', style: 'margin-top:8px' },
+        solved ? '✅ 全部正确！'
+          : this.candMode
+            ? (this.sel ? '候选模式：点数字给这格标小草稿，再点一次取消' : '候选模式：先点一个空格子')
+            : (this.sel ? `已选中第 ${this.sel[0] + 1} 行第 ${this.sel[1] + 1} 列` : '点一个空格子，再点数字')),
       pad,
-      /* 九宫格专属：三档难度，挖洞数不同，奖励也不同 */
-      this.n === 9 ? h('div', { class: 'row-gap wrap', style: 'justify-content:center;margin-top:10px' },
+      /* v42 候选数工具栏：手动手稿 / 一键铺满 / 清空 */
+      h('div', { class: 'row-gap wrap', style: 'justify-content:center;margin-top:10px' },
+        h('button', {
+          class: 'btn small' + (this.candMode ? ' btn-main' : ''),
+          onclick: () => { Sound.tap(); this.candMode = !this.candMode; this.render(); }
+        }, '✏️ 候选' + (this.candMode ? ' 开' : '')),
+        h('button', {
+          class: 'btn small',
+          onclick: () => {
+            if (this.solved) return;
+            Sound.tap();
+            const { marked, dead } = this.autoMarks();
+            this.render();
+            if (dead) toast(`有 ${dead} 个格子一个候选都没有，前面可能填错了`);
+            else toast(`已标好 ${marked} 个空格；虚线框的只剩 1 个候选`);
+          }
+        }, '✨ 一键候选'),
+        h('button', {
+          class: 'btn small',
+          onclick: () => { if (this.solved) return; Sound.tap(); this.clearMarks(); this.render(); }
+        }, '🧽 清候选')
+      ),
+      /* v43：三档难度，4/6/9 宫都有；奖励按宫格和档位取 */
+      h('div', { class: 'row-gap wrap', style: 'justify-content:center;margin-top:10px' },
         [1, 2, 3].map(d => h('button', {
           class: 'btn small' + (this.diff === d ? ' btn-main' : ''),
-          onclick: () => { Sound.tap(); this.start(9, d); }
-        }, `${this.DIFF_NAME[d]} ${[40, 60, 100][d - 1]}🪙`))
-      ) : '',
+          onclick: () => { Sound.tap(); this.start(this.n, d); }
+        }, `${this.DIFF_NAME[d]} ${this.DIFF_COINS[this.n][d - 1]}🪙`))
+      ),
       h('div', { class: 'row-gap wrap', style: 'justify-content:center;margin-top:10px' },
         [4, 6, 9].map(k => h('button', {
           class: 'btn small' + (this.n === k ? ' btn-main' : ''),
@@ -587,13 +718,13 @@ setQuestSub('var(--accent)');
     if (wrongN > 0) { toast(`有 ${wrongN} 个格子不对，红色的可以点开改`); Sound.wrong(); return false; }
     /* 全对结算：九宫按难度给币，难度越高越值钱 */
     this.solved = true;
-    const gain = Store.earnScaled('sudoku', this.n === 4 ? 20 : (this.n === 6 ? 30 : [40, 60, 100][this.diff]));
+    const gain = Store.earnScaled('sudoku', this.DIFF_COINS[this.n][this.diff - 1]);
     Sound.gold();
     const root = $('#quest-root');
     root.innerHTML = '';
     root.appendChild(h('div', { class: 'card finish-card' },
       h('div', { class: 'finish-stamp' }, '🔢'),
-      h('div', { class: 'finish-title' }, `${this.n} 宫数独完成！`),
+      h('div', { class: 'finish-title' }, `${this.n} 宫数独完成！（${this.DIFF_NAME[this.diff]}）`),
       h('div', { class: 'finish-sub' }, `获得 +${gain} 🪙${(Store.state.today.mint.sudoku || 0) > 1 ? ' · 今日重刷，奖励减半' : ''}`),
       h('div', { class: 'finish-pet' }, `“${rnd(PET_LINES.praise)}” —— ${Store.state.pet.name}`),
       h('div', { class: 'row-gap' },
