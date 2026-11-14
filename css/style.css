@@ -1501,3 +1501,16 @@ html.hween #greet-title::after { content: ' 👻'; }
   90%  { opacity: 1; }
   100% { transform: translate3d(calc(var(--sway, 30px) * -0.5), 110vh, 0) rotate(330deg); opacity: 0; }
 }
+
+/* ===== v44 24点拼算式 ===== */
+.expr24-line { font-size: 22px; letter-spacing: 2px; text-align: center; min-height: 44px; }
+.expr24-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+.drill-key.num24 { background: var(--accent); color: #fff; font-weight: 900; min-width: 52px; }
+.drill-key.num24.used { opacity: .3; pointer-events: none; }
+.drill-input.shake { animation: shake .45s; }
+
+/* ===== v44 江山时序外链浮层 ===== */
+.atlas-overlay { position: fixed; inset: 0; z-index: 300; background: var(--bg, #0b1020); display: flex; flex-direction: column; }
+.atlas-bar { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line-0); }
+.atlas-title { font-weight: 800; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.atlas-frame { flex: 1; border: 0; width: 100%; }

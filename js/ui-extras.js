@@ -190,3 +190,27 @@ const Extras = {
     });
   }
 };
+
+/* ============================================================
+ * 江山时序（v44）：开源中国历史交互地图（GPL-3.0 项目）
+ * 只做外链/内嵌 iframe，不拷贝其代码与数据 → 无 License 传染
+ * 线上站 http://deanchen.me/jiangshan-map/ 需联网；离线时给出提示
+ * ============================================================ */
+const ATLAS_MAP_URL = 'http://deanchen.me/jiangshan-map/';
+
+function openAtlasMap() {
+  if (navigator.onLine === false) { toast('🗺️ 历史地图需要联网，请连上网络再打开'); return; }
+  const close = () => {
+    Sound.tap();
+    ov.remove();
+  };
+  const ov = h('div', { class: 'atlas-overlay' },
+    h('div', { class: 'atlas-bar' },
+      h('span', { class: 'atlas-title' }, '🗺️ 江山时序 · 中国历史交互地图'),
+      h('button', { class: 'btn small', onclick: () => window.open(ATLAS_MAP_URL, '_blank') }, '↗ 新窗口'),
+      h('button', { class: 'btn btn-main small', onclick: close }, '✕ 关闭')
+    ),
+    h('iframe', { src: ATLAS_MAP_URL, class: 'atlas-frame', allow: 'fullscreen' })
+  );
+  document.body.appendChild(ov);
+}

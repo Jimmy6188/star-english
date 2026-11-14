@@ -4,6 +4,7 @@
  * 结构：lines[{who,t}] / miss 挖空行下标 / answer 正确句 / opts 3 个干扰句 / tip 中文解析
  * 干扰句取自相近场景（语法对但上下文不接），tip 讲清"看哪句线索选它"
  * 语料口径：A2 词汇 + 外研四上学过的话题（学校/爱好/食物/天气/动物/购物/出行/计划）
+ * 题量：v40 24 段 + v44 新增 16 段（购物/图书馆/问路/点餐/失物招领/家务…）= 40 段
  * ============================================================ */
 
 const KET_DIALOGUES = [
@@ -318,5 +319,213 @@ const KET_DIALOGUES = [
     answer: "Great! Let's meet at the cinema at two.",
     opts: ["I do my homework every evening.", "The hospital is very big.", "She was late this morning."],
     tip: '约好周日看电影，这句应定细节"两点电影院见"。'
+  },
+  {
+    id: 'k25', topic: '购物', emoji: '🛍️',
+    lines: [
+      { who: 'Ben', t: 'Excuse me. How much is this blue school bag?' },
+      { who: 'Amy', t: "It's twenty-five yuan." },
+      { who: 'Ben', t: '' },
+      { who: 'Amy', t: 'At the cash desk over there.' }
+    ],
+    miss: 2,
+    answer: "Great, I'll take it. Where can I pay?",
+    opts: ['My bag is heavier than yours.', 'There are twelve months in a year.', 'We went to the park by bus.'],
+    tip: '下句指了收银台的位置，说明这句在说"我买了"并问"在哪儿付钱"。'
+  },
+  {
+    id: 'k26', topic: '图书馆', emoji: '📖',
+    lines: [
+      { who: 'Ben', t: 'How long can I keep this storybook?' },
+      { who: 'Amy', t: 'Two weeks. You must give it back before May 20th.' },
+      { who: 'Ben', t: '' },
+      { who: 'Amy', t: "Don't worry. You can come and renew it once." }
+    ],
+    miss: 2,
+    answer: "What if I can't finish reading it in time?",
+    opts: ['I usually walk to school.', 'The film starts at seven.', 'My favourite season is autumn.'],
+    tip: '下句安慰"别担心，可以续借一次"，说明这句在问"到时候看不完怎么办"。'
+  },
+  {
+    id: 'k27', topic: '生日会', emoji: '🎂',
+    lines: [
+      { who: 'Amy', t: 'Ben, my birthday party is this Saturday at my home.' },
+      { who: 'Ben', t: 'Great! What time does it start?' },
+      { who: 'Amy', t: 'At three in the afternoon.' },
+      { who: 'Ben', t: '' }
+    ],
+    miss: 3,
+    answer: "OK! I'll bring you a surprise gift.",
+    opts: ['The bus is very crowded today.', 'I lost my pencil case yesterday.', 'Dinner is ready in the kitchen.'],
+    tip: '约好了时间地点，这句应是开心答应并说要带礼物。'
+  },
+  {
+    id: 'k28', topic: '看病', emoji: '🤒',
+    lines: [
+      { who: 'Ben', t: "Amy, you didn't come to school yesterday." },
+      { who: 'Amy', t: 'I had a bad cold and stayed in bed.' },
+      { who: 'Ben', t: '' },
+      { who: 'Amy', t: 'Much better, thanks. The doctor gave me some medicine.' }
+    ],
+    miss: 2,
+    answer: 'Are you feeling better now?',
+    opts: ['What did you have for lunch?', 'Where is the school gate?', 'How do you like this book?'],
+    tip: '下句回答"好多了，医生开了药"，说明这句在问"现在好点了吗"。'
+  },
+  {
+    id: 'k29', topic: '问路', emoji: '🗺️',
+    lines: [
+      { who: 'Ben', t: 'Excuse me, how can I get to the train station?' },
+      { who: 'Amy', t: 'Go straight and turn left at the second crossing.' },
+      { who: 'Ben', t: '' },
+      { who: 'Amy', t: "About ten minutes. It's quite near." }
+    ],
+    miss: 2,
+    answer: 'How long does it take on foot?',
+    opts: ['The train is faster than the bus.', 'I want to be a driver.', "I don't like science lessons."],
+    tip: '下句回答"走路大约十分钟"，说明这句在问"要走多久"。'
+  },
+  {
+    id: 'k30', topic: '校园社团', emoji: '🎤',
+    lines: [
+      { who: 'Amy', t: 'I joined the school singing club last week.' },
+      { who: 'Ben', t: 'Really? When do you practice?' },
+      { who: 'Amy', t: 'Every Friday after class.' },
+      { who: 'Ben', t: '' }
+    ],
+    miss: 3,
+    answer: 'Sounds fun! Can I join the club too?',
+    opts: ['My ruler is on the floor.', 'Friday is the sixth day of the week.', 'The sun sets in the west.'],
+    tip: '听完社团介绍，这句应是表示感兴趣并想一起参加。'
+  },
+  {
+    id: 'k31', topic: '宠物', emoji: '🐶',
+    lines: [
+      { who: 'Ben', t: 'We have a new puppy at home!' },
+      { who: 'Amy', t: 'What does it look like?' },
+      { who: 'Ben', t: "It's white with two big ears." },
+      { who: 'Amy', t: '' }
+    ],
+    miss: 3,
+    answer: "How lovely! What's its name?",
+    opts: ['Puppies grow up very slowly.', "I don't eat vegetables.", 'It rained all day yesterday.'],
+    tip: '听完小狗的样子，这句应该是夸可爱并问名字。'
+  },
+  {
+    id: 'k32', topic: '旅行准备', emoji: '🧳',
+    lines: [
+      { who: 'Amy', t: "We're going to Beijing next week!" },
+      { who: 'Ben', t: 'What will you take with you?' },
+      { who: 'Amy', t: 'Some clothes, my camera and a map.' },
+      { who: 'Ben', t: '' }
+    ],
+    miss: 3,
+    answer: "Don't forget your umbrella. It may rain.",
+    opts: ['Beijing is the capital of China.', 'My camera is made in Japan.', 'I like trains better than planes.'],
+    tip: '列完行李清单，这句应是提醒别忘了带东西。'
+  },
+  {
+    id: 'k33', topic: '餐厅点餐', emoji: '🍲',
+    lines: [
+      { who: 'Ben', t: 'What would you like, Amy?' },
+      { who: 'Amy', t: 'A bowl of beef noodles, please.' },
+      { who: 'Ben', t: 'Anything to drink?' },
+      { who: 'Amy', t: '' }
+    ],
+    miss: 3,
+    answer: 'A glass of orange juice, please.',
+    opts: ['The noodles are twenty yuan.', 'I cooked dinner yesterday.', 'Juice is good for our health.'],
+    tip: '问的是"喝点什么"，这句应该点一杯饮料。'
+  },
+  {
+    id: 'k34', topic: '失物招领', emoji: '👟',
+    lines: [
+      { who: 'Amy', t: "I can't find my PE shoes anywhere." },
+      { who: 'Ben', t: 'Where did you last see them?' },
+      { who: 'Amy', t: 'In the playground, I think.' },
+      { who: 'Ben', t: '' }
+    ],
+    miss: 3,
+    answer: "Let's go and ask the lost-and-found office.",
+    opts: ['The playground is very big.', 'PE is my favourite lesson.', 'Shoes are made of leather.'],
+    tip: '说完最后见到的地方，这句应该是提议去哪儿找。'
+  },
+  {
+    id: 'k35', topic: '改约时间', emoji: '🎹',
+    lines: [
+      { who: 'Ben', t: 'Shall we play table tennis at four today?' },
+      { who: 'Amy', t: 'Sorry, I have a piano lesson at four.' },
+      { who: 'Ben', t: 'Then what about five thirty?' },
+      { who: 'Amy', t: '' }
+    ],
+    miss: 3,
+    answer: 'Five thirty is fine. See you at the sports hall!',
+    opts: ['The piano is very heavy.', 'I practice the piano every day.', 'Table tennis came from England.'],
+    tip: '改了时间后，这句应是愉快地确认新时间和地点。'
+  },
+  {
+    id: 'k36', topic: '家务帮忙', emoji: '🧹',
+    lines: [
+      { who: 'Amy', t: 'Mum asks us to help with the housework.' },
+      { who: 'Ben', t: 'OK. What can I do?' },
+      { who: 'Amy', t: 'You can water the flowers and sweep the floor.' },
+      { who: 'Ben', t: '' }
+    ],
+    miss: 3,
+    answer: 'No problem. And you can wash the dishes.',
+    opts: ['Flowers need water every day.', 'The floor is made of wood.', 'Housework is hard work.'],
+    tip: '分完工后，这句应是接下任务并安排对方做什么。'
+  },
+  {
+    id: 'k37', topic: '游泳课', emoji: '🏊',
+    lines: [
+      { who: 'Ben', t: 'We have a swimming lesson tomorrow.' },
+      { who: 'Amy', t: 'Great! Where do you have it?' },
+      { who: 'Ben', t: 'At the pool near the park.' },
+      { who: 'Amy', t: '' }
+    ],
+    miss: 3,
+    answer: 'Take your goggles and a towel with you.',
+    opts: ['The park is beautiful in spring.', 'Swimming is a water sport.', 'Tomorrow is Tuesday.'],
+    tip: '说明天去游泳，这句应是提醒带上要用的东西。'
+  },
+  {
+    id: 'k38', topic: '假期见闻', emoji: '🏞️',
+    lines: [
+      { who: 'Amy', t: 'How was your winter holiday?' },
+      { who: 'Ben', t: 'Wonderful! I visited my grandparents in the south.' },
+      { who: 'Amy', t: 'What did you do there?' },
+      { who: 'Ben', t: '' }
+    ],
+    miss: 3,
+    answer: 'We climbed hills and made rice cakes.',
+    opts: ['The south is warmer in winter.', 'My grandparents are very old.', 'Winter is my favourite season.'],
+    tip: '问的是"在那儿做了什么"，这句应该回答做过的事情。'
+  },
+  {
+    id: 'k39', topic: '坐公交', emoji: '🚌',
+    lines: [
+      { who: 'Ben', t: 'Does this bus go to the museum?' },
+      { who: 'Amy', t: 'Yes, but you should get off at the fifth stop.' },
+      { who: 'Ben', t: 'How much is the ticket?' },
+      { who: 'Amy', t: '' }
+    ],
+    miss: 3,
+    answer: 'Two yuan for children, I think.',
+    opts: ['The museum opens at nine.', 'Buses are slower than trains.', 'The fifth stop is near a bank.'],
+    tip: '问的是票价，这句应该回答多少钱。'
+  },
+  {
+    id: 'k40', topic: '班级活动', emoji: '🌳',
+    lines: [
+      { who: 'Amy', t: 'Our class will plant trees on the hill this Friday.' },
+      { who: 'Ben', t: 'Cool! What should we bring?' },
+      { who: 'Amy', t: 'Some water and a small spade.' },
+      { who: 'Ben', t: '' }
+    ],
+    miss: 3,
+    answer: "OK. Let's meet at the school gate at eight.",
+    opts: ['Trees are green in summer.', 'The hill is far from the river.', 'A spade is a tool for digging.'],
+    tip: '说好带的东西，这句应约好时间和集合地点。'
   }
 ];

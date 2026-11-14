@@ -60,6 +60,7 @@ const Store = (() => {
       sentence: { runs: 0, done: [], best: 0, layout: 'abc', hard: {} }, // 句子默写：轮数/已默写句子 id/最好成绩/键盘排列(abc|qwerty)/难词复现计数
       junior: { seen: {} },  // 每日一星：已收下的初中知识卡 id -> 日期
       writing: { entries: [] }, // 小练笔工坊（v38）：作品 {at,id,title,emoji,open,mid,end,photo,stars,note,reviewed}
+      ketwords: { learned: {}, wrong: [] }, // KET 词汇站（v44）：已学词 id -> 日期 · 待复习错词
       arena: { spell: { best: 0, plays: 0 }, clue: { best: 0, plays: 0 }, idiom: { best: 0, plays: 0 }, roo: { best: 0, plays: 0 }, flower: { best: 0, plays: 0 }, hanzi: { best: 0, plays: 0 } }, // 竞技场纪录（v38+v40）
       ket: { done: [] },   // KET补全对话（v40）：已练过的对话 id
       kpCheck: {},         // 知识点小测结果（v42）：id -> {at, ok, total, verdict}
@@ -89,6 +90,7 @@ const Store = (() => {
     if (!state.phonics) state.phonics = { rounds: 0 };
     if (!state.shop) state.shop = { rewards: [], pending: [], history: [] };
     if (state.today && state.today.coinsEarned === undefined) state.today.coinsEarned = 0;
+    if (!state.ketwords) state.ketwords = { learned: {}, wrong: [] }; /* v44：KET 词汇站 */
     if (state.today && state.today.cnRounds === undefined) state.today.cnRounds = 0;
     if (state.today && state.today.mint === undefined) state.today.mint = {};
     if (state.today && state.today.capHit === undefined) state.today.capHit = false;
@@ -631,6 +633,36 @@ const Store = (() => {
   function kpCheckGet(id) { return (state.kpCheck && state.kpCheck[id]) || null; }
   function finishKet(correct, total) {
     const got = earnScaled('ket', correct * 4 + (correct === total ? 6 : 0));
+    checkBadges();
+    save();
+    return got;
+  }
+  /* ---------- KET 词汇站（v44，词库 CC BY 4.0 来自 Word Atlas） ---------- */
+  /* 首学新词：收进图鉴，答对 +2、看过 +1（重学已学词不再发币） */
+  function markKetWord(id, ok) {
+    if (!state.ketwords) state.ketwords = { learned: {}, wrong: [] };
+    if (state.ketwords.learned[id]) return 0;
+    state.ketwords.learned[id] = todayStr();
+    const got = earnScaled('ketword', ok ? 2 : 1);
+    checkBadges();
+    save();
+    return got;
+  }
+  function addKetWrong(id) {
+    if (!state.ketwords) state.ketwords = { learned: {}, wrong: [] };
+    const w = state.ketwords.wrong;
+    if (!w.includes(id)) w.push(id);
+    if (w.length > 60) state.ketwords.wrong = w.slice(-60);
+    save();
+  }
+  function clearKetWrong(id) {
+    const w = (state.ketwords && state.ketwords.wrong) || [];
+    const i = w.indexOf(id);
+    if (i >= 0) w.splice(i, 1);
+    save();
+  }
+  function finishKetWords(correct, total) {
+    const got = earnScaled('ketword', correct === total && total > 0 ? 5 : 0);
     checkBadges();
     save();
     return got;
@@ -1211,7 +1243,7 @@ const Store = (() => {
     addMathWrong, clearMathWrong, finishMathRun, setMath, addPracticeWrong, clearPracticeWrong,
     finishPracticeRun, finishSubjectRound, finishThinkRun,
     markCnStar, markCnRead, addCnWrong, clearCnWrong, finishCnRead, finishCnWords, finishCnGuwen, markPhonicsRound,
-    markKetDone, finishKet,
+    markKetDone, finishKet, markKetWord, addKetWrong, clearKetWrong, finishKetWords,
     kpCheckSave, kpCheckGet,
     subjectWeek, subjectAddRound, subjectMarkDone, subjectWrong, subjectAddWrong, subjectClearWrong,
     addShopReward, removeShopReward, redeemReward, approveRedeem, rejectRedeem, tomorrowDueCount,

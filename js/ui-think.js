@@ -195,44 +195,229 @@ const MathThink = {
     return shuffle(gens).slice(0, 5);
   },
 
-  /* 24 点（选择式）：3 个数配运算符，选出结果是 24 的算式 */
-  gen24() {
-    const OPS = [['+', (a, b) => a + b], ['−', (a, b) => a - b], ['×', (a, b) => a * b], ['÷', (a, b) => (b !== 0 && a % b === 0 ? a / b : null)]];
-    for (let t = 0; t < 80; t++) {
-      const ns = [this.r(1, 9), this.r(1, 9), this.r(1, 9)];
-      const exprs = [];
-      for (const [o1i, o2i] of [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3], [2, 0], [3, 0], [2, 1], [3, 1]]) {
-        const [o1, f1] = OPS[o1i], [o2, f2] = OPS[o2i];
-        for (const [x, y, z] of [[0, 1, 2], [1, 2, 0]]) {
-          const m = f1(ns[x], ns[y]);
-          if (m === null || m < 0) continue;
-          const v = f2(m, ns[z]);
-          if (v === null || v < 0) continue;
-          const needP = !((o1 === '×' || o1 === '÷') && (o2 === '×' || o2 === '÷'));
-          const text = needP ? `(${ns[x]} ${o1} ${ns[y]}) ${o2} ${ns[z]}` : `${ns[x]} ${o1} ${ns[y]} ${o2} ${ns[z]}`;
-          if (!exprs.some(e => e.text === text)) exprs.push({ text, v });
+  /* ---------- 24 点（v44 自由拼式）：给 4 个数，孩子自己拼算式算出 24，鼓励多种算法 ----------
+   * 出题内置求解器保证有解，优先挑「整数步可解且至少两种算法」的题；提示给一种参考解法
+   * 判定：4 个数每个恰好用一次、括号配对、语法合法、结果 = 24（分数路径也算对，如 8÷(3−8÷3)） */
+  gcd(a, b) { while (b) { const t = a % b; a = b; b = t; } return a || 1; },
+  rn(n, d) {
+    if (d < 0) { n = -n; d = -d; }
+    const g = this.gcd(Math.abs(n), d);
+    return { n: n / g, d: d / g };
+  },
+  rOp(op, a, b) {
+    if (op === '+') return this.rn(a.n * b.d + b.n * a.d, a.d * b.d);
+    if (op === '−') return this.rn(a.n * b.d - b.n * a.d, a.d * b.d);
+    if (op === '×') return this.rn(a.n * b.n, a.d * b.d);
+    return b.n === 0 ? null : this.rn(a.n * b.d, a.d * b.n);
+  },
+  /* 子算式打印：子级优先级低于父级，或同级且在右侧时加括号（右侧同级括号冗余但绝不歧义） */
+  fmtSide(node, myPrec, isRight) {
+    const needP = node.prec < myPrec || (node.prec === myPrec && isRight && myPrec < 3);
+    return needP ? `( ${node.expr} )` : node.expr;
+  },
+  /* 求解器：穷举「任取两数合并」的全部路径，返回去重解 [{expr, canon, allInt}] */
+  solve24(nums) {
+    const found = new Map();
+    const step = list => {
+      if (list.length === 1) {
+        const it = list[0];
+        if (it.v.n === 24 && it.v.d === 1 && !found.has(it.canon)) found.set(it.canon, it);
+        return;
+      }
+      for (let i = 0; i < list.length; i++) {
+        for (let j = 0; j < list.length; j++) {
+          if (i === j) continue;
+          const a = list[i], b = list[j];
+          const rest = list.filter((_, k) => k !== i && k !== j);
+          for (const op of ['+', '−', '×', '÷']) {
+            if ((op === '+' || op === '×') && i > j) continue; /* + × 交换律只算一个方向 */
+            const v = this.rOp(op, a.v, b.v);
+            if (!v) continue;
+            const prec = (op === '+' || op === '−') ? 1 : 2;
+            const expr = `${this.fmtSide(a, prec, false)} ${op} ${this.fmtSide(b, prec, true)}`;
+            const canon = (op === '+' || op === '×')
+              ? `(${[a.canon, b.canon].sort().join(op)})`
+              : `(${a.canon}${op}${b.canon})`;
+            step([...rest, { v, expr, canon, prec, isCom: op === '+' || op === '×',
+              allInt: a.allInt && b.allInt && v.d === 1 }]);
+          }
         }
       }
-      const corr = exprs.filter(e => e.v === 24);
-      const wrongs = exprs.filter(e => e.v !== 24);
-      if (!corr.length || wrongs.length < 3) continue;
-      const c = this.pick(corr);
-      const ws = shuffle(wrongs).slice(0, 3);
-      const opts = shuffle([c.text, ...ws.map(e => e.text)]);
-      return {
-        kind: 'choice',
-        text: '24 点挑战：下面哪个算式的结果是 24？',
-        opts, ansIdx: opts.indexOf(c.text),
-        tip: `${c.text} = 24；其它三个算式的结果都不是 24（${ws.map(e => `${e.text}=${e.v}`).join('，')}）。`
-      };
-    }
-    /* 保底题 */
-    return {
-      kind: 'choice',
-      text: '24 点挑战：下面哪个算式的结果是 24？',
-      opts: ['8 + 3 + 1', '(8 × 3) × 1', '8 × 3 + 1', '8 × 3 − 1'], ansIdx: 1,
-      tip: '(8 × 3) × 1 = 24；其余分别等于 12、25、23。'
     };
+    step(nums.map(n => ({ v: { n, d: 1 }, expr: String(n), canon: String(n), prec: 3, isCom: true, allInt: true })));
+    return [...found.values()];
+  },
+  /* 孩子拼的算式 → 语法树（返回 null = 语法不完整） */
+  parse24(tokens) {
+    let pos = 0;
+    const peek = () => tokens[pos];
+    const expr = () => {
+      let node = term();
+      while (peek() === '+' || peek() === '−') { const op = tokens[pos++]; node = { op, l: node, r: term() }; }
+      return node;
+    };
+    const term = () => {
+      let node = factor();
+      while (peek() === '×' || peek() === '÷') { const op = tokens[pos++]; node = { op, l: node, r: factor() }; }
+      return node;
+    };
+    const factor = () => {
+      const t = peek();
+      if (t === '(') {
+        pos++;
+        const node = expr();
+        if (peek() !== ')') throw 'paren';
+        pos++;
+        return node;
+      }
+      if (typeof t === 'number') { pos++; return { leaf: t }; }
+      throw 'token';
+    };
+    try {
+      const node = expr();
+      if (pos !== tokens.length) return null;
+      return node;
+    } catch (e) { return null; }
+  },
+  evalTree(node) {
+    if (node.leaf != null) return { n: node.leaf, d: 1 };
+    const a = this.evalTree(node.l), b = this.evalTree(node.r);
+    if (!a || !b) return null;
+    return this.rOp(node.op, a, b);
+  },
+  canonTree(node) {
+    if (node.leaf != null) return String(node.leaf);
+    if (node.op === '+' || node.op === '×') return `(${[this.canonTree(node.l), this.canonTree(node.r)].sort().join(node.op)})`;
+    return `(${this.canonTree(node.l)}${node.op}${this.canonTree(node.r)})`;
+  },
+  /* 提交判定：draft = 还没拼完整不扣机会；wrong = 算式合法但结果不是 24；right = 答对 */
+  checkExpr24(item, toks) {
+    const used = toks.filter(x => x.t === 'n').map(x => x.slot);
+    if (used.length < 4) return { status: 'draft', msg: `还有 ${4 - used.length} 个数没用上哦，4 个数每个都要用一次` };
+    const tree = this.parse24(toks.map(x => x.t === 'n' ? x.v : x.v));
+    if (!tree) return { status: 'draft', msg: '算式还没写完整：括号要配对，运算符两边都要有数' };
+    const val = this.evalTree(tree);
+    if (!val) return { status: 'draft', msg: '除数不能是 0，换个思路～' };
+    if (val.n !== 24 || val.d !== 1) {
+      const vs = val.d === 1 ? String(val.n) : `${val.n}/${val.d}`;
+      return { status: 'wrong', valText: vs, canon: this.canonTree(tree), msg: `算出来是 ${vs}，不是 24，再想想！` };
+    }
+    return { status: 'right', canon: this.canonTree(tree) };
+  },
+  gen24() {
+    let best = null;
+    for (let t = 0; t < 40; t++) {
+      const ns = [this.r(1, 9), this.r(1, 9), this.r(1, 9), this.r(1, 9)];
+      const sols = this.solve24(ns);
+      if (!sols.length) continue;
+      const intSols = sols.filter(s => s.allInt);
+      const pool = (intSols.length ? intSols : sols).slice().sort((a, b) => a.expr.length - b.expr.length);
+      const cand = { nums: ns, sols, tipSol: pool[0], intN: intSols.length };
+      if (!best || cand.sols.length > best.sols.length) best = cand;
+      if (cand.sols.length >= 2 && cand.intN >= 2) { best = cand; break; }
+    }
+    if (!best) best = { nums: [2, 3, 4, 6], sols: this.solve24([2, 3, 4, 6]), tipSol: this.solve24([2, 3, 4, 6])[0] };
+    return {
+      kind: 'expr24',
+      nums: best.nums,
+      text: `24 点挑战：用 ${best.nums.join('、')} 这 4 个数算出 24（加减乘除、括号都行，每个数用一次）`,
+      tip: `参考解法：${best.tipSol.expr} = 24${best.sols.length > 1 ? ` · 这题至少有 ${best.sols.length} 种算法，能再找到别的吗？` : ''}`
+    };
+  },
+  /* 拼算式板（思维挑战场 / BOSS 综合卷共用）：数字块点一次用一次，✔ 提交判定
+   * cb('solved', {first, count}) 答对一种新算法 · cb('fail') 三次都错 · cb('finish') 孩子点完成 */
+  mount24pad(card, item, cb) {
+    const toks = [];
+    const usedSlots = new Set();
+    const found = new Set();
+    let attempts = 0, solvedN = 0, finished = false;
+    const exprEl = h('div', { class: 'drill-input expr24-line' }, '_');
+    const msgEl = h('div', { class: 'tiny cn-tip', style: 'min-height:18px;text-align:center' });
+    const shake = () => { exprEl.classList.add('shake'); setTimeout(() => exprEl.classList.remove('shake'), 450); };
+    const refresh = () => {
+      exprEl.textContent = toks.length ? toks.map(x => x.t === 'n' ? x.v : x.v).join(' ') : '_';
+      exprEl.classList.toggle('filled', toks.length > 0);
+    };
+    const numBtns = item.nums.map((n, i) => {
+      const b = h('button', {
+        class: 'drill-key num24', onclick: () => {
+          if (finished || usedSlots.has(i)) return;
+          Sound.tap();
+          usedSlots.add(i);
+          toks.push({ t: 'n', v: n, slot: i });
+          b.classList.add('used');
+          refresh();
+        }
+      }, String(n));
+      return b;
+    });
+    const op = sym => h('button', {
+      class: 'drill-key', onclick: () => {
+        if (finished) return;
+        Sound.tap();
+        toks.push({ t: 'o', v: sym });
+        refresh();
+      }
+    }, sym);
+    const popTok = () => {
+      if (finished || !toks.length) return;
+      Sound.tap();
+      const last = toks.pop();
+      if (last.t === 'n') { usedSlots.delete(last.slot); numBtns[last.slot].classList.remove('used'); }
+      refresh();
+    };
+    const clearToks = () => {
+      if (finished || !toks.length) return;
+      Sound.tap();
+      toks.length = 0;
+      usedSlots.clear();
+      numBtns.forEach(b => b.classList.remove('used'));
+      refresh();
+    };
+    const finishBtn = h('button', {
+      class: 'btn btn-main big', style: 'display:none;margin-top:10px', onclick: () => {
+        if (finished) return;
+        finished = true;
+        Sound.tap();
+        cb('finish');
+      }
+    }, '✅ 完成 →');
+    const submit = () => {
+      if (finished) return;
+      const r = this.checkExpr24(item, toks);
+      if (r.status === 'draft') { Sound.tap(); msgEl.textContent = r.msg; shake(); return; }
+      if (r.status === 'wrong') {
+        attempts++;
+        Sound.wrong();
+        msgEl.textContent = attempts >= 3 ? `${r.msg} 没关系，看看参考解法吧` : r.msg;
+        shake();
+        if (attempts >= 3) { finished = true; cb('fail'); cb('finish'); }
+        return;
+      }
+      if (found.has(r.canon)) { msgEl.textContent = '这种算法刚才已经算过啦，换一种新的试试！'; shake(); return; }
+      found.add(r.canon);
+      solvedN++;
+      const first = solvedN === 1;
+      msgEl.textContent = first ? '✅ 算出 24 了！还有别的算法吗？每找到一种新的 +2 🪙'
+        : (solvedN >= 3 ? `🎉 第 ${solvedN} 种算法也对了！你太会思考了` : `🎉 又一种新算法 +2 🪙！再找找看`);
+      finishBtn.style.display = '';
+      finishBtn.textContent = solvedN > 1 ? `✅ 完成（已找到 ${solvedN} 种算法）→` : '✅ 完成 →';
+      if (solvedN >= 3) { finished = true; setTimeout(() => cb('finish'), 600); }
+      else { toks.length = 0; usedSlots.clear(); numBtns.forEach(b => b.classList.remove('used')); refresh(); }
+      cb('solved', { first, count: solvedN });
+    };
+    card.appendChild(exprEl);
+    card.appendChild(h('div', { class: 'expr24-row' }, numBtns));
+    card.appendChild(h('div', { class: 'expr24-row' }, ['+', '−', '×', '÷'].map(op)));
+    card.appendChild(h('div', { class: 'expr24-row' },
+      op('('), op(')'),
+      h('button', { class: 'drill-key', onclick: popTok }, '⌫'),
+      h('button', { class: 'drill-key', onclick: clearToks }, '🗑️'),
+      h('button', { class: 'drill-key ok', onclick: submit }, '✔')
+    ));
+    card.appendChild(msgEl);
+    card.appendChild(finishBtn);
+    refresh();
   },
 
   /* ---------- 流程 ---------- */
@@ -296,6 +481,26 @@ setQuestSub('var(--accent)');
         h('button', { class: 'drill-key wide', onclick: () => key('del') }, '⌫'),
         h('button', { class: 'drill-key ok', onclick: () => key('ok') }, '✔')
       ));
+    } else if (item.kind === 'expr24') {
+      /* 自由拼 24：拼算板，答对后可继续探索新算法（每种 +2 🪙），点完成结算 */
+      let ok24 = false;
+      this.mount24pad(card, item, (type, p) => {
+        if (type === 'solved') {
+          if (p.first) {
+            ok24 = true;
+            Sound.correct();
+            const c = centerOf(card);
+            burst(c.x, c.y, { count: 14, colors: ['#58e08a', '#ffd166'], power: 70 });
+          } else {
+            Store.addCoins(2);
+            updateTop();
+            Sound.coin();
+            toast('🎉 又一种算法 +2 🪙');
+          }
+        }
+        if (type === 'fail') Sound.wrong();
+        if (type === 'finish') { if (ok24) this.correct++; this.revealCard(item, ok24); }
+      });
     } else {
       const optsEl = h('div', { class: 'cn-opts' });
       item.opts.forEach((t, i) => {

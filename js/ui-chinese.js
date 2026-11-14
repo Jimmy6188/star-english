@@ -125,6 +125,7 @@ const Chinese = {
       const judgeWrite = ok => {
         if (wasOkW !== null) return;
         wasOkW = ok;
+        wasOk = ok; /* v44 修复：下一题按钮读的是 wasOk，手写自评漏写导致"写对了"也被记答错 */
         if (ok) {
           Sound.correct();
           const c = centerOf(sentEl);

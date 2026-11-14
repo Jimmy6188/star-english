@@ -498,7 +498,8 @@ setQuestSub('var(--accent)');
       nextWrap.appendChild(h('button', { class: 'btn btn-main big', onclick: () => { Sound.tap(); self.idx++; self.next(); } }, '下一题 →'));
     } else {
       cardKids.push(slotsEl, ghostEl, tilesEl);
-      if (!this.bossMode) {
+      /* v44：全科自由练（BossAll free 模式）也开放提示；BOSS 周挑战仍然全程无提示 */
+      if (!this.bossMode || opts.bossHint) {
         cardKids.push(h('div', { class: 'row-gap center' },
           spellBtn,
           h('button', { class: 'btn', onclick: doHint }, '💡 提示一下 (-2🪙)')

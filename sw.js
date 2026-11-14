@@ -3,8 +3,9 @@
  * v38a：并入拼字擂台键盘布局切换/删除键归位修正（版本号不变，靠本行字节变化触发 SW 重装刷新预缓存）
  * v38b：app.js 注册加 updateViaCache:'none'（绕过 Pages CDN 缓存，修 Pad 上补丁刷不出）+ 新 SW 接管时页面自动重载一次（版本号仍不变）
  * v39：只出已学出题策略 + Boss⚡拔高 + KET对话/应用题专项/飞花令/听写大会 + 错题闭环 + 衣橱27件 + 万圣节活动（全量重预缓存，新增 data-ket/ui-ket）
- * v40：数独候选数 + 4/6/9 宫三档难度 + 知识点骨架/错题挂点 + 家长端知识地图/小测/复习路线 + 数学知识点闯关 + 5处内容纠错（全量重预缓存，新增 data-kp/ui-kp/data-math-kp） */
-const CACHE = 'star-english-v40';
+ * v40：数独候选数 + 4/6/9 宫三档难度 + 知识点骨架/错题挂点 + 家长端知识地图/小测/复习路线 + 数学知识点闯关 + 5处内容纠错（全量重预缓存，新增 data-kp/ui-kp/data-math-kp）
+ * v44：24点自由拼 + 英语拼写求助（仅自由练）+ 主科全达白屏修复 + 手写判分修复 + 小古文40篇 + KET对话40段 + KET词汇站（1735词）+ 江山时序外链（全量重预缓存，新增 data-ketwords/ui-ketwords） */
+const CACHE = 'star-english-v44';
 const ASSETS = [
   './',
   './index.html',
@@ -35,6 +36,8 @@ const ASSETS = [
   './js/ui-sentence.js',
   './js/data-ket.js',
   './js/ui-ket.js',
+  './js/data-ketwords.js',
+  './js/ui-ketwords.js',
   './js/data-junior-prep.js',
   './js/data-writing.js',
   './js/ui-writing.js',

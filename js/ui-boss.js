@@ -107,8 +107,12 @@ setQuestSub('var(--gold-strong)');
       add({ tag: '⚡ 英语 · 拔高拼句', boost: true, w: bw,
         run: (root, done) => this.runEn(bw, bmode, root, done) }, 'ben:' + bw.word.toLowerCase());
     }
-    /* 2) 语文：已学诗的诗句排序（考全诗结构记忆，一错即计失误但可排完） */
-    addRetryQ(() => this.cnOrderQ(), it => 'cnord:' + it.sig);
+    /* 2) 语文：已学诗的诗句排序（考全诗结构记忆，一错即计失误但仍可排完）。
+     * v40 遗留 bug 修复：cnOrderQ 只回题面没带 run，排到这题 renderOne 调 cur.run 直接抛异常白屏 */
+    addRetryQ(() => {
+      const oq = this.cnOrderQ();
+      return oq && { tag: oq.tag, boost: true, q: oq, run: (root, done) => this.runOrder(oq, root, done) };
+    }, it => 'cnord:' + it.q.sig);
     /* 3) 数学：两步生活应用题（与应用题专项共用出题器），数字键盘作答 */
     addRetryQ(() => {
       const app = MathDrill.genApp2();
@@ -271,6 +275,8 @@ setQuestSub('var(--gold-strong)');
     const opts = mode === 'spellWrite' ? { write: true }
       : mode === 'clozeSpell' ? { hardMode: true, decoys: true, cloze: true }
         : { hardMode: true, decoys: true };
+    /* v44 求助：仅全科自由练开放 💡提示（2🪙/次，与冒险模式同价）；BOSS 周挑战保持全程无提示 */
+    opts.bossHint = this.free;
     Quest.renderSpelling(w, false, opts, this.hdr());
   },
   /* 英语拼写结果面板：和其他题型一个节奏——看完解释，点确定再走 */
@@ -379,7 +385,45 @@ setQuestSub('var(--gold-strong)');
   },
   runThink(q, root, done) {
     if (q.kind === 'input') this.runInput(q, root, done);
+    else if (q.kind === 'expr24') this.runExpr24(q, root, done);
     else this.runChoice(q, root, done);
+  },
+  /* 24 点拼算式（v44）：共用 MathThink 拼算板；孩子多拼出一种新算法当场 +2 🪙 */
+  runExpr24(q, root, done) {
+    root.innerHTML = '';
+    root.appendChild(this.hdr());
+    let ok24 = false, solvedN = 0;
+    const card = h('div', { class: 'card drill-card' },
+      h('div', { class: 'drill-text', style: 'text-align:left' }, q.text),
+      h('div', { class: 'tiny', style: 'margin-bottom:2px' }, '把 4 个数都用上，加减乘除加括号都行，算出 24：'));
+    MathThink.mount24pad(card, q, (type, p) => {
+      if (type === 'solved') {
+        solvedN = p.count;
+        if (p.first) {
+          ok24 = true;
+          Sound.correct();
+          const c = centerOf(card);
+          burst(c.x, c.y, { count: 12, colors: ['#58e08a', '#ffd166'], power: 60 });
+        } else {
+          Store.addCoins(2);
+          updateTop();
+          Sound.coin();
+          toast('🎉 又一种算法 +2 🪙');
+        }
+      }
+      if (type === 'fail') Sound.wrong();
+      if (type === 'finish') {
+        root.innerHTML = '';
+        root.appendChild(this.hdr());
+        root.appendChild(h('div', { class: 'card drill-card center' },
+          h('div', { style: 'font-size:40px' }, ok24 ? '✅' : '💡'),
+          h('div', { class: 'intro-zh' }, ok24 ? (solvedN > 1 ? `拼对了！一共找到 ${solvedN} 种算法，太会思考了！` : '拼对了！') : '三次没拼出来也没关系，看看思路'),
+          h('div', { class: 'tiny', style: 'margin-top:8px;line-height:1.8' }, q.tip),
+          h('button', { class: 'btn btn-main big cn-next', style: 'margin-top:12px', onclick: () => { Sound.tap(); done(ok24); } }, '下一题 →')
+        ));
+      }
+    });
+    root.appendChild(card);
   },
 
   /* ---------- 流程 ---------- */

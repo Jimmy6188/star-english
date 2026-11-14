@@ -758,6 +758,41 @@ function renderHome() {
     ));
   }
 
+  /* KET 词汇站（v44）：word-atlas A1/A2 词库每日打卡，学会的词点亮图鉴 */
+  const kwSlot = $('#ketword-slot');
+  if (kwSlot && typeof KET_WORDS !== 'undefined') {
+    const kw = s.ketwords || { learned: {}, wrong: [] };
+    const kwLearned = Object.keys(kw.learned).length;
+    const kwToday = Object.values(kw.learned).filter(d => d === s.today.date).length;
+    kwSlot.innerHTML = '';
+    kwSlot.appendChild(h('div', { class: 'card math-card subj', style: '--sub:var(--accent)' },
+      h('div', { class: 'math-head' },
+        h('span', { class: 'math-emoji' }, '🔤'),
+        h('div', { class: 'math-info' },
+          h('div', { style: 'font-weight:800' }, 'KET 词汇站'),
+          h('div', { class: 'tiny' }, `图鉴已点亮 ${kwLearned}/${KET_WORDS.length} 词 · 今日新学 ${Math.min(kwToday, 5)}/5 · A1 优先每日 5 词`)
+        ),
+        h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); KetWords.start(); } }, '去打卡')
+      )
+    ));
+  }
+
+  /* 江山时序（v44）：外链开源中国历史交互地图（不拷代码无版权问题），亲子共览需联网 */
+  const atlasSlot = $('#atlas-slot');
+  if (atlasSlot) {
+    atlasSlot.innerHTML = '';
+    atlasSlot.appendChild(h('div', { class: 'card junior-card subj', style: '--sub:var(--gold-strong)' },
+      h('div', { class: 'math-head' },
+        h('span', { class: 'math-emoji' }, '🗺️'),
+        h('div', { class: 'math-info' },
+          h('div', { style: 'font-weight:800' }, '江山时序 · 历史地图'),
+          h('div', { class: 'tiny' }, '2400 年疆域变迁 · 古城名关 · 李白苏轼的足迹 · 拖动时间轴看朝代兴衰（亲子共览 · 需联网）')
+        ),
+        h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); openAtlasMap(); } }, '打开')
+      )
+    ));
+  }
+
   /* 每日一星：初中知识浸润卡（纯阅读不考试，看完 +1 🪙，重在潜移默化） */
   const jrSlot = $('#junior-slot');
   if (jrSlot && typeof JUNIOR_CARDS !== 'undefined') {
