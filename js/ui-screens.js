@@ -786,7 +786,7 @@ function renderHome() {
         h('span', { class: 'math-emoji' }, '🗺️'),
         h('div', { class: 'math-info' },
           h('div', { style: 'font-weight:800' }, '江山时序 · 历史地图'),
-          h('div', { class: 'tiny' }, '2400 年疆域变迁 · 古城名关 · 李白苏轼的足迹 · 拖动时间轴看朝代兴衰（亲子共览 · 需联网）')
+          h('div', { class: 'tiny' }, '2400 年疆域变迁 · 古城名关 · 李白苏轼的足迹 · 拖动时间轴看朝代兴衰（新窗口打开 · 亲子共览 · 需联网）')
         ),
         h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); openAtlasMap(); } }, '打开')
       )

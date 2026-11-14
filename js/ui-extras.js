@@ -193,24 +193,18 @@ const Extras = {
 
 /* ============================================================
  * 江山时序（v44）：开源中国历史交互地图（GPL-3.0 项目）
- * 只做外链/内嵌 iframe，不拷贝其代码与数据 → 无 License 传染
- * 线上站 http://deanchen.me/jiangshan-map/ 需联网；离线时给出提示
+ * 只做外链，不拷贝其代码与数据 → 无 License 传染
+ * v44b 改为新窗口打开：线上是 https 页面，而对方域名没有配
+ * HTTPS 证书（https 连不上、github.io 还 301 回 http），iframe
+ * 嵌 http 会被混合内容策略静默拦截 → 黑屏；顶级导航不受限。
+ * 需联网；离线时给出提示。
  * ============================================================ */
 const ATLAS_MAP_URL = 'http://deanchen.me/jiangshan-map/';
 
 function openAtlasMap() {
   if (navigator.onLine === false) { toast('🗺️ 历史地图需要联网，请连上网络再打开'); return; }
-  const close = () => {
-    Sound.tap();
-    ov.remove();
-  };
-  const ov = h('div', { class: 'atlas-overlay' },
-    h('div', { class: 'atlas-bar' },
-      h('span', { class: 'atlas-title' }, '🗺️ 江山时序 · 中国历史交互地图'),
-      h('button', { class: 'btn small', onclick: () => window.open(ATLAS_MAP_URL, '_blank') }, '↗ 新窗口'),
-      h('button', { class: 'btn btn-main small', onclick: close }, '✕ 关闭')
-    ),
-    h('iframe', { src: ATLAS_MAP_URL, class: 'atlas-frame', allow: 'fullscreen' })
-  );
-  document.body.appendChild(ov);
+  const win = window.open(ATLAS_MAP_URL, '_blank');
+  /* 个别内核拦截了弹窗就退回当前页跳转，保证一定能看到地图 */
+  if (!win) { toast('浏览器拦了新窗口，正在本页打开…'); window.location.href = ATLAS_MAP_URL; }
+  else toast('🗺️ 已在新窗口打开历史地图，返回时切回本页即可');
 }
