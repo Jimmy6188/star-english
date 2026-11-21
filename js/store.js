@@ -61,7 +61,9 @@ const Store = (() => {
       junior: { seen: {} },  // 每日一星：已收下的初中知识卡 id -> 日期
       writing: { entries: [] }, // 小练笔工坊（v38）：作品 {at,id,title,emoji,open,mid,end,photo,stars,note,reviewed}
       ketwords: { learned: {}, wrong: [] }, // KET 词汇站（v44）：已学词 id -> 日期 · 待复习错词
-      arena: { spell: { best: 0, plays: 0 }, clue: { best: 0, plays: 0 }, idiom: { best: 0, plays: 0 }, roo: { best: 0, plays: 0 }, flower: { best: 0, plays: 0 }, hanzi: { best: 0, plays: 0 } }, // 竞技场纪录（v38+v40）
+      enKp: { fams: [], dlgs: [], sents: [], scenes: [] }, // 英语知识点错题池（v45）：拼读词族/KET对话/句子默写/场景词卡 {id, kp}
+      scene: { words: {} }, // 场景词卡（v45 P1-C）：点读过的词 -> 日期
+      arena: { spell: { best: 0, plays: 0 }, clue: { best: 0, plays: 0 }, idiom: { best: 0, plays: 0 }, roo: { best: 0, plays: 0 }, flower: { best: 0, plays: 0, ocean: false }, hanzi: { best: 0, plays: 0 } }, // 竞技场纪录（v38+v40+v45海洋开关）
       ket: { done: [] },   // KET补全对话（v40）：已练过的对话 id
       kpCheck: {},         // 知识点小测结果（v42）：id -> {at, ok, total, verdict}
       stats: { drillsDone: 0, thinkDone: 0, boxesOpened: 0 }
@@ -111,6 +113,9 @@ const Store = (() => {
     if (!state.sentence.hard) state.sentence.hard = {}; /* v31：句中难词复现计数 */
     if (!state.sentence.newWords) state.sentence.newWords = {}; /* v32：句子默写生词本 */
     if (!state.kpCheck) state.kpCheck = {}; /* v42：知识点小测结果 */
+    if (!state.enKp) state.enKp = { fams: [], dlgs: [], sents: [], scenes: [] }; /* v45：英语知识点错题池 */
+    ['fams', 'dlgs', 'sents', 'scenes'].forEach(k => { if (!Array.isArray(state.enKp[k])) state.enKp[k] = []; });
+    if (!state.scene) state.scene = { words: {} }; /* v45：场景词卡 */
     if (!state.pet.outfits) state.pet.outfits = { owned: [], worn: {} };
     if (!Array.isArray(state.pet.kinds)) state.pet.kinds = ['bot']; /* v36：多物种伙伴 */
     if (!state.pet.kind || !state.pet.kinds.includes(state.pet.kind)) state.pet.kind = 'bot';
@@ -663,6 +668,35 @@ const Store = (() => {
   }
   function finishKetWords(correct, total) {
     const got = earnScaled('ketword', correct === total && total > 0 ? 5 : 0);
+    checkBadges();
+    save();
+    return got;
+  }
+  /* ---------- 英语知识点错题池（v45）：kind = fams 拼读词族 / dlgs KET对话 / sents 句子默写 ---------- */
+  function addEnWrong(kind, id, kp) {
+    if (!state.enKp) state.enKp = { fams: [], dlgs: [], sents: [] };
+    const pool = state.enKp[kind];
+    if (!pool) return;
+    if (!pool.some(x => x.id === id)) {
+      pool.push({ id, kp: kp || '' });
+      if (pool.length > 40) pool.splice(0, pool.length - 40); /* 只留最近 40 条 */
+      save();
+    }
+  }
+  function clearEnWrong(kind, id) {
+    const pool = state.enKp && state.enKp[kind];
+    if (!pool) return;
+    const next = pool.filter(x => x.id !== id);
+    if (next.length !== pool.length) { state.enKp[kind] = next; save(); }
+  }
+  /* ---------- 场景词卡（v45 P1-C） ---------- */
+  function markSceneWord(w) {
+    if (!state.scene) state.scene = { words: {} };
+    state.scene.words[w] = todayStr();
+    save();
+  }
+  function finishSceneQuiz(correct, total) {
+    const got = earnScaled('scene', correct * 2 + (correct === total && total > 0 ? 3 : 0));
     checkBadges();
     save();
     return got;
@@ -1244,6 +1278,7 @@ const Store = (() => {
     finishPracticeRun, finishSubjectRound, finishThinkRun,
     markCnStar, markCnRead, addCnWrong, clearCnWrong, finishCnRead, finishCnWords, finishCnGuwen, markPhonicsRound,
     markKetDone, finishKet, markKetWord, addKetWrong, clearKetWrong, finishKetWords,
+    addEnWrong, clearEnWrong, markSceneWord, finishSceneQuiz,
     kpCheckSave, kpCheckGet,
     subjectWeek, subjectAddRound, subjectMarkDone, subjectWrong, subjectAddWrong, subjectClearWrong,
     addShopReward, removeShopReward, redeemReward, approveRedeem, rejectRedeem, tomorrowDueCount,

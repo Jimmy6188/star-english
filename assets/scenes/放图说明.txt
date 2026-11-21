@@ -1,0 +1,10 @@
+场景词卡插画放这里 —— 12 张图，命名必须是：
+  sc01.jpg  sc02.jpg  sc03.jpg  sc04.jpg  sc05.jpg  sc06.jpg
+  sc07.jpg  sc08.jpg  sc09.jpg  sc10.jpg  sc11.jpg  sc12.jpg
+
+建议 1600×900 横图，单张 ≤ 250KB（太大先压缩）。
+prompt 在 tools/scene-prompts.md，任意图像模型（豆包/千问/即梦…）生成即可。
+
+放好后不用改代码：刷新页面自动生效（emoji 占位自动换成插画）。
+哪张图里物体位置和词牌对不上 → 改 js/data-scene.js 里该词的 x/y 百分比，不用重画。
+图片放上后在线打开过一次就会进离线缓存，之后断网也能看。

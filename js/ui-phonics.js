@@ -113,6 +113,7 @@ const Phonics = {
     this.items = this.buildRound();
     this.idx = 0;
     this.correct = 0;
+    this.famWrong = {}; /* 本组答错的词族（知识地图按它记英语薄弱点） */
     /* 本组出场的词族：主词族（题里考得最多的）完整讲解，陪练词族只露规律 */
     const fams = [...new Set(this.items.flatMap(q => [q.fam, q.fam2].filter(Boolean)))];
     const main = this.items.filter(q => q.fam).map(q => q.fam)
@@ -190,6 +191,8 @@ setQuestSub('var(--purple)');
             e.currentTarget.classList.add('wrong');
             const right = Array.from(optsEl.children).find((b, i) => q.opts[i].ok);
             if (right) right.classList.add('right');
+            this.famWrong[q.fam.id] = true;
+            if (q.fam2) this.famWrong[q.fam2.id] = true;
           }
           Array.from(optsEl.children).forEach(b => { b.disabled = true; });
           tipEl.innerHTML = (m.ok ? '✅ ' : '❌ ') + q.tip;
@@ -208,6 +211,11 @@ setQuestSub('var(--purple)');
     const total = this.items.length;
     const allOk = this.correct === total;
     const gain = Store.markPhonicsRound(this.correct, total);
+    /* 知识点错题闭环：本组答错的词族记入英语薄弱池，下组全对就自愈清掉（v45） */
+    [...new Set(this.items.flatMap(q => [q.fam, q.fam2].filter(Boolean)))].forEach(f => {
+      if (this.famWrong[f.id]) Store.addEnWrong('fams', f.id, (typeof KP_EN_FAM !== 'undefined' && KP_EN_FAM[f.id]) || '');
+      else Store.clearEnWrong('fams', f.id);
+    });
     Sound.gold();
     const root = $('#quest-root');
     root.innerHTML = '';

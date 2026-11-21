@@ -343,3 +343,16 @@ const SENT_WORD_ZH = {
   happy: '开心的', swimming: '游泳', after: '在……之后', like: '喜欢',
   books: '书', today: '今天', please: '请', stop: '停止', teeth: '牙齿', eyes: '眼睛'
 };
+
+/* ============================================================
+ * 知识点挂点（v45）：按 KP_EN_SENT 句式规则给整句挂 kp（规则按顺序首个命中生效）
+ * 没命中的句子不挂（宁缺毋滥）；data-kp.js 先于本文件加载
+ * ============================================================ */
+if (typeof KP_EN_SENT !== 'undefined') {
+  SENTENCE_BANK.forEach(s => {
+    if (s.kp) return;
+    for (const r of KP_EN_SENT) {
+      try { if (new RegExp(r.re).test(s.en)) { s.kp = r.kp; break; } } catch (e) { /* 规则异常不阻塞 */ }
+    }
+  });
+}

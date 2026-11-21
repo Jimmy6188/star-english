@@ -263,6 +263,16 @@ setQuestSub('var(--gold-strong)');
         h('div', { class: 'cn-poem-list' }, CN_POEMS_NEXT.map(p => this.poemRow(p)))
       ));
     }
+    /* 必背诗词榜分区（课标 75 篇，v45）：点亮不计入四上星河诗卷 */
+    if (typeof CN_POEMS_EXTRA !== 'undefined' && CN_POEMS_EXTRA.length) {
+      const stars = Store.state.chinese.stars;
+      const gotX = CN_POEMS_EXTRA.filter(p => stars[p.id]).length;
+      root.appendChild(h('div', { class: 'card drill-card' },
+        h('div', { class: 'drill-tag' }, '📜 必背诗词榜 · 课标 75 篇', h('span', { class: 'level-badge' }, `⭐ ${gotX}/${CN_POEMS_EXTRA.length}`)),
+        h('div', { class: 'tiny', style: 'margin:6px 0 2px' }, '教育部课标推荐的小学必背古诗（这里的 41 首 + 星河诗卷里的 34 首 = 75 篇）。从一年级到六年级的宝贝诗都在这儿，点亮一颗算一颗！'),
+        h('div', { class: 'cn-poem-list' }, CN_POEMS_EXTRA.map(p => this.poemRow(p)))
+      ));
+    }
   },
 
   /* ---------- 诗词学习页（未学诗先学后考） ---------- */
@@ -338,8 +348,10 @@ setQuestSub('var(--gold-strong)');
     const qs = [];
     const i = Math.floor(Math.random() * (p.lines.length - 1));
     const correctLine = p.lines[i + 1];
-    /* 干扰项从四上 + 四下预习全池抽，避免挑战预习诗时选项全来自本册 */
-    const allPoems = (typeof CN_POEMS_NEXT !== 'undefined') ? CN_POEMS.concat(CN_POEMS_NEXT) : CN_POEMS;
+    /* 干扰项从四上 + 四下预习 + 必背榜全池抽，避免挑战扩展诗时选项全来自本册 */
+    const allPoems = CN_POEMS
+      .concat(typeof CN_POEMS_NEXT !== 'undefined' ? CN_POEMS_NEXT : [])
+      .concat(typeof CN_POEMS_EXTRA !== 'undefined' ? CN_POEMS_EXTRA : []);
     const others = shuffle(allPoems.filter(x => x.id !== p.id).map(x => x.lines[Math.min(i + 1, x.lines.length - 1)])).slice(0, 3);
     const lineQ = {
       q: `“${p.lines[i]}”的下一句是？`,

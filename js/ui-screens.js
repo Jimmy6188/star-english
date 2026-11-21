@@ -777,6 +777,24 @@ function renderHome() {
     ));
   }
 
+  /* 场景词卡（v45 P1-C）：12 个类别场景，点标签学词 + 两题型小测 */
+  const scSlot = $('#scene-slot');
+  if (scSlot && typeof SCENE_CARDS !== 'undefined') {
+    scSlot.innerHTML = '';
+    const scLearned = (s.scene && Object.keys(s.scene.words).length) || 0;
+    const scTotal = SCENE_CARDS.reduce((n, x) => n + x.words.length, 0);
+    scSlot.appendChild(h('div', { class: 'card junior-card subj', style: '--sub:var(--accent)' },
+      h('div', { class: 'math-head' },
+        h('span', { class: 'math-emoji' }, '🖼️'),
+        h('div', { class: 'math-info' },
+          h('div', { style: 'font-weight:800' }, '场景词卡 · 一类词住进一幅画'),
+          h('div', { class: 'tiny' }, `12 个场景 72 词 · 点词牌听音认词 · 听音点义 / 看词点义 · 已学 ${scLearned}/${scTotal} 词`)
+        ),
+        h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); SceneUI.openHub(); } }, '进去')
+      )
+    ));
+  }
+
   /* 江山时序（v44）：外链开源中国历史交互地图（不拷代码无版权问题），亲子共览需联网 */
   const atlasSlot = $('#atlas-slot');
   if (atlasSlot) {
@@ -789,6 +807,36 @@ function renderHome() {
           h('div', { class: 'tiny' }, '2400 年疆域变迁 · 古城名关 · 李白苏轼的足迹 · 拖动时间轴看朝代兴衰（新窗口打开 · 亲子共览 · 需联网）')
         ),
         h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); openAtlasMap(); } }, '打开')
+      )
+    ));
+  }
+
+  /* 每日一诗（v45）：课标必背榜轮换一首，听一遍或点进学习页，纯加餐不发币 */
+  const paSlot = $('#poemaday-slot');
+  if (paSlot && typeof CN_POEMS_EXTRA !== 'undefined' && CN_POEMS_EXTRA.length) {
+    paSlot.innerHTML = '';
+    const epoch = new Date('2026-01-01T00:00:00');
+    const dayN = Math.floor((new Date(new Date().toLocaleDateString('en-CA') + 'T00:00:00') - epoch) / 86400000);
+    const dp = CN_POEMS_EXTRA[Math.abs(dayN) % CN_POEMS_EXTRA.length];
+    const stars = s.chinese.stars || {};
+    const dpState = stars[dp.id] ? '⭐ 已点亮' : ((s.chinese.learned || {})[dp.id] ? '📖 学过' : '🌑 未学');
+    paSlot.appendChild(h('div', { class: 'card junior-card subj', style: '--sub:var(--gold-strong)' },
+      h('div', { class: 'math-head' },
+        h('span', { class: 'math-emoji' }, '🕯️'),
+        h('div', { class: 'math-info' },
+          h('div', { style: 'font-weight:800' }, `每日一诗 · 《${dp.title}》 ${dp.dynasty}·${dp.author}`),
+          h('div', { class: 'tiny' }, `${dp.lines.slice(0, 2).join('，')}…… · ${dpState} · 必背榜第 ${dp.no} 篇`)
+        ),
+        h('button', { class: 'btn small', title: '听全诗', onclick: e => {
+          Sound.tap();
+          const btn = e.currentTarget;
+          if (btn.dataset.speaking === '1') { Sound.stopSpeak(); btn.dataset.speaking = '0'; btn.textContent = '🔊'; return; }
+          btn.dataset.speaking = '1'; btn.textContent = '⏹️';
+          Sound.speak(`《${dp.title}》，${dp.dynasty}代，${dp.author}。` + dp.lines.join('，') + '。', 0.82, () => {
+            btn.dataset.speaking = '0'; btn.textContent = '🔊';
+          });
+        } }, '🔊'),
+        h('button', { class: 'btn btn-main small', onclick: () => { Sound.tap(); showScreen('quest'); Chinese.poemLearn(dp); } }, '学它')
       )
     ));
   }
@@ -1384,12 +1432,17 @@ function calDetail(ds, today) {
 function kpWeakList(limit) {
   if (typeof KP === 'undefined') return [];
   const s = Store.state;
+  const enKp = s.enKp || {};
   const pools = [
     ['数学', s.math.wrong || []],
     ['数学', s.math.wrongP || []],
     ['数学', ((s.subjects || {})['math-kp'] || {}).wrong || []],
     ['语文', (s.chinese && s.chinese.wrong) || []],
-    ['道法', ((s.subjects || {}).daofa || {}).wrong || []]
+    ['道法', ((s.subjects || {}).daofa || {}).wrong || []],
+    ['英语', enKp.fams || []],
+    ['英语', enKp.dlgs || []],
+    ['英语', enKp.sents || []],
+    ['英语', enKp.scenes || []]
   ];
   const cnt = {};
   pools.forEach(([src, list]) => list.forEach(x => {
@@ -1463,7 +1516,7 @@ function renderParent() {
     const kpCard = h('div', { class: 'card' },
       h('div', { class: 'sec-title' }, '🎯 知识地图'),
       h('div', { class: 'tiny', style: 'margin-bottom:6px' },
-        '把错题按知识点归类，并提示"需要先会"的更早知识点。每条可以「🎯 测一测」（3 道选择题：全对=会 / 对 2=不稳 / ≤1=不会），也可以用「🗺 期末复习路线」排出先复习的顺序。已挂点：数学（口算/练习场/应用题）、道法、语文诗词与小古文；科学、英语因教材版本不同暂不挂点。'),
+        '把错题按知识点归类，并提示"需要先会"的更早知识点。每条可以「🎯 测一测」（3 道选择题：全对=会 / 对 2=不稳 / ≤1=不会），也可以用「🗺 期末复习路线」排出先复习的顺序。已挂点：数学（口算/练习场/应用题）、道法、语文诗词与小古文、英语（拼读词族/KET对话/句子默写，按知识点挂）；科学因教材版本不同暂不挂点。'),
       weak.length ? weak.map(w => {
         const k = KP.get(w.id);
         const src = Object.keys(w.src).join('·');

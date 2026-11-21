@@ -7,7 +7,7 @@
  * v44：24点自由拼 + 英语拼写求助（仅自由练）+ 主科全达白屏修复 + 手写判分修复 + 小古文40篇 + KET对话40段 + KET词汇站（1735词）+ 江山时序外链（全量重预缓存，新增 data-ketwords/ui-ketwords）
  * v44b：江山时序改新窗口打开（对方域名无 HTTPS，https 页面 iframe 嵌 http 被混合内容拦截黑屏；版本号不变，靠本行字节变化触发 SW 重装刷新预缓存）
  * v45：修 Pad 上补丁刷不出来——①页面导航改网络优先（3 秒超时回缓存），HTML 不再永远吃旧缓存；②预缓存改逐文件容错，个别下载失败不卡死整轮更新；③HTML 用 cache:'reload' 每次导航强制回源（全量重预缓存） */
-const CACHE = 'star-english-v45';
+const CACHE = 'star-english-v46';
 const ASSETS = [
   './',
   './index.html',
@@ -26,6 +26,7 @@ const ASSETS = [
   './js/ui-think.js',
   './js/ui-phonics.js',
   './js/data-chinese.js',
+  './js/data-poems-extra.js',
   './js/data-kp.js',
   './js/ui-subject.js',
   './js/data-science.js',
@@ -39,7 +40,9 @@ const ASSETS = [
   './js/data-ket.js',
   './js/ui-ket.js',
   './js/data-ketwords.js',
+  './js/data-scene.js',
   './js/ui-ketwords.js',
+  './js/ui-scene.js',
   './js/data-junior-prep.js',
   './js/data-writing.js',
   './js/ui-writing.js',

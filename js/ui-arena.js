@@ -603,12 +603,33 @@ const Arena = {
     burst(c.x, c.y, { count: 20, emojis: ['🦘', '⭐', '🔢'], power: 120 });
   },
 
-  /* ==================== 🌸 飞花令（v40：只从已学的诗里取句） ====================
-   * 每轮给一个"令字"，四句诗里只有一句藏着它；3 条命，连对越多分越高 */
+  /* ==================== 🌸 飞花令（v40 只从已学的诗取句；v45 加🌊诗词海洋）
+   * 每轮给一个"令字"，四句诗里只有一句藏着它；3 条命，连对越多分越高。
+   * 海洋模式：把课标必背榜的诗全部放进令池，遇到没学过的句子，答题后会
+   * 告诉你出处——一边接令一边认新诗。开关记在 arena.flower.ocean */
   flowerPool() {
     const all = (typeof CN_POEMS_NEXT !== 'undefined') ? CN_POEMS.concat(CN_POEMS_NEXT) : CN_POEMS;
     const learned = all.filter(p => (Store.state.chinese.learned || {})[p.id] || Store.state.chinese.stars[p.id]);
-    return learned.flatMap(p => p.lines);
+    const pool = learned.map(p => ({ t: '', p, extra: false }));
+    if (Store.state.arena.flower.ocean && typeof CN_POEMS_EXTRA !== 'undefined') {
+      CN_POEMS_EXTRA.forEach(p => pool.push({ t: '', p, extra: true }));
+    }
+    /* 展开成句子，同一句去重（多首诗偶有同句，出处留第一次出现的） */
+    const seen = new Set(), lines = [];
+    pool.forEach(e => e.p.lines.forEach(l => {
+      if (seen.has(l)) return;
+      seen.add(l);
+      lines.push({ t: l, from: e.p, extra: e.extra });
+    }));
+    return lines;
+  },
+
+  flowerOcean() {
+    const f = Store.state.arena.flower;
+    f.ocean = !f.ocean;
+    Store.save();
+    toast(f.ocean ? '🌊 诗词海洋已开：必背榜的诗句全部入池，答完会告诉你出处！' : '回到已学诗池（更稳，句句都学过）');
+    this.flNext();
   },
 
   flowerStart() {
@@ -622,16 +643,17 @@ const Arena = {
   flNext() {
     const lines = this.flowerPool();
     if (this.flLives <= 0 || this.flStreak >= 12) { this.flFinish(); return; }
-    let ch = '', correct = '', wrongs = [];
+    let ch = '', correct = null, wrongs = [];
     for (let t = 0; t < 40 && !ch; t++) {
       const cand = this.pick(lines);
-      const chars = shuffle(cand.split('').filter(c => /[\u3400-\u9fff]/.test(c)));
+      const chars = shuffle(cand.t.split('').filter(c => /[\u3400-\u9fff]/.test(c)));
       for (const c of chars) {
-        const others = lines.filter(l => l !== cand && !l.includes(c));
+        const others = lines.filter(l => l.t !== cand.t && !l.t.includes(c));
         if (others.length >= 3) { ch = c; correct = cand; wrongs = shuffle(others).slice(0, 3); break; }
       }
     }
     if (!ch) { this.flFinish(); return; } /* 令字凑不出就收局 */
+    const src = correct.from ? `🌊 出自《${correct.from.title}》·${correct.from.author}` : '';
     const root = $('#quest-root');
     root.innerHTML = '';
     const self = this;
@@ -652,7 +674,7 @@ const Arena = {
     root.appendChild(this.topBar(`🌸 飞花令 · 连对 ${this.flStreak}`, () => this.renderHub()));
     const optsEl = h('div', { class: 'cn-opts' });
     const answered = { v: false };
-    shuffle([{ t: correct, ok: true }, ...wrongs.map(t => ({ t, ok: false }))]).forEach(m => {
+    shuffle([{ t: correct.t, ok: true }, ...wrongs.map(w => ({ t: w.t, ok: false }))]).forEach(m => {
       optsEl.appendChild(h('button', {
         class: 'cn-opt', style: 'text-align:left',
         onclick: e => {
@@ -663,7 +685,7 @@ const Arena = {
             e.currentTarget.classList.add('right');
             const c = centerOf(e.currentTarget);
             burst(c.x, c.y, { count: 8, colors: ['#ff8fab'], power: 50 });
-            tipEl.textContent = `✅ “${correct}”里果然藏着“${ch}”！`;
+            tipEl.textContent = `✅ “${correct.t}”里果然藏着“${ch}”！${src}`;
             Array.from(optsEl.children).forEach(b => { b.disabled = true; });
             next(true);
           } else {
@@ -671,19 +693,22 @@ const Arena = {
             e.currentTarget.classList.add('wrong');
             Array.from(optsEl.children).forEach(b => {
               b.disabled = true;
-              if (b.textContent === correct) b.classList.add('right');
+              if (b.textContent === correct.t) b.classList.add('right');
             });
-            tipEl.textContent = `❌ 含“${ch}”的是：${correct}`;
+            tipEl.textContent = `❌ 含“${ch}”的是：${correct.t}${src}`;
             next(false);
           }
         }
       }, m.t));
     });
+    const oceanOn = !!Store.state.arena.flower.ocean;
     root.appendChild(h('div', { class: 'card drill-card center' },
-      h('div', { class: 'drill-tag' }, '🌸 飞花令 · 令字找句'),
+      h('div', { class: 'drill-tag' }, '🌸 飞花令 · 令字找句',
+        h('button', { class: 'btn small', style: 'margin-left:auto', onclick: () => { Sound.tap(); this.flowerOcean(); } },
+          oceanOn ? '🌊 海洋·开' : '🌊 海洋·关')),
       status,
       h('div', { style: 'font-size:64px;font-weight:800;margin:6px 0;color:var(--gold)' }, ch),
-      h('div', { class: 'tiny', style: 'margin-bottom:8px' }, '哪一句诗里藏着这个字？'),
+      h('div', { class: 'tiny', style: 'margin-bottom:8px' }, oceanOn ? '海洋模式：诗句来自必背榜 + 你学过的诗' : '哪一句诗里藏着这个字？'),
       optsEl, tipEl
     ));
     Sound.tap();
@@ -700,7 +725,7 @@ const Arena = {
       stamp,
       h('div', { class: 'finish-title' }, `飞花令连对 ${this.flStreak} 句！`),
       h('div', { class: 'finish-sub' }, `获得 +${res.got} 🪙${res.isBest ? ' · 🎉 新纪录！' : ` · 纪录 ${Store.state.arena.flower.best}`}`),
-      h('div', { class: 'tiny', style: 'margin-bottom:8px' }, '诗句全部来自你学过的诗——多学一首，令池就大一分'),
+      h('div', { class: 'tiny', style: 'margin-bottom:8px' }, Store.state.arena.flower.ocean ? '🌊 海洋模式：必背榜 + 学过的诗全入池' : '诗句全部来自你学过的诗——多学一首，令池就大一分（试试 🌊 海洋）'),
       h('div', { class: 'row-gap' },
         h('button', { class: 'btn', style: 'flex:1', onclick: () => { Sound.tap(); this.flowerStart(); } }, '再战一局'),
         h('button', { class: 'btn btn-main', style: 'flex:1', onclick: () => { Sound.tap(); this.renderHub(); } }, '回竞技场')

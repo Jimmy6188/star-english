@@ -1508,3 +1508,50 @@ html.hween #greet-title::after { content: ' 👻'; }
 .drill-key.num24 { background: var(--accent); color: #fff; font-weight: 900; min-width: 52px; }
 .drill-key.num24.used { opacity: .3; pointer-events: none; }
 .drill-input.shake { animation: shake .45s; }
+
+/* ============ 场景词卡（v45 P1-C） ============ */
+.scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-top: 8px; }
+.scene-tile { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; border-radius: 14px; background: var(--card2, rgba(255,255,255,.06)); border: 1px solid rgba(255,255,255,.1); cursor: pointer; }
+.scene-tile-emoji { font-size: 30px; }
+.scene-tile-name { font-weight: 700; font-size: 13px; }
+.scene-tile-prog { font-size: 11px; color: var(--dim, #9aa); }
+.scene-tile-prog.done { color: #58e08a; font-weight: 700; }
+
+.scene-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden;
+  background: linear-gradient(180deg, var(--sky, #cfe8ff) 0%, var(--sky, #cfe8ff) 46%, var(--ground, #a5d98b) 46%, var(--ground, #a5d98b) 100%);
+  border: 1px solid rgba(255,255,255,.14); }
+.scene-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.scene-emoji { position: absolute; transform: translate(-50%, -50%); font-size: clamp(26px, 5.5vw, 42px); filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); pointer-events: none; }
+.scene-tag { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 0;
+  padding: 3px 9px; border-radius: 10px; background: rgba(255,255,255,.92); border: 1.5px solid rgba(120,120,140,.35);
+  box-shadow: 0 2px 6px rgba(0,0,0,.22); cursor: pointer; line-height: 1.25; transition: transform .15s; }
+.scene-tag:active { transform: translate(-50%, -50%) scale(.94); }
+.scene-tag-w { font-weight: 800; font-size: 13px; color: #223; }
+.scene-tag-zh { font-size: 10px; color: #667; }
+.scene-tag.seen { border-color: #58e08a; }
+.scene-tag.seen::after { content: '✓'; position: absolute; top: -6px; right: -6px; font-size: 10px; background: #58e08a; color: #fff; border-radius: 50%; width: 14px; height: 14px; line-height: 14px; }
+.scene-tag.right { border-color: #58e08a; background: #e6fbe9; animation: scenePop .5s; }
+.scene-tag.wrong { border-color: #ff6b81; background: #ffe9ed; animation: shake .45s; }
+@keyframes scenePop { 0% { transform: translate(-50%,-50%) scale(1); } 45% { transform: translate(-50%,-50%) scale(1.22); } 100% { transform: translate(-50%,-50%) scale(1); } }
+
+.scene-prompt { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 4px 0 10px; }
+.scene-quizword { position: absolute; left: 50%; top: 8%; transform: translateX(-50%); font-size: clamp(24px, 5vw, 40px); font-weight: 900;
+  color: #223; background: rgba(255,255,255,.94); padding: 4px 20px; border-radius: 14px; box-shadow: 0 3px 10px rgba(0,0,0,.28); }
+
+.scene-wordcard { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: var(--card2, rgba(255,255,255,.06)); border: 1px solid rgba(255,255,255,.12); }
+.scene-w-head { display: flex; align-items: center; gap: 10px; }
+.scene-w-word { font-size: 22px; font-weight: 900; }
+.scene-w-uk { font-size: 13px; color: var(--dim, #9aa); }
+.scene-w-zh { font-size: 16px; font-weight: 700; margin-top: 2px; }
+.scene-w-ex { margin-top: 8px; }
+.scene-w-exen { font-size: 14px; cursor: pointer; }
+.scene-w-exzh { font-size: 12px; color: var(--dim, #9aa); }
+
+/* 序号点（密集词收缩形态，v45 P1-C 反馈） */
+.scene-dot { position: absolute; transform: translate(-50%, -50%); width: 26px; height: 26px;
+  border-radius: 50%; background: rgba(255,255,255,.95); border: 2px solid var(--accent);
+  color: var(--accent); font-weight: 900; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,.25); cursor: pointer; }
+.scene-dot:active { transform: translate(-50%, -50%) scale(.92); }
+.scene-dot.seen { border-color: #58e08a; color: #2f9e5f; }
+.scene-dot.seen::after { content: '✓'; position: absolute; top: -7px; right: -7px; font-size: 10px;
+  background: #58e08a; color: #fff; border-radius: 50%; width: 14px; height: 14px; line-height: 14px; }

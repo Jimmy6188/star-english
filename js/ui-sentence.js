@@ -571,6 +571,9 @@ setQuestSub('var(--accent)');
     this.wordEls.forEach(el => el.classList.remove('active'));
     this.paint(); /* 最后一个词也要画成"已拼对"的绿色，并清掉音标行 */
     if (this.wrongs.every(x => x === 0)) this.perfectCnt++;
+    /* 知识点错题闭环（v45）：这句拼错过记入英语薄弱池，下次默全对就自愈清掉 */
+    if (this.wrongs.some(x => x > 0)) Store.addEnWrong('sents', this.cur.id, this.cur.kp || '');
+    else Store.clearEnWrong('sents', this.cur.id);
     Store.markSentence(this.cur.id);
     Sound.gold();
     const c = centerOf($('.sw-words'));

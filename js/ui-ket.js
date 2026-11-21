@@ -82,6 +82,7 @@ const KETUI = {
             e.currentTarget.classList.add('right');
             const c = centerOf(e.currentTarget);
             burst(c.x, c.y, { count: 8, colors: ['#58e08a'], power: 45 });
+            Store.clearEnWrong('dlgs', d.id); /* 答对自愈（v45） */
           } else {
             Sound.wrong();
             e.currentTarget.classList.add('wrong');
@@ -91,6 +92,7 @@ const KETUI = {
             lineEls[d.miss].innerHTML = `<b>${d.lines[d.miss].who}: </b>${d.answer}`;
             lineEls[d.miss].classList.remove('miss');
             lineEls[d.miss].classList.add('filled');
+            Store.addEnWrong('dlgs', d.id, d.kp || ''); /* 英语知识地图（v45） */
           }
           Array.from(optsEl.children).forEach(b => { b.disabled = true; });
           tipEl.innerHTML = (m.ok ? '✅ ' : '❌ ') + d.tip;
