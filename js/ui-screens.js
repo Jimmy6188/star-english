@@ -795,6 +795,10 @@ function renderHome() {
     ));
   }
 
+  /* 口语星系（v47）：跟读闯关 + 伙伴对话，入口卡由 VoiceUI 渲染 */
+  const voiceSlot = $('#voice-slot');
+  if (voiceSlot && typeof VoiceUI !== 'undefined') VoiceUI.renderHomeCard();
+
   /* 江山时序（v44）：外链开源中国历史交互地图（不拷代码无版权问题），亲子共览需联网 */
   const atlasSlot = $('#atlas-slot');
   if (atlasSlot) {

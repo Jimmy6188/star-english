@@ -1555,3 +1555,29 @@ html.hween #greet-title::after { content: ' 👻'; }
 .scene-dot.seen { border-color: #58e08a; color: #2f9e5f; }
 .scene-dot.seen::after { content: '✓'; position: absolute; top: -7px; right: -7px; font-size: 10px;
   background: #58e08a; color: #fff; border-radius: 50%; width: 14px; height: 14px; line-height: 14px; }
+
+/* ============================================================
+ * 口语星系（v47）：跟读闯关 + 伙伴对话
+ * ============================================================ */
+.vmic { width: 92px; height: 92px; border-radius: 50%; margin: 14px auto 6px; display: flex;
+  align-items: center; justify-content: center; font-size: 38px;
+  background: var(--card2, rgba(255,255,255,.08)); border: 3px solid var(--accent);
+  cursor: pointer; user-select: none; touch-action: manipulation; }
+.vmic:active { transform: scale(.94); }
+.vmic.rec { background: #8f2d3a; border-color: #ff6b7a; }
+.vwave { height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); margin: 8px 0; overflow: hidden; }
+.vwave i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .1s; }
+.vword { font-size: 24px; font-weight: 800; text-align: center; line-height: 1.5; margin: 6px 0; }
+.vstars { text-align: center; font-size: 30px; letter-spacing: 4px; margin: 6px 0; }
+.vwords { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 10px 0; }
+.vw { padding: 7px 11px; border-radius: 10px; font-size: 15px; font-weight: 700; background: rgba(255,255,255,.07); }
+.vw.good { background: #1d4030; color: #8ee0b0; }
+.vw.mid { background: #4a3d1d; color: #ffd98a; }
+.vw.poor { background: #4d1d24; color: #ff9d9d; outline: 2px solid #ff6b7a; }
+.vw.miss { background: rgba(128,128,128,.15); color: #888; text-decoration: line-through; }
+.vfix { background: rgba(255,255,255,.06); border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.7; }
+.vfix b { color: var(--gold); }
+.vrow { display: flex; align-items: center; padding: 7px 4px; border-bottom: 1px dashed rgba(255,255,255,.08); font-size: 14px; }
+.vchat { max-height: 44vh; overflow-y: auto; }
+.vtrans { background: var(--fill-3); border-radius: 10px; padding: 8px 10px; margin-top: 6px;
+  color: var(--text-mid); font-size: 13px; line-height: 1.7; }
