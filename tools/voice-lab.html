@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🎙️ 语音实验室 M0 · 技术验证</title>
+<style>
+  :root{
+    --bg:#0f1530; --card:#1a2148; --card2:#232b5c; --ink:#eef1ff; --dim:#9aa3cf;
+    --acc:#5b8cff; --ok:#4caf7d; --bad:#ff6b6b; --warn:#ffb84d;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; padding-bottom:40px;}
+  .wrap{max-width:640px; margin:0 auto; padding:14px;}
+  h1{font-size:20px; margin:14px 0 4px;}
+  .sub{color:var(--dim); font-size:13px; line-height:1.6; margin-bottom:14px;}
+  .card{background:var(--card); border-radius:14px; padding:14px; margin-bottom:12px;}
+  .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .lbl{font-size:13px; color:var(--dim); margin:10px 0 4px;}
+  input[type=text],input[type=password],textarea{width:100%; background:#10163a; border:1px solid #2c3573; border-radius:10px; color:var(--ink); padding:10px 12px; font-size:14px; outline:none;}
+  input:focus{border-color:var(--acc);}
+  button{border:none; border-radius:12px; padding:12px 16px; font-size:15px; font-weight:600; cursor:pointer; background:var(--card2); color:var(--ink);}
+  button:active{transform:scale(.97);}
+  .primary{background:var(--acc); color:#fff;}
+  .ghost{background:transparent; border:1px solid #39428a;}
+  .mic{
+    width:96px; height:96px; border-radius:50%; margin:16px auto; display:flex; align-items:center; justify-content:center;
+    font-size:40px; background:var(--card2); border:3px solid #39428a; user-select:none; touch-action:none; cursor:pointer;
+  }
+  .mic.rec{background:#8f2d3a; border-color:var(--bad); animation:pulse 1.1s infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.07);}}
+  .hint{text-align:center; color:var(--dim); font-size:13px; min-height:18px;}
+  .sent{font-size:22px; line-height:1.5; font-weight:600; text-align:center; margin:8px 0;}
+  .nav{display:flex; justify-content:space-between;}
+  .score-big{text-align:center; font-size:52px; font-weight:800; margin:6px 0;}
+  .score-label{text-align:center; color:var(--dim); font-size:13px;}
+  .subs{display:flex; gap:8px; justify-content:center; margin:10px 0; flex-wrap:wrap;}
+  .chip{background:var(--card2); border-radius:20px; padding:6px 12px; font-size:13px;}
+  .chip b{font-size:15px;}
+  .words{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:12px 0;}
+  .w{padding:8px 12px; border-radius:10px; font-size:16px; font-weight:600; background:var(--card2);}
+  .w.good{background:#1d4030; color:#8ee0b0;}
+  .w.mid{background:#4a3d1d; color:#ffd98a;}
+  .w.poor{background:#4d1d24; color:#ff9d9d; outline:2px solid var(--bad);}
+  .w.miss{background:#222; color:#777; text-decoration:line-through;}
+  .fix{background:var(--card2); border-radius:12px; padding:12px; font-size:14px; line-height:1.7;}
+  .fix b{color:var(--warn);}
+  .ai-bubble{background:var(--card2); border-radius:14px 14px 14px 4px; padding:12px; font-size:15px; line-height:1.7; margin:8px 0; white-space:pre-wrap;}
+  .me-bubble{background:#2a3a6e; border-radius:14px 14px 4px 14px; padding:12px; font-size:15px; line-height:1.7; margin:8px 0 8px 40px; white-space:pre-wrap;}
+  .chat{max-height:46vh; overflow-y:auto;}
+  .tabs{display:flex; gap:8px; margin-bottom:12px;}
+  .tab{flex:1; text-align:center; padding:12px; border-radius:12px; background:var(--card); color:var(--dim); font-weight:600;}
+  .tab.on{background:var(--acc); color:#fff;}
+  details{margin-bottom:12px;}
+  summary{cursor:pointer; font-weight:600; padding:10px 14px; background:var(--card); border-radius:12px; font-size:14px;}
+  summary::marker{color:var(--dim);}
+  details .card{margin-top:8px;}
+  #log{max-height:200px; overflow-y:auto; font-family:monospace; font-size:11px; color:var(--dim); white-space:pre-wrap; word-break:break-all;}
+  .err{color:var(--bad); font-size:13px; margin-top:8px; white-space:pre-wrap;}
+  .okmsg{color:var(--ok); font-size:13px; margin-top:8px;}
+  .wave{height:6px; border-radius:3px; background:var(--card2); margin:10px 0; overflow:hidden;}
+  .wave i{display:block; height:100%; width:0; background:var(--acc); transition:width .1s;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎙️ 语音实验室 M0</h1>
+  <div class="sub">技术验证页，不属于正式版。目的：验证「童声 → 讯飞评测打分 / 讯飞听写 → AI 大模型」链路在你的设备上是否靠谱。密钥只存在本机浏览器 localStorage，不会上传。</div>
+  <div class="sub" id="usageBar"></div>
+
+  <div class="tabs">
+    <div class="tab on" id="tabRead" onclick="switchTab('read')">📖 跟读评测</div>
+    <div class="tab" id="tabChat" onclick="switchTab('chat')">🗣️ 自由对话</div>
+  </div>
+
+  <!-- 设置 -->
+  <details>
+    <summary>⚙️ 设置（讯飞密钥 + AI 渠道）</summary>
+    <div class="card">
+      <div class="lbl">讯飞开放平台（创建应用后两个服务默认各有每日500次免费调用；同一应用的密钥通用，分别添加「语音评测(流式版)」和「语音听写(流式版)」两个服务即可）</div>
+      <input type="text" id="xfAppId" placeholder="AppID">
+      <div style="height:6px"></div>
+      <input type="password" id="xfApiKey" placeholder="APIKey">
+      <div style="height:6px"></div>
+      <input type="password" id="xfApiSecret" placeholder="APISecret">
+
+      <div class="lbl">AI 大模型（OpenAI 兼容协议，BaseURL 如 https://open.bigmodel.cn/api/paas/v4）</div>
+      <input type="text" id="llmBase" placeholder="Base URL（以 /v4 或 /v1 结尾，不带 /chat/completions）">
+      <div style="height:6px"></div>
+      <input type="password" id="llmKey" placeholder="API Key">
+      <div style="height:6px"></div>
+      <input type="text" id="llmModel" placeholder="模型名（如 glm-4-flash-250414 / deepseek-chat / 任意兼容模型）">
+      <div style="height:6px"></div>
+      <input type="text" id="petName" placeholder="伙伴名字（AI 将扮演它，如：豆豆）">
+
+      <div class="row" style="margin-top:12px;">
+        <button class="primary" onclick="saveCfg()">💾 保存设置</button>
+        <button class="ghost" onclick="clearCfg()">清空</button>
+      </div>
+      <div id="cfgMsg"></div>
+      <div class="sub" style="margin-top:10px;">注：AI 渠道需支持浏览器直连（CORS）。若对话报 CORS/网络错误，换一个支持的渠道即可，评测与听写不受影响。</div>
+    </div>
+  </details>
+
+  <!-- 跟读评测 -->
+  <div id="paneRead">
+    <div class="card">
+      <div class="nav">
+        <button class="ghost" onclick="moveSent(-1)">‹</button>
+        <span class="chip" id="sentIdx">1 / 10</span>
+        <button class="ghost" onclick="moveSent(1)">›</button>
+      </div>
+      <div class="sent" id="sentence"></div>
+      <div class="row" style="justify-content:center;">
+        <button class="ghost" onclick="speak(currentSent())">🔊 听示范</button>
+      </div>
+      <div class="mic" id="micRead"><span>🎤</span></div>
+      <div class="hint" id="hintRead">点击 🎤 开始朗读，读完再点一下</div>
+      <div class="wave"><i id="waveRead"></i></div>
+      <div class="err" id="errRead"></div>
+    </div>
+    <div class="card hidden" id="resultCard">
+      <div class="score-big" id="scoreTotal">--</div>
+      <div class="score-label">总分（完整度 · 准确度 · 流利度）</div>
+      <div class="subs">
+        <span class="chip">完整度 <b id="scoreIntegrity">--</b></span>
+        <span class="chip">准确度 <b id="scoreAccuracy">--</b></span>
+        <span class="chip">流利度 <b id="scoreFluency">--</b></span>
+      </div>
+      <div class="words" id="wordList"></div>
+      <div class="fix" id="fixBox"></div>
+      <div class="row" style="justify-content:center; margin-top:10px;">
+        <button class="primary" id="btnAiRead" onclick="aiReadFeedback()">🐾 让伙伴点评</button>
+        <button class="ghost" onclick="speak(currentSent())">🔊 再听一遍</button>
+      </div>
+      <div class="ai-bubble hidden" id="aiReadBubble"></div>
+    </div>
+  </div>
+
+  <!-- 自由对话 -->
+  <div id="paneChat" class="hidden">
+    <div class="card">
+      <div class="sub" style="margin:0 0 8px;">点击 🎤 说英语，说完再点一下 ⏹：语音转文字 → AI 伙伴回复 → 自动朗读。不打分，随便聊。</div>
+      <div class="chat" id="chatBox"></div>
+      <div class="mic" id="micChat"><span>🎤</span></div>
+      <div class="hint" id="hintChat">点击 🎤 说英语，说完再点一下</div>
+      <div class="wave"><i id="waveChat"></i></div>
+      <div class="err" id="errChat"></div>
+      <div class="row" style="justify-content:center; margin-top:6px;">
+        <button class="ghost" onclick="clearChat()">🧹 清空对话</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 日志 -->
+  <details>
+    <summary>📝 调试日志（报错时把这里的内容发我）</summary>
+    <div class="card"><div id="log"></div>
+      <div class="row" style="margin-top:8px;"><button class="ghost" onclick="document.getElementById('log').textContent=''">清空日志</button></div>
+    </div>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ================= 配置 ================= */
+const CFG_KEY = "voice-lab-cfg-v1";
+let cfg = {xfAppId:"",xfApiKey:"",xfApiSecret:"",llmBase:"",llmKey:"",llmModel:"",petName:"Buddy"};
+function loadCfg(){ try{ cfg = Object.assign(cfg, JSON.parse(localStorage.getItem(CFG_KEY)||"{}")); }catch(e){} 
+  for(const k in cfg){ const el=document.getElementById(k); if(el&&cfg[k]) el.value=cfg[k]; } }
+function saveCfg(){ for(const k in cfg){ const el=document.getElementById(k); if(el) cfg[k]=el.value.trim(); }
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); document.getElementById("cfgMsg").innerHTML='<div class="okmsg">✅ 已保存到本机</div>'; setTimeout(()=>document.getElementById("cfgMsg").innerHTML="",2000); }
+function clearCfg(){ localStorage.removeItem(CFG_KEY); for(const k in cfg){ cfg[k]=""; const el=document.getElementById(k); if(el) el.value=""; } }
+function cfgReady(kind){
+  const missing=[];
+  if(!cfg.xfAppId||!cfg.xfApiKey||!cfg.xfApiSecret) missing.push("讯飞三件套");
+  if(kind==="llm"&&(!cfg.llmBase||!cfg.llmKey||!cfg.llmModel)) missing.push("AI 渠道");
+  if(missing.length){ setErr(kind==="llm"?"errChat":"errRead", "请先在「⚙️ 设置」里填写："+missing.join("、")); return false; }
+  return true;
+}
+function setErr(id,msg){ document.getElementById(id).textContent=msg||""; if(msg) log("[ERR] "+msg); }
+function log(m){ const el=document.getElementById("log"); el.textContent=(m+"\n"+el.textContent).slice(0,20000); }
+
+/* ================= 每日额度计数（本地自估，按自然日清零） ================= */
+function usage(){ let u; try{ u=JSON.parse(localStorage.getItem("voice-lab-usage")||"{}"); }catch(e){ u={}; }
+  const today=new Date().toISOString().slice(0,10);
+  if(u.date!==today){ u={date:today,ise:0,iat:0}; }
+  return u; }
+function addUsage(kind){ const u=usage(); u[kind]=(u[kind]||0)+1;
+  localStorage.setItem("voice-lab-usage",JSON.stringify(u)); renderUsage(); return u[kind]; }
+function renderUsage(){ const u=usage(); const el=document.getElementById("usageBar");
+  const near=(u.ise||0)>=400||(u.iat||0)>=400;
+  el.textContent="今日调用：评测 "+(u.ise||0)+" 次 · 听写 "+(u.iat||0)+" 次（讯飞免费额度各500次/日，本地自估）"+(near?" ⚠️ 接近上限":"");
+  el.style.color=near?"var(--warn)":"var(--dim)"; }
+
+/* ================= 句子库 ================= */
+const SENTENCES=[
+  "I like reading books.",
+  "My favorite subject is English.",
+  "I get up at seven every morning.",
+  "There are three apples on the table.",
+  "Can you help me with my homework?",
+  "My father drives to work every day.",
+  "We played football after school.",
+  "The cat is sleeping under the tree.",
+  "I want to be a scientist.",
+  "Thank you for your help."
+];
+let sentI=0;
+function currentSent(){ return SENTENCES[sentI]; }
+function renderSent(){ document.getElementById("sentence").textContent=currentSent();
+  document.getElementById("sentIdx").textContent=(sentI+1)+" / "+SENTENCES.length;
+  document.getElementById("resultCard").classList.add("hidden"); setErr("errRead",""); }
+function moveSent(d){ sentI=(sentI+d+SENTENCES.length)%SENTENCES.length; renderSent(); }
+
+/* ================= 录音（16k PCM） ================= */
+let rec=null; // {ctx,stream,proc,wsSend,onChunk,stopped}
+async function startRec(onChunk,onLevel){
+  const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}});
+  let ctx; try{ ctx=new AudioContext({sampleRate:16000}); }catch(e){ ctx=new AudioContext(); }
+  if(ctx.state==="suspended") await ctx.resume();
+  const src=ctx.createMediaStreamSource(stream);
+  const proc=ctx.createScriptProcessor(2048,1,1);
+  src.connect(proc); proc.connect(ctx.destination);
+  const needResample=Math.abs(ctx.sampleRate-16000)>1;
+  proc.onaudioprocess=e=>{
+    let f32=e.inputBuffer.getChannelData(0);
+    if(needResample) f32=resample(f32,ctx.sampleRate,16000);
+    const pcm=f32ToI16(f32);
+    onLevel(Math.sqrt(f32.reduce((s,v)=>s+v*v,0)/f32.length));
+    if(onChunk) onChunk(pcm);
+  };
+  rec={ctx,stream,proc,src};
+}
+function stopRec(){
+  if(!rec) return;
+  try{ rec.proc.disconnect(); rec.src.disconnect(); }catch(e){}
+  rec.stream.getTracks().forEach(t=>t.stop());
+  try{ rec.ctx.close(); }catch(e){}
+  rec=null;
+}
+function resample(buf,from,to){
+  const ratio=from/to, len=Math.floor(buf.length/ratio), out=new Float32Array(len);
+  for(let i=0;i<len;i++){ const p=i*ratio, j=Math.floor(p), fr=p-j;
+    out[i]=buf[j]*(1-fr)+buf[Math.min(j+1,buf.length-1)]*fr; }
+  return out;
+}
+function f32ToI16(f){ const out=new Int16Array(f.length);
+  for(let i=0;i<f.length;i++){ const s=Math.max(-1,Math.min(1,f[i])); out[i]=s<0?s*0x8000:s*0x7FFF; }
+  return out; }
+
+/* ================= 讯飞鉴权 ================= */
+async function xfyunUrl(host,path){
+  const date=new Date().toUTCString();
+  const origin=`host: ${host}\ndate: ${date}\nGET ${path} HTTP/1.1`;
+  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(cfg.xfApiSecret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const sig=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(origin));
+  const sigB64=btoa(String.fromCharCode(...new Uint8Array(sig)));
+  const authOrigin=`api_key="${cfg.xfApiKey}", algorithm="hmac-sha256", headers="host date request-line", signature="${sigB64}"`;
+  return `wss://${host}${path}?authorization=${encodeURIComponent(btoa(authOrigin))}&date=${encodeURIComponent(date)}&host=${encodeURIComponent(host)}`;
+}
+const b64=u8=>btoa(String.fromCharCode(...u8));
+
+/* ================= 跟读评测（讯飞 ISE 流式） ================= */
+const micRead=document.getElementById("micRead");
+let evalBusy=false, readActive=false, evalWS=null, evalTimer=null, drainEnd=false, evalGotResult=false;
+micRead.addEventListener("click",async ()=>{
+  if(evalBusy && !readActive) return; // 评分中，忽略
+  if(readActive){
+    readActive=false; drainEnd=true;
+    document.getElementById("hintRead").textContent="上传音频中…";
+    return;
+  }
+  if(!cfgReady()) return;
+  const u0=usage();
+  if((u0.ise||0)>=500){ setErr("errRead","今日评测调用已达本地计数上限（500次），明日自动恢复；如需核实请到讯飞控制台查用量"); return; }
+  setErr("errRead","");
+  document.getElementById("resultCard").classList.add("hidden");
+  document.getElementById("aiReadBubble").classList.add("hidden");
+  readActive=true; evalBusy=true; evalGotResult=false; drainEnd=false;
+  micRead.classList.add("rec"); micRead.firstElementChild.textContent="⏹";
+  document.getElementById("hintRead").textContent="正在请求麦克风…";
+  const queue=[];
+  try{
+    // 先拿麦克风（权限弹窗期间不连服务，避免服务端空等超时）
+    await startRec(pcm=>{ queue.push(pcm); }, lvl=>{
+      document.getElementById("waveRead").style.width=Math.min(100,lvl*400)+"%"; });
+  }catch(err){ setErr("errRead","麦克风启动失败："+err.message); cleanupRead(); return; }
+  document.getElementById("hintRead").textContent="麦克风就绪，连接评测服务…";
+  let ws;
+  try{
+    const url=await xfyunUrl("ise-api.xfyun.cn","/v2/open-ise");
+    ws=new WebSocket(url);
+  }catch(err){ setErr("errRead","连接创建失败："+err.message); cleanupRead(); return; }
+  evalWS=ws;
+  ws.onopen=()=>{
+    addUsage("ise");
+    document.getElementById("hintRead").textContent="正在听，请开始朗读…读完点一下 ⏹";
+    // 首帧 ssb：试题文本放在 business.text（英文句子带 [content] 前缀），data 只带 status
+    ws.send(JSON.stringify({common:{app_id:cfg.xfAppId},
+      business:{sub:"ise",ent:"en_vip",category:"read_sentence",
+        aue:"raw",auf:"audio/L16;rate=16000",tte:"utf-8",ttp_skip:true,
+        cmd:"ssb",text:"[content]"+currentSent()},
+      data:{status:0}}));
+    evalDrain(ws,queue);
+    // 20秒自动结束（发结束帧，不硬断连接）
+    evalTimer=setTimeout(()=>{ readActive=false; drainEnd=true;
+      document.getElementById("hintRead").textContent="已达最长20秒，自动结束，评分中…"; },20000);
+  };
+  ws.onmessage=ev=>{
+    const msg=JSON.parse(ev.data);
+    const c=msg.code;
+    log("[ISE] code="+c+" status="+(msg.data&&msg.data.status));
+    if(c!==undefined&&c!==0&&c!=="0"){
+      evalGotResult=true;
+      setErr("errRead","评测返回错误 code="+c+"："+(msg.message||"")+"（详情见日志）");
+      log("[ISE result] "+ev.data.slice(0,1500));
+      cleanupRead(); return;
+    }
+    if(msg.data&&msg.data.status===2){
+      evalGotResult=true;
+      let xml=(msg.data&&msg.data.data)||"";
+      if(!xml||typeof xml!=="string"){ log("[ISE result] "+ev.data.slice(0,3000)); setErr("errRead","返回结构不含评分XML（原始报文已写入日志，请发我适配）"); cleanupRead(); return; }
+      try{ showEvalResult(xml); }catch(e){ setErr("errRead","结果解析异常："+e.message+"（原始内容见日志）"); log(xml.slice(0,3000)); }
+      cleanupRead();
+    }
+  };
+  ws.onerror=()=>{ if(readActive||evalBusy) setErr("errRead","评测连接失败：检查讯飞密钥、评测服务是否添加成功、网络"); };
+  ws.onclose=ev=>{
+    if(!evalGotResult){
+      const r=ev.reason||"";
+      setErr("errRead", r
+        ? ("连接关闭(code="+ev.code+")："+r.slice(0,160)+"——请把调试日志发我继续适配")
+        : ("连接被服务端关闭(code="+ev.code+")：常见原因——密钥不正确、评测服务未添加成功、额度用尽、电脑时间偏差过大、网络不通"));
+      log("[ISE close] code="+ev.code+" reason="+r);
+    }
+    cleanupRead();
+  };
+});
+function cleanupRead(){
+  evalBusy=false; readActive=false;
+  stopRec();
+  micRead.classList.remove("rec"); micRead.firstElementChild.textContent="🎤";
+  document.getElementById("hintRead").textContent="点击 🎤 开始朗读，读完再点一下";
+  document.getElementById("waveRead").style.width="0";
+  if(evalTimer) clearTimeout(evalTimer); evalWS=null;
+}
+function evalDrain(ws,queue){
+  let firstAudio=true;
+  const step=()=>{
+    if(!ws||ws.readyState!==1) return;
+    if(queue.length){ const pcm=queue.shift();
+      // 音频帧 auw：aus 1=首帧音频 2=中间帧
+      ws.send(JSON.stringify({business:{cmd:"auw",aus:firstAudio?1:2},
+        data:{status:1,data_type:1,encoding:"raw",data:b64(new Uint8Array(pcm.buffer))}}));
+      firstAudio=false;
+      setTimeout(step,40);
+    }else if(drainEnd&&!readActive){
+      // 结束帧：aus=4 status=2
+      ws.send(JSON.stringify({business:{cmd:"auw",aus:4},
+        data:{status:2,data_type:1,encoding:"raw",data:""}}));
+    }else setTimeout(step,60);
+  }; setTimeout(step,50);
+}
+function shade(score){
+  if(score>=85) return "good"; if(score>=65) return "mid"; return "poor";
+}
+function showEvalResult(xml){
+  // 服务端返回 base64 编码的 XML（5分制），先解码再解析
+  let raw=(xml||"").trim();
+  if(!raw.startsWith("<")){ try{ raw=atob(raw); }catch(e){ /* 非base64，按原文解析 */ } }
+  log("[XML] "+raw.slice(0,500));
+  const doc=new DOMParser().parseFromString(raw,"text/xml");
+  const chap=doc.querySelector("read_chapter")||doc.querySelector("sentence")||doc.querySelector("read_sentence");
+  if(!chap){ setErr("errRead","未解析到评分结构（原始XML见日志）"); log(raw.slice(0,3000)); return; }
+  const get=(el,n)=>el?el.getAttribute(n):null;
+  const to100=v=>(v===null||v===undefined||v==="")?null:Math.round((+v)*20); // 5分制→百分制
+  const total=to100(get(chap,"total_score"))??0;
+  const acc=to100(get(chap,"accuracy_score"));
+  const flu=to100(get(chap,"fluency_score"));
+  const itg=to100(get(chap,"integrity_score"));
+  document.getElementById("scoreTotal").textContent=total;
+  document.getElementById("scoreTotal").style.color=total>=80?"#8ee0b0":total>=60?"#ffd98a":"#ff9d9d";
+  document.getElementById("scoreAccuracy").textContent=acc??"--";
+  document.getElementById("scoreFluency").textContent=flu??"--";
+  document.getElementById("scoreIntegrity").textContent=itg??"--";
+  // 词级得分
+  const words=[...doc.querySelectorAll("word")].map(w=>({
+    text:get(w,"content")||"", score:to100(get(w,"total_score")) }));
+  const wl=document.getElementById("wordList"); wl.innerHTML="";
+  words.forEach(w=>{ const d=document.createElement("div");
+    const s=(w.score===null)?-1:w.score;
+    d.className="w "+(s<0?"miss":shade(s)); d.textContent=w.text; d.title="得分 "+s; wl.appendChild(d); });
+  // 最差词 + 最差音节
+  let worst=null, worstSyll=null;
+  words.forEach(w=>{ if(w.score!==null&&(!worst||w.score<worst.score)) worst=w; });
+  if(worst){
+    const wEl=[...doc.querySelectorAll("word")].find(w=>(get(w,"content")||"")===worst.text);
+    if(wEl){ [...wEl.querySelectorAll("syll")].forEach(s=>{
+      const sc=to100(get(s,"syll_score")); const c=(get(s,"content")||"").trim();
+      if(sc!==null&&(!worstSyll||sc<worstSyll.s)) worstSyll={s:sc,c}; }); }
+  }
+  const fb=document.getElementById("fixBox");
+  fb.innerHTML=worst?`本次最该改的词：<b>${worst.text}</b>${worstSyll&&worstSyll.c?`（音标 ${worstSyll.c}，音节得分 ${worstSyll.s}）`:""} —— 点「🐾 让伙伴点评」获取具体方法`:"暂未定位到弱项词";
+  fb.dataset.worst=worst?worst.text:""; fb.dataset.phone=worstSyll?(worstSyll.c||""):"";
+  document.getElementById("resultCard").classList.remove("hidden");
+}
+
+/* ================= AI（OpenAI 兼容） ================= */
+async function llmChat(messages,btn){
+  if(btn) btn.disabled=true;
+  try{
+    let base=(cfg.llmBase||"").trim().replace(/\/+$/,"");
+    if(!base) throw new Error("未配置 AI 渠道 BaseURL");
+    // 兼容两种填法：完整端点 或 只填到版本段
+    const url=base.endsWith("/chat/completions")?base:base+"/chat/completions";
+    const call=async mt=>fetch(url,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.llmKey},
+      body:JSON.stringify({model:cfg.llmModel,messages,temperature:0.8,max_tokens:mt})
+    });
+    let res=await call(600);
+    if(!res.ok){
+      const t=await res.text();
+      throw new Error("HTTP "+res.status+"："+t.slice(0,260)
+        +"\n实际请求："+url
+        +"\n（404=路径不对：检查 BaseURL 是否带 /v1、/v4 等版本段；或该渠道模型名与填写不符）");
+    }
+    let j=await res.json();
+    let msgObj=j.choices&&j.choices[0]&&j.choices[0].message;
+    // 思考型模型：max_tokens 被思维链耗尽时自动加倍重试一次
+    if((!msgObj||!msgObj.content)&&j.choices&&j.choices[0].finish_reason==="length"){
+      log("[LLM] 思考链耗尽token，自动加大配额重试");
+      res=await call(1600);
+      j=await res.json();
+      msgObj=j.choices&&j.choices[0]&&j.choices[0].message;
+    }
+    const c=msgObj&&msgObj.content&&msgObj.content.trim();
+    if(!c) throw new Error("模型未返回正文。你填的可能是「思考型模型」，思维链耗尽了输出配额；建议在设置里换非思考模型（如 deepseek-chat / glm-4-flash-250414 / qwen-turbo）。返回片段："+JSON.stringify(j).slice(0,200));
+    return c;
+  }catch(err){ throw err; }
+  finally{ if(btn) btn.disabled=false; }
+}
+async function aiReadFeedback(){
+  const btn=document.getElementById("btnAiRead");
+  if(!cfgReady("llm")) return;
+  const b=document.getElementById("aiReadBubble"); b.classList.remove("hidden"); b.textContent="伙伴思考中…";
+  const root={total:document.getElementById("scoreTotal").textContent,
+    acc:document.getElementById("scoreAccuracy").textContent, flu:document.getElementById("scoreFluency").textContent};
+  const worst=document.getElementById("fixBox").dataset.worst||"";
+  try{
+    const reply=await llmChat([
+      {role:"system",content:`你是${cfg.petName||"Buddy"}，一个9岁中国小朋友的宠物伙伴，正在陪TA练英语跟读。规则：全部用中文；称呼孩子"小伙伴"；语气活泼但不超过3句话；第一句表扬一个读得好的词（可以猜）；第二句只针对最弱词"${worst}"给一个温柔具体的发音小窍门（怎么动嘴巴）；第三句鼓励TA再试一次。绝不出现分数数字。`},
+      {role:"user",content:`句子：${currentSent()}。机器评分：总分${root.total}，准确度${root.acc}，流利度${root.flu}。请点评。`}
+    ],btn);
+    b.textContent="🐾 "+reply; speakEn(currentSent());
+  }catch(err){ b.textContent="⚠️ AI 点评失败："+err.message+"\n（多为渠道不支持浏览器直连/CORS，换一个渠道试试）"; }
+}
+
+/* ================= 自由对话（讯飞听写 IAT + LLM + TTS） ================= */
+const micChat=document.getElementById("micChat");
+let chatHist=[], chatActive=false, chatBusy=false, chatWS=null, chatTimer=null, chatEndFlag=false, chatGotResult=false;
+function bubble(cls,text){ const d=document.createElement("div"); d.className=cls; d.textContent=text;
+  document.getElementById("chatBox").appendChild(d); d.scrollIntoView({block:"end"}); return d; }
+function clearChat(){ document.getElementById("chatBox").innerHTML=""; chatHist=[]; setErr("errChat",""); }
+micChat.addEventListener("click",async ()=>{
+  if(chatBusy && !chatActive) return; // 识别中，忽略
+  if(chatActive){
+    chatActive=false; chatEndFlag=true;
+    document.getElementById("hintChat").textContent="识别中…";
+    return;
+  }
+  if(!cfgReady("llm")) return;
+  const u0=usage();
+  if((u0.iat||0)>=500){ setErr("errChat","今日听写调用已达本地计数上限（500次），明日自动恢复；如需核实请到讯飞控制台查用量"); return; }
+  setErr("errChat","");
+  chatActive=true; chatBusy=true; chatGotResult=false; chatEndFlag=false;
+  micChat.classList.add("rec"); micChat.firstElementChild.textContent="⏹";
+  document.getElementById("hintChat").textContent="正在请求麦克风…";
+  const queue=[];
+  try{
+    await startRec(pcm=>{ queue.push(pcm); }, lvl=>{
+      document.getElementById("waveChat").style.width=Math.min(100,lvl*400)+"%"; });
+  }catch(err){ setErr("errChat","麦克风启动失败："+err.message); cleanupChat(); return; }
+  document.getElementById("hintChat").textContent="麦克风就绪，连接语音识别…";
+  let ws;
+  try{
+    const url=await xfyunUrl("iat-api.xfyun.cn","/v2/iat");
+    ws=new WebSocket(url);
+  }catch(err){ setErr("errChat","连接创建失败："+err.message); cleanupChat(); return; }
+  chatWS=ws;
+  let text="";
+  ws.onopen=()=>{
+    addUsage("iat");
+    document.getElementById("hintChat").textContent="正在听，请说英语…说完点一下 ⏹";
+    ws.send(JSON.stringify({common:{app_id:cfg.xfAppId},
+      business:{language:"en_us",domain:"iat",accent:"en_us",vad_eos:10000},
+      data:{status:0,format:"audio/L16;rate=16000",encoding:"raw",audio:""}}));
+    chatDrain(ws,queue);
+    chatTimer=setTimeout(()=>{ chatActive=false; chatEndFlag=true;
+      document.getElementById("hintChat").textContent="已达最长30秒，自动结束，识别中…"; },30000);
+  };
+  ws.onmessage=ev=>{
+    const msg=JSON.parse(ev.data);
+    if(msg.code!==0&&msg.code!=="0"){ setErr("errChat","听写错误 code="+msg.code+"："+(msg.message||"")); log("[IAT] "+ev.data.slice(0,800)); cleanupChat(); return; }
+    if(msg.data&&msg.data.result){
+      try{
+        const r=typeof msg.data.result==="string"?JSON.parse(msg.data.result):msg.data.result;
+        (r.ws||[]).forEach(s=>(s.cw||[]).forEach(c=>text+=c.w||""));
+      }catch(e){}
+    }
+    if(msg.data&&msg.data.status===2){ chatGotResult=true; cleanupChat(); onHeard(text); }
+  };
+  ws.onerror=()=>{ if(chatActive||chatBusy) setErr("errChat","听写连接失败：检查讯飞密钥、听写服务是否添加成功、网络"); };
+  ws.onclose=ev=>{
+    if(!chatGotResult){
+      const r=ev.reason||"";
+      setErr("errChat", r
+        ? ("连接关闭(code="+ev.code+")："+r.slice(0,160)+"——请把调试日志发我继续适配")
+        : ("连接被服务端关闭(code="+ev.code+")：常见原因——密钥不正确、听写服务未添加成功、额度用尽、电脑时间偏差过大、网络不通"));
+      log("[IAT close] code="+ev.code+" reason="+r);
+    }
+    cleanupChat();
+  };
+});
+function cleanupChat(){
+  chatBusy=false; chatActive=false;
+  stopRec();
+  micChat.classList.remove("rec"); micChat.firstElementChild.textContent="🎤";
+  document.getElementById("hintChat").textContent="点击 🎤 说英语，说完再点一下";
+  document.getElementById("waveChat").style.width="0";
+  if(chatTimer) clearTimeout(chatTimer); chatWS=null;
+}
+function chatDrain(ws,queue){
+  const step=()=>{
+    if(!ws||ws.readyState!==1) return;
+    if(queue.length){ const pcm=queue.shift();
+      ws.send(JSON.stringify({data:{status:1,format:"audio/L16;rate=16000",encoding:"raw",audio:b64(new Uint8Array(pcm.buffer))}}));
+      setTimeout(step,40);
+    }else if(chatEndFlag&&!chatActive){
+      ws.send(JSON.stringify({data:{status:2,format:"audio/L16;rate=16000",encoding:"raw",audio:""}}));
+    }else setTimeout(step,60);
+  }; setTimeout(step,50);
+}
+async function onHeard(text){
+  if(!text.trim()){ bubble("me-bubble","（没听清，再试一次？）"); return; }
+  bubble("me-bubble","🗣️ "+text);
+  const b=bubble("ai-bubble","伙伴思考中…");
+  try{
+    const sys=`你是${cfg.petName||"Buddy"}，一个9岁中国小朋友的宠物伙伴，正在陪TA练英语口语。铁律：
+1. 用超简单的英语（CEFR A1-A2），每次只说1~2个短句（总共不超过15个词）；
+2. 每次回复结尾必须带一个简单的追问，尽量用二选一（如 "Milk or juice?"）；
+3. 孩子说错不要纠正语法，把正确的说法自然地用在你的回应里；
+4. 孩子输入是中文时：先用一句中文亲切回应，再换行给出对应英文短句让TA照着说；
+5. 永远开心、鼓励、像一起玩，绝不评价打分。`;
+    const msgs=[{role:"system",content:sys},...chatHist.slice(-10),{role:"user",content:text}];
+    const reply=await llmChat(msgs,null);
+    b.textContent="🐾 "+reply;
+    chatHist.push({role:"user",content:text},{role:"assistant",content:reply});
+    speakEn(reply);
+    }catch(err){ b.textContent="⚠️ AI 回复失败："+err.message+"\n（多为渠道不支持浏览器直连/CORS）"; }
+}
+
+/* ================= TTS ================= */
+let voices=[];
+function refreshVoices(){ voices=speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith("en")); }
+if("speechSynthesis" in window){ refreshVoices(); speechSynthesis.onvoiceschanged=refreshVoices; }
+function speakEn(text){
+  if(!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  const v=voices.find(x=>/en[-_]us/i.test(x.lang))||voices[0];
+  if(v) u.voice=v;
+  u.lang="en-US"; u.rate=0.85; speechSynthesis.speak(u);
+}
+function speak(text){ speakEn(text); }
+
+/* ================= Tab ================= */
+function switchTab(t){
+  document.getElementById("paneRead").classList.toggle("hidden",t!=="read");
+  document.getElementById("paneChat").classList.toggle("hidden",t!=="chat");
+  document.getElementById("tabRead").classList.toggle("on",t==="read");
+  document.getElementById("tabChat").classList.toggle("on",t==="chat");
+}
+
+/* ================= 启动 ================= */
+loadCfg(); renderSent(); renderUsage();
+log("语音实验室已加载。提示：评测/听写需要 https 或 localhost 环境（麦克风权限）");
+</script>
+</body>
+</html>
