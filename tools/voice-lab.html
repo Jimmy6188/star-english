@@ -123,6 +123,7 @@
     <div class="card hidden" id="resultCard">
       <div class="score-big" id="scoreTotal">--</div>
       <div class="score-label">总分（完整度 · 准确度 · 流利度）</div>
+      <div class="score-label" id="starBar" style="margin-top:-2px;"></div>
       <div class="subs">
         <span class="chip">完整度 <b id="scoreIntegrity">--</b></span>
         <span class="chip">准确度 <b id="scoreAccuracy">--</b></span>
@@ -301,7 +302,7 @@ micRead.addEventListener("click",async ()=>{
     ws.send(JSON.stringify({common:{app_id:cfg.xfAppId},
       business:{sub:"ise",ent:"en_vip",category:"read_sentence",
         aue:"raw",auf:"audio/L16;rate=16000",tte:"utf-8",ttp_skip:true,
-        cmd:"ssb",text:"[content]"+currentSent()},
+        ise_unite:"1",cmd:"ssb",text:"[content]"+currentSent()},
       data:{status:0}}));
     evalDrain(ws,queue);
     // 20秒自动结束（发结束帧，不硬断连接）
@@ -330,9 +331,11 @@ micRead.addEventListener("click",async ()=>{
   ws.onclose=ev=>{
     if(!evalGotResult){
       const r=ev.reason||"";
-      setErr("errRead", r
-        ? ("连接关闭(code="+ev.code+")："+r.slice(0,160)+"——请把调试日志发我继续适配")
-        : ("连接被服务端关闭(code="+ev.code+")：常见原因——密钥不正确、评测服务未添加成功、额度用尽、电脑时间偏差过大、网络不通"));
+      setErr("errRead", r.includes("timeout")
+        ? ("网络抖动导致超时——请再点一次 🎤 重试（期间保持屏幕常亮、勿切后台）")
+        : r
+          ? ("连接关闭(code="+ev.code+")："+r.slice(0,160)+"——请把调试日志发我继续适配")
+          : ("连接被服务端关闭(code="+ev.code+")：常见原因——密钥不正确、评测服务未添加成功、额度用尽、电脑时间偏差过大、网络不通"));
       log("[ISE close] code="+ev.code+" reason="+r);
     }
     cleanupRead();
@@ -375,11 +378,14 @@ function showEvalResult(xml){
   const chap=doc.querySelector("read_chapter")||doc.querySelector("sentence")||doc.querySelector("read_sentence");
   if(!chap){ setErr("errRead","未解析到评分结构（原始XML见日志）"); log(raw.slice(0,3000)); return; }
   const get=(el,n)=>el?el.getAttribute(n):null;
-  const to100=v=>(v===null||v===undefined||v==="")?null:Math.round((+v)*20); // 5分制→百分制
-  const total=to100(get(chap,"total_score"))??0;
-  const acc=to100(get(chap,"accuracy_score"));
-  const flu=to100(get(chap,"fluency_score"));
-  const itg=to100(get(chap,"integrity_score"));
+  // 分制自适应：≤5 按 5 分制换算百分制，>5 视为已是百分制（ise_unite=1 实验）
+  const conv=v=>{ if(v===null||v===undefined||v==="") return null; const n=+v; if(isNaN(n)) return null; return n<=5?Math.round(n*20):Math.round(n); };
+  const total=conv(get(chap,"total_score"))??0;
+  const acc=conv(get(chap,"accuracy_score"));
+  const flu=conv(get(chap,"fluency_score"));
+  const itg=conv(get(chap,"integrity_score"));
+  const stars=total>=80?4:total>=65?3:total>=50?2:1;
+  document.getElementById("starBar").textContent="⭐".repeat(stars)+"　（星级展示预览：正式版孩子只看星级和进步，不看裸分数）";
   document.getElementById("scoreTotal").textContent=total;
   document.getElementById("scoreTotal").style.color=total>=80?"#8ee0b0":total>=60?"#ffd98a":"#ff9d9d";
   document.getElementById("scoreAccuracy").textContent=acc??"--";
@@ -516,9 +522,11 @@ micChat.addEventListener("click",async ()=>{
   ws.onclose=ev=>{
     if(!chatGotResult){
       const r=ev.reason||"";
-      setErr("errChat", r
-        ? ("连接关闭(code="+ev.code+")："+r.slice(0,160)+"——请把调试日志发我继续适配")
-        : ("连接被服务端关闭(code="+ev.code+")：常见原因——密钥不正确、听写服务未添加成功、额度用尽、电脑时间偏差过大、网络不通"));
+      setErr("errChat", r.includes("timeout")
+        ? ("网络抖动导致超时——请再点一次 🎤 重试（期间保持屏幕常亮、勿切后台）")
+        : r
+          ? ("连接关闭(code="+ev.code+")："+r.slice(0,160)+"——请把调试日志发我继续适配")
+          : ("连接被服务端关闭(code="+ev.code+")：常见原因——密钥不正确、听写服务未添加成功、额度用尽、电脑时间偏差过大、网络不通"));
       log("[IAT close] code="+ev.code+" reason="+r);
     }
     cleanupChat();
@@ -552,8 +560,9 @@ async function onHeard(text){
 1. 用超简单的英语（CEFR A1-A2），每次只说1~2个短句（总共不超过15个词）；
 2. 每次回复结尾必须带一个简单的追问，尽量用二选一（如 "Milk or juice?"）；
 3. 孩子说错不要纠正语法，把正确的说法自然地用在你的回应里；
-4. 孩子输入是中文时：先用一句中文亲切回应，再换行给出对应英文短句让TA照着说；
-5. 永远开心、鼓励、像一起玩，绝不评价打分。`;
+4. 孩子的语音是童声自动转文字，可能有错词、漏词或粘连，请推测TA真正想表达的意思并自然回应，不要纠正识别错误本身；
+5. 孩子输入是中文时：先用一句中文亲切回应，再换行给出对应英文短句让TA照着说；
+6. 永远开心、鼓励、像一起玩，绝不评价打分。`;
     const msgs=[{role:"system",content:sys},...chatHist.slice(-10),{role:"user",content:text}];
     const reply=await llmChat(msgs,null);
     b.textContent="🐾 "+reply;
