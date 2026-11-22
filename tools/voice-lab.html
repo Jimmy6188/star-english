@@ -391,9 +391,10 @@ function showEvalResult(xml){
   document.getElementById("scoreAccuracy").textContent=acc??"--";
   document.getElementById("scoreFluency").textContent=flu??"--";
   document.getElementById("scoreIntegrity").textContent=itg??"--";
-  // 词级得分
-  const words=[...doc.querySelectorAll("word")].map(w=>({
-    text:get(w,"content")||"", score:to100(get(w,"total_score")) }));
+  // 词级得分（过滤掉无 global_index 的杂音碎片词）
+  const words=[...doc.querySelectorAll("word")]
+    .filter(w=>w.getAttribute("global_index")!==null)
+    .map(w=>({ text:get(w,"content")||"", score:conv(get(w,"total_score")) }));
   const wl=document.getElementById("wordList"); wl.innerHTML="";
   words.forEach(w=>{ const d=document.createElement("div");
     const s=(w.score===null)?-1:w.score;
@@ -404,7 +405,7 @@ function showEvalResult(xml){
   if(worst){
     const wEl=[...doc.querySelectorAll("word")].find(w=>(get(w,"content")||"")===worst.text);
     if(wEl){ [...wEl.querySelectorAll("syll")].forEach(s=>{
-      const sc=to100(get(s,"syll_score")); const c=(get(s,"content")||"").trim();
+      const sc=conv(get(s,"syll_score")); const c=(get(s,"content")||"").trim();
       if(sc!==null&&(!worstSyll||sc<worstSyll.s)) worstSyll={s:sc,c}; }); }
   }
   const fb=document.getElementById("fixBox");
