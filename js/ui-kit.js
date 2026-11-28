@@ -208,3 +208,32 @@ function candyRain(n = 14, extraEmojis = []) {
   /* 兜底清理：所有糖落完（最迟约 12s）把容器也摘掉 */
   setTimeout(() => drop.remove(), 12500);
 }
+
+/* ---------- 锦囊道具（v48） ----------
+ * useHintOnce(optsEl)：消耗一枚锦囊，把 optsEl 内 data-ok="0" 的选项随机禁用 2 个。
+ * Boss战/竞技场/塔防/地球仪在渲染选项后放一个「💡 锦囊」按钮调它。
+ * 返回 true=已生效（已扣库存）；false=没锦囊或无可排除项（不扣）。 */
+function hintWeaken(optsEl, n = 2) {
+  const wrongs = [...optsEl.querySelectorAll('[data-ok="0"]:not(.right):not([disabled])')];
+  shuffle(wrongs);
+  const hit = wrongs.slice(0, n);
+  hit.forEach(b => { b.disabled = true; b.classList.add('hint-out'); });
+  return hit.length;
+}
+function useHintOnce(optsEl) {
+  if (typeof Store === 'undefined') return false;
+  const live = optsEl ? optsEl.querySelectorAll('[data-ok="0"]:not(.right):not([disabled])').length : 0;
+  if (!live) { toast('这一题没有可排除的选项啦'); return false; }
+  if (!Store.useHint()) { toast('💡 锦囊用完了，去「成长与奖励」买一个吧'); return false; }
+  const got = hintWeaken(optsEl);
+  if (got) toast('💡 锦囊生效！排除了 ' + got + ' 个错误选项');
+  return got > 0;
+}
+/* 生成「💡 锦囊」小按钮（锦囊不足时置灰但可点，点了给引导提示） */
+function hintBtn(optsEl) {
+  const n = (typeof Store !== 'undefined' && Store.state.items && Store.state.items.hints) || 0;
+  return h('button', {
+    class: 'btn small hint-btn' + (n > 0 ? '' : ' hint-none'),
+    onclick: (e) => { e.stopPropagation(); useHintOnce(optsEl); if (typeof Store !== 'undefined') e.target.closest('.hint-btn').textContent = '💡 锦囊×' + ((Store.state.items.hints || 0)); }
+  }, '💡 锦囊×' + n);
+}

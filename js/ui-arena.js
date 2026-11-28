@@ -411,7 +411,7 @@ const Arena = {
     const grid = h('div', { class: 'cn-opts' });
     map.forEach(m => {
       grid.appendChild(h('button', {
-        class: 'cn-opt',
+        class: 'cn-opt', 'data-ok': m.ok ? '1' : '0', /* v48 锦囊排除项标记 */
         onclick: e => {
           if (answered) return;
           answered = true;
@@ -433,7 +433,7 @@ const Arena = {
       h('div', { class: 'drill-tag' }, `🦘 ${q.pts} 分题`),
       q.fig ? h('div', { class: 'ar-fig' }, q.fig) : '',
       h('div', { class: 'spell-prompt' }, q.q),
-      grid
+      grid, hintBtn(grid)
     ));
   },
 

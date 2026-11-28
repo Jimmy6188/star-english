@@ -1040,6 +1040,20 @@ function renderSubjects() {
   tiles.push(subjectTile('🏆', '竞技场',
     `擂台 ${s.arena.spell.best} 连胜 · 袋鼠 ${s.arena.roo.best} 分`,
     () => Arena.open(), 'var(--orange, #ff9f43)'));
+  /* 单词保卫战（v48）：教材同步塔防，不占打卡、纯加餐 */
+  if (typeof DefenseUI !== 'undefined' && typeof TD_BOOKS !== 'undefined') {
+    const tdStars = TD_BOOKS.reduce((a, b) => a + b.units.reduce((x, u) => x + (s.td.stars[u.id] || 0), 0), 0);
+    tiles.push(subjectTile('🛡️', '单词保卫战',
+      `${(s.td.plays || 0) ? '✅ ' : ''}外研教材词塔防 · 总 ⭐${tdStars}`,
+      () => DefenseUI.start(), 'var(--purple)'));
+  }
+  /* 环球求知号（v48）：地理新学科，不占打卡、纯加餐 */
+  if (typeof GlobeUI !== 'undefined' && typeof GEO_WORLD !== 'undefined') {
+    const litW = Object.keys(s.geo.lit || {}).filter(n => GEO_WORLD.quiz.includes(n)).length;
+    tiles.push(subjectTile('🌍', '环球求知号',
+      `${(s.geo.plays || 0) ? '✅ ' : ''}已点亮 ${litW}/${GEO_WORLD.quiz.length} 国家`,
+      () => GlobeUI.start(), 'var(--accent)'));
+  }
   slot.innerHTML = '';
   slot.appendChild(h('div', { class: 'card' },
     h('div', { class: 'sec-title' }, '🌌 学科星系'),
@@ -2295,6 +2309,23 @@ function renderGrowthCard(slot) {
       h('div', { class: 'bar slim', style: 'margin-top:4px' }, h('i', { style: 'width:' + Math.round(goal.prog * 100) + '%' }))
     )
   ));
+  /* 道具铺（v48）：锦囊——金币购入，Boss战/竞技场/塔防/地球仪通用 */
+  slot.appendChild(h('div', { class: 'card hint-shop' },
+    h('div', { style: 'display:flex;align-items:center;gap:10px' },
+      h('span', { style: 'font-size:22px' }, '💡'),
+      h('div', { style: 'flex:1' },
+        h('div', { style: 'font-weight:800' }, `锦囊 ×${s.items.hints || 0}`),
+        h('div', { class: 'tiny' }, '卡壳时排除 2 个错误选项 · Boss战/竞技场/塔防/地球仪通用')),
+      h('button', { class: 'btn btn-gold small', onclick: e => { e.stopPropagation(); buyHintUI(); } }, `${ITEM_HINT_COST}🪙 买一个`))
+  ));
+}
+
+function buyHintUI() {
+  Sound.tap();
+  const r = Store.buyHint();
+  if (r === 'ok') { Sound.coin(); toast('💡 锦囊+1！关键时刻能救命'); renderGrowthCard(); }
+  else if (r === 'full') toast(`最多带 ${Store.ITEM_HINT_MAX} 个锦囊，先用完再买～`);
+  else toast('金币不够啦，先去赚一点吧');
 }
 
 function openFootprint() {

@@ -1480,6 +1480,8 @@ const COIN_CHALLENGE_REVIEW = 2; // 挑战词复习加成
 const STAR_BOX_COST = 80;        // 神秘星盒单价（每天限 2 个）
 const SHIELD_COST = 500;         // 金币兑换连击护盾（v21 新增出口）
 const SHIELD_MAX = 5;            // 护盾持有上限（每周自动补 2 张也在上限内）
+const ITEM_HINT_COST = 30;       // 锦囊道具单价（v48：Boss战/竞技场/塔防/地球仪中移除 2 个错误项）
+const ITEM_HINT_MAX = 5;         // 锦囊持有上限（道具，与拼写提示 HINT_COST 区分）
 
 /* ============================================================
  * 版本更新日志：页面刷新检测到 APP_VERSION 变化时弹一次（见 app.js）
@@ -1487,6 +1489,18 @@ const SHIELD_MAX = 5;            // 护盾持有上限（每周自动补 2 张�
  * 发版时在这里补一条（items: [emoji, 标题, 一句话说明]）
  * ============================================================ */
 const RELEASE_NOTES = {
+  v48: {
+    emoji: '🛡️',
+    title: '单词保卫战上线 + 环球求知号地理新学科 + 锦囊道具',
+    items: [
+      ['🛡️', '单词保卫战', '全新塔防游戏：外星怪顶着课本单词来入侵，认出它、点对中文意思就能开火！外研版三册教材同步，点错怪会加速，每关最后的头盔大 Boss 要连对 3 个词'],
+      ['⏱️', '速度自己选', '觉得太快？主页选「🐢 慢速」慢慢想；拿不准点「🔊 听单词」随时重听；答错的词下一局会再来找你'],
+      ['🌍', '环球求知号', '地理新学科上线：转动 3D 地球仪找国家、点省份，答对就点亮世界地图！还有「📖 认一认」学堂，名字全标在图上，零基础随便点'],
+      ['🗺️', '地图大升级', '国界省界清晰描边、＋/－ 或双指捏合可放大，小国小省份也点得中；考大洋时不再把答案写在图上啦'],
+      ['💡', '锦囊道具', '卡壳神器：答题时排除 2 个错误选项，Boss战/竞技场/塔防/地球仪通用——30🪙 一个，在「成长与奖励」页买，首次更新送 2 个'],
+      ['🏅', '8 枚新徽章', '保卫战首胜、满星防线、本学期卫士、全线指挥官、环球启航、环球旅行家、祖国全图、锦囊妙计——去徽章墙看看！']
+    ]
+  },
   v47: {
     emoji: '🎙️',
     title: '口语星系上线：跟读闯关 + 伙伴聊天',
@@ -1689,5 +1703,22 @@ const ACHIEVEMENTS = [
   { id: 'guwen-all',    emoji: '🧧', name: '小古文达人', desc: '读完全部小古文',
     cond: s => s.chinese && s.chinese.guwen && s.chinese.guwen.length >= CN_GUWEN.length },
   { id: 'phonics-first', emoji: '🔤', name: '拼读新星',  desc: '完成第一组词族拼读',
-    cond: s => s.phonics && (s.phonics.rounds || 0) >= 1 }
+    cond: s => s.phonics && (s.phonics.rounds || 0) >= 1 },
+  /* v48：单词保卫战 / 环球求知号 / 锦囊 */
+  { id: 'td-first',     emoji: '🛡️', name: '保卫战首胜', desc: '打赢第一场单词保卫战',
+    cond: s => s.td && (s.td.plays || 0) >= 1 },
+  { id: 'td-star3',     emoji: '🌟', name: '满星防线',   desc: '任意关卡拿到三颗星',
+    cond: s => s.td && Object.values(s.td.stars || {}).some(v => v >= 3) },
+  { id: 'td-book4a',    emoji: '📒', name: '本学期卫士', desc: '四年级上册每关至少通过一次',
+    cond: s => s.td && typeof TD_BOOKS !== 'undefined' && TD_BOOKS.filter(b => b.current).every(b => b.units.every(u => (s.td.stars[u.id] || 0) >= 1)) },
+  { id: 'td-all-books', emoji: '🏰', name: '全线指挥官', desc: '三册教材的关卡全部通关',
+    cond: s => s.td && typeof TD_BOOKS !== 'undefined' && TD_BOOKS.every(b => b.units.every(u => (s.td.stars[u.id] || 0) >= 1)) },
+  { id: 'geo-first',    emoji: '🌍', name: '环球启航',   desc: '完成第一次环球问答',
+    cond: s => s.geo && (s.geo.plays || 0) >= 1 },
+  { id: 'geo-world-30', emoji: '🧭', name: '环球旅行家', desc: '点亮 30 个国家和地区',
+    cond: s => { if (!s.geo || typeof GEO_WORLD === 'undefined') return false; const q = new Set(GEO_WORLD.quiz); return Object.keys(s.geo.lit).filter(n => q.has(n)).length >= 30; } },
+  { id: 'geo-china-all', emoji: '🏮', name: '祖国全图',  desc: '点亮全部 34 个省级行政区',
+    cond: s => { if (!s.geo || typeof GEO_CHINA === 'undefined') return false; return GEO_CHINA.feats.every(f => s.geo.lit[f[0]]); } },
+  { id: 'hint-first',   emoji: '💡', name: '锦囊妙计',   desc: '第一次使用锦囊求助',
+    cond: s => s.stats && (s.stats.hintUsed || 0) >= 1 }
 ];

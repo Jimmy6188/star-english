@@ -64,6 +64,9 @@ const Store = (() => {
       enKp: { fams: [], dlgs: [], sents: [], scenes: [] }, // 英语知识点错题池（v45）：拼读词族/KET对话/句子默写/场景词卡 {id, kp}
       scene: { words: {} }, // 场景词卡（v45 P1-C）：点读过的词 -> 日期
       arena: { spell: { best: 0, plays: 0 }, clue: { best: 0, plays: 0 }, idiom: { best: 0, plays: 0 }, roo: { best: 0, plays: 0 }, flower: { best: 0, plays: 0, ocean: false }, hanzi: { best: 0, plays: 0 } }, // 竞技场纪录（v38+v40+v45海洋开关）
+      td: { stars: {}, wrong: [], plays: 0 },  // 单词保卫战（v48）：关卡星级/错词池/累计场次
+      geo: { lit: {}, best: {}, plays: 0 },    // 环球求知号（v48）：已点亮国家/省份 -> 日期 · 各模式最佳星级
+      items: { hints: 2 },                     // 道具（v48）：锦囊数量（首次赠送 2 个试玩）
       ket: { done: [] },   // KET补全对话（v40）：已练过的对话 id
       kpCheck: {},         // 知识点小测结果（v42）：id -> {at, ok, total, verdict}
       stats: { drillsDone: 0, thinkDone: 0, boxesOpened: 0 }
@@ -156,6 +159,14 @@ const Store = (() => {
       if (state.pet.fed >= 30) state.pet.fed = Math.max(state.pet.fed, 60); // 旧满级机甲伙伴保级
       // 10~29 次喂食在新阈值下仍是小机器人，无需处理
     }
+    if (!state.td) state.td = { stars: {}, wrong: [], plays: 0 }; /* v48：单词保卫战 */
+    if (!state.td.stars) state.td.stars = {};
+    if (!Array.isArray(state.td.wrong)) state.td.wrong = [];
+    if (!state.geo) state.geo = { lit: {}, best: {}, plays: 0 }; /* v48：环球求知号 */
+    if (!state.geo.lit) state.geo.lit = {};
+    if (!state.geo.best) state.geo.best = {};
+    if (!state.items) state.items = { hints: 2 }; /* v48：锦囊（老存档首次迁移也赠送 2 个） */
+    if (state.stats && state.stats.hintUsed === undefined) state.stats.hintUsed = 0;
     let r = 0;
     RANKS.forEach((x, i) => { if (learnedCount() >= x.need) r = i; });
     if (state.rankIdx === undefined || state.rankIdx === null || r > state.rankIdx) state.rankIdx = r;
@@ -1221,6 +1232,56 @@ const Store = (() => {
     save();
   }
 
+  /* ---------- 单词保卫战（v48）：教材词塔防 ---------- */
+  function finishTdLevel(levelId, stars) {
+    state.td.plays = (state.td.plays || 0) + 1;
+    const prev = state.td.stars[levelId] || 0;
+    if (stars > prev) state.td.stars[levelId] = stars;
+    const got = earnScaled('td', 6 + stars * 3);
+    checkBadges();
+    save();
+    return got;
+  }
+  /* 答错的词进塔防错词池（下一局同册混合时自动加练，答对当场清零） */
+  function addTdWrong(item) {
+    if (!state.td.wrong.some(x => x.w === item.w)) state.td.wrong.push(item);
+    if (state.td.wrong.length > 40) state.td.wrong = state.td.wrong.slice(-40);
+    save();
+  }
+  function clearTdWrong(w) {
+    state.td.wrong = state.td.wrong.filter(x => x.w !== w);
+    save();
+  }
+
+  /* ---------- 环球求知号（v48）：地理新学科 ---------- */
+  function finishGeoRound(mode, stars, litNames) {
+    state.geo.plays = (state.geo.plays || 0) + 1;
+    state.geo.best[mode] = Math.max(state.geo.best[mode] || 0, stars);
+    (litNames || []).forEach(n => { if (!state.geo.lit[n]) state.geo.lit[n] = todayStr(); });
+    const got = earnScaled('geo', 5 + stars * 3);
+    checkBadges();
+    save();
+    return got;
+  }
+
+  /* ---------- 锦囊道具（v48）：金币购买，Boss战/竞技场/塔防/地球仪中移除错误项 ---------- */
+  function buyHint() {
+    if ((state.items.hints || 0) >= ITEM_HINT_MAX) return 'full';
+    if (!spend(ITEM_HINT_COST)) return 'poor';
+    state.items.hints++;
+    checkBadges();
+    save();
+    return 'ok';
+  }
+  function useHint() {
+    if (!(state.items.hints > 0)) return false;
+    state.items.hints--;
+    if (state.stats) state.stats.hintUsed = (state.stats.hintUsed || 0) + 1;
+    checkBadges();
+    save();
+    return true;
+  }
+
   /* 首次启动检测 */
   function isFirstRun() { return !localStorage.getItem('star-english-greeted'); }
   function markGreeted() { localStorage.setItem('star-english-greeted', '1'); }
@@ -1288,9 +1349,10 @@ const Store = (() => {
     sentenceNewAdd, sentenceNewList, sentenceNewOk, sentenceNewRemove, finishSentenceBook,
     writingList, saveWriting, reviewWriting,
     arenaFinish,
+    finishTdLevel, addTdWrong, clearTdWrong, finishGeoRound, buyHint, useHint,
     nextJuniorCard, markJuniorSeen,
     addCustomWords, removeCustomWord,
     exportJSON, importJSON, resetProgress, factoryReset,
-    isFirstRun, markGreeted, FEED_COST, seenVersion, markVersionSeen
+    isFirstRun, markGreeted, FEED_COST, ITEM_HINT_COST, ITEM_HINT_MAX, seenVersion, markVersionSeen
   };
 })();

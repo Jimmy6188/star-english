@@ -314,7 +314,7 @@ setQuestSub('var(--gold-strong)');
     let answered = false, answeredOk = false;
     q.opts.forEach((t, i) => {
       optsEl.appendChild(h('button', {
-        class: 'cn-opt', 'data-i': String(i),
+        class: 'cn-opt', 'data-i': String(i), 'data-ok': i === q.ansIdx ? '1' : '0', /* v48 锦囊排除项标记 */
         onclick: e => {
           if (answered) return;
           answered = true;
@@ -338,7 +338,7 @@ setQuestSub('var(--gold-strong)');
     });
     root.appendChild(h('div', { class: 'card drill-card' },
       h('div', { class: 'drill-text', style: 'text-align:left;white-space:pre-line' }, q.text),
-      optsEl, tipEl, nextBtn
+      optsEl, hintBtn(optsEl), tipEl, nextBtn
     ));
   },
   /* 数学思维：数字填空题 */

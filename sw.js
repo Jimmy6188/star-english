@@ -7,8 +7,11 @@
  * v44：24点自由拼 + 英语拼写求助（仅自由练）+ 主科全达白屏修复 + 手写判分修复 + 小古文40篇 + KET对话40段 + KET词汇站（1735词）+ 江山时序外链（全量重预缓存，新增 data-ketwords/ui-ketwords）
  * v44b：江山时序改新窗口打开（对方域名无 HTTPS，https 页面 iframe 嵌 http 被混合内容拦截黑屏；版本号不变，靠本行字节变化触发 SW 重装刷新预缓存）
  * v45：修 Pad 上补丁刷不出来——①页面导航改网络优先（3 秒超时回缓存），HTML 不再永远吃旧缓存；②预缓存改逐文件容错，个别下载失败不卡死整轮更新；③HTML 用 cache:'reload' 每次导航强制回源（全量重预缓存）
- * v47：口语星系上线（全量重预缓存，新增 voice-engine/ui-voice；voice-lab 验证页不进预缓存，直达链接时运行时回填） */
-const CACHE = 'star-english-v47';
+ * v47：口语星系上线（全量重预缓存，新增 voice-engine/ui-voice；voice-lab 验证页不进预缓存，直达链接时运行时回填）
+ * v48：单词保卫战（外研教材词塔防）+ 环球求知号（地理地球仪）+ 锦囊道具 + Boss/竞技场锦囊挂钩（新增 data-td/data-geo/ui-defense/ui-globe）
+ * v48a：验收反馈四连修——塔防目标粘性防发音串卡/点错停音/去"？"占位/速度三档可选/界面精化+🔊重听按钮；地球仪拖动虚影根除（整屏清底）/考大洋时藏洋名/世界与中国地图双指捏合+按钮缩放+平移夹紧（小国小省可点）
+ * v48b：地理反馈二连修——新增「📖 认一认」零基础学堂（世界/中国全标注+点哪读哪不计分）+A型「💡提示」按钮（帮我转过去/闪圈圈，用过不算首答对）；B型高亮不再带地名标签（泄题修复，标签只在答对后出现）；删掉 A 型自动对准的泄题源；中国省界重建 0.05° 细数据+白色边界描边（放大不糊、省界可辨） */
+const CACHE = 'star-english-v48';
 const ASSETS = [
   './',
   './index.html',
@@ -44,6 +47,10 @@ const ASSETS = [
   './js/data-scene.js',
   './js/ui-ketwords.js',
   './js/ui-scene.js',
+  './js/data-td.js',
+  './js/data-geo.js',
+  './js/ui-defense.js',
+  './js/ui-globe.js',
   './js/voice-engine.js',
   './js/ui-voice.js',
   './js/data-junior-prep.js',
